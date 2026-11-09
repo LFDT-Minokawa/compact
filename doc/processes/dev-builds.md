@@ -35,7 +35,7 @@ be matched to its coordinate without trusting the filename.
 - **Inputs:**
   - `branch` (required) -- branch or ref to build and publish from.
   - `target` (default empty) -- the target to build the compactc binary for: a
-    directory name in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_1`), `all`, or
+    directory name in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_2`), `all`, or
     empty for the default target (`default-compactc-target` in `flake.nix`).
     Combined with the operating systems below, one binary is built, tested and
     published per (operating system, target).
@@ -69,11 +69,11 @@ compactc binary, download the per-arch, per-target asset from the
 ```
 gh release download compactc-dev-<full-commit-sha> \
   --repo LFDT-Minokawa/compact \
-  --pattern 'compactc_dev-<full-commit-sha>_x86_64-unknown-linux-musl_ocrt_v4.0-zkir_v3.1.zip'
+  --pattern 'compactc_dev-<full-commit-sha>_x86_64-unknown-linux-musl_ocrt_v4.0-zkir_v3.2.zip'
 ```
 
 The `target` input of the workflow selects the target(s) the binary is built for: the
-name of a directory in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_1`), `all` for
+name of a directory in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_2`), `all` for
 every one, or empty (the default) for the default target of `flake.nix`. One asset is published per selected operating system
 and target; the target part of the name is the directory name respelled as
 `ocrt_v<M.m>-zkir_v<M.m>`.

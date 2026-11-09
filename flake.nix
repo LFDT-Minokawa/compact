@@ -115,7 +115,7 @@
         # targets against the flake inputs run.
         default-compactc-target =
           assert target-inputs-checked;
-          "ocrt-4_0-zkir-3_1";
+          "ocrt-4_0-zkir-3_2";
 
         # Other targets in compiler/targets/ are built with packages.compactc-<target>, which
         # are generated for every target below.

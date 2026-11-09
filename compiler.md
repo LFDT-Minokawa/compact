@@ -146,7 +146,7 @@ of this document.
 
 A `compactc` build is built for exactly one *target*, the pair of the on-chain
 runtime and ZKIR versions the compiler depends on.  A target is named
-`ocrt-<major>_<minor>-zkir-<major>_<minor>`, e.g., `ocrt-4_0-zkir-3_1`.
+`ocrt-<major>_<minor>-zkir-<major>_<minor>`, e.g., `ocrt-4_0-zkir-3_2`.
 The files that depend on the target live in
 [compiler/targets/<target>/](./compiler/targets): the TypeScript and ZKIR
 passes (`typescript-passes.ss`, `zkir-v3-passes.ss` and their directories), the
@@ -160,7 +160,7 @@ on the Chez library path (`CHEZSCHEMELIBDIRS`, set by `flake.nix`).
 `compactc --target` prints the target of a build, and `contract-manifest.json`
 records it in the generated contract.
 
-The name of a target says its versions: `ocrt-4_0-zkir-3_1` is the target of
+The name of a target says its versions: `ocrt-4_0-zkir-3_2` is the target of
 on-chain runtime 4.0 and ZKIR 3.1, and the record of the target has exactly these
 versions because it is made from the name.  A directory in `compiler/targets/` that
 is not named like a target fails the build.
@@ -187,7 +187,7 @@ nix build .#compactc-<T>  =  same build with <T> swapped in
 #### Names that must agree
 
 A target is referred to by name in several places, and they have to agree.  Take
-`ocrt-4_0-zkir-3_1` (on-chain runtime 4.0, ZKIR 3.1):
+`ocrt-4_0-zkir-3_2` (on-chain runtime 4.0, ZKIR 3.2):
 
 | # | What | Must be | Checked by | If it is wrong |
 | - | ---- | ------- | ---------- | -------------- |
@@ -258,6 +258,31 @@ the name of the target.
    the release workflows build) for every directory of `compiler/targets/`.  To make
    the new target the default, change `default-compactc-target` in `flake.nix`.
 
+#### Upgrading the minor version of a target (Adding a target and depracting another in one step)
+
+To move a target to a new minor version of its on-chain runtime or ZKIR, e.g., from
+`ocrt-4_0-zkir-3_1` to `ocrt-4_0-zkir-3_2`, rename it; the name of a target says its
+versions.  A major version change is a new target (see "Adding a target").
+
+1. In `flake.nix`, point the inputs at the new release.  They are pinned by tag in the
+   `url`, e.g., `github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2`.  Change both
+   `zkir-v3` and `zkir-v3-wasm` (test-center) for ZKIR, or `onchain-runtime-v<M>` for the
+   on-chain runtime, then run `nix flake update` to refresh `flake.lock`.
+2. If the target is the default, change `default-compactc-target` in `flake.nix`.
+3. Rename the three paths that carry the target name:
+   - `compiler/targets/<old>` to `compiler/targets/<new>`;
+   - `doc/api/CompactStandardLibrary-<old>` to `doc/api/CompactStandardLibrary-<new>`;
+   - `doc/ledger-adt-<old>.mdx` to `doc/ledger-adt-<new>.mdx`.
+4. For an on-chain runtime upgrade, the range of `@midnightntwrk/onchain-runtime-v<M>` in
+   `runtime/package.json` (nothing checks it).
+5. `git add` the moved paths: Nix does not see untracked files.
+6. Run `nix build` and `nix develop`.
+7. Run `./compiler/go --build-for-all-targets`, then check with `compactc --target` that it prints the
+   new versions.
+8. Add a CHANGELOG entry: the asset names of the release change
+   (`..._ocrt_v<M.m>-zkir_v<N.n>.zip`), and the `ledger-adt-<old>` page of the docs
+   repository must be removed.
+
 #### Building the compiler for a target
 
 ```
@@ -308,7 +333,7 @@ Run `nix build .#compactc-<new-target>`, then:
 `internal-release.yml` builds, tests and releases one `compactc` binary per operating
 system and target, for every directory in `compiler/targets/`.  An asset is named
 `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
-`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`; the target part is the
+`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.2.zip`; the target part is the
 directory name respelled by `scripts/target-artifact-suffix.sh`.
 
 #### Deprecating a target

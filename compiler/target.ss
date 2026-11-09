@@ -21,7 +21,7 @@
 ;;; current-target is the record of the target of this build.  It is made when this
 ;;; library is compiled, from the name of the one directory compiler/targets/<target>/
 ;;; that is on the library path (CHEZSCHEMELIBDIRS): the name of a target is
-;;; ocrt-<major>_<minor>-zkir-<major>_<minor>, e.g., ocrt-4_0-zkir-3_1, and its
+;;; ocrt-<major>_<minor>-zkir-<major>_<minor>, e.g., ocrt-4_0-zkir-3_2, and its
 ;;; on-chain runtime and ZKIR versions are the ones the name says, so they cannot
 ;;; disagree.  It is an error for no directory, or more than one, of
 ;;; compiler/targets/ to be on the library path, and for the directory not to be
@@ -81,7 +81,7 @@
               [(char=? (string-ref s i) #\-) (loop (fx+ i 1) (fx+ i 1) (cons (substring s start i) part*))]
               [else (loop (fx+ i 1) start part*)])))
 
-        ;; "ocrt-4_0-zkir-3_1" -> ("4.0" "3.1"); #f for any other name.
+        ;; "ocrt-4_0-zkir-3_2" -> ("4.0" "3.2"); #f for any other name.
         (define (parse-target-name name)
           (let ([part* (split-on-dash name)])
             (and (= (length part*) 4)

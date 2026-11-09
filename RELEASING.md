@@ -640,8 +640,8 @@ copy workflows exist for when you need one without the other.
 and *target*, where the targets are the directories of `compiler/targets/` on the
 branch being built (see "Targets" in `compiler.md`). Each asset is named
 `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip` — e.g.
-`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip` — the last part being the
-target's directory name `ocrt-4_0-zkir-3_1` respelled by
+`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.2.zip` — the last part being the
+target's directory name `ocrt-4_0-zkir-3_2` respelled by
 `scripts/target-artifact-suffix.sh`. A directory not named like a target fails the
 `list-targets` job. A new target needs no change to the workflow or to `flake.nix`, which
 generates `packages.compactc-binary-<target>` for every directory of `compiler/targets/`

@@ -17,9 +17,9 @@
 #       | `target` input             | targets built                                     |
 #       | -------------------------- | ------------------------------------------------- |
 #       | empty (the default)        | the default target, `default-compactc-target` in  |
-#       |                            | flake.nix (e.g. ocrt-4_0-zkir-3_1)                |
+#       |                            | flake.nix (e.g. ocrt-4_0-zkir-3_2)                |
 #       | `all`                      | every directory in compiler/targets/              |
-#       | a directory name           | just that target (e.g. ocrt-4_0-zkir-3_1)         |
+#       | a directory name           | just that target (e.g. ocrt-4_0-zkir-3_2)         |
 #       | an unknown name            | the workflow fails, listing the available targets |
 #
 # Coordinates produced (stable, pinnable)
@@ -44,7 +44,7 @@ on:
       target:
         description: >-
           Target to build the compactc binary for: the name of a directory in
-          compiler/targets/ (e.g. ocrt-4_0-zkir-3_1), `all` for every target, or
+          compiler/targets/ (e.g. ocrt-4_0-zkir-3_2), `all` for every target, or
           empty for the default target (default-compactc-target in flake.nix)
         required: false
         type: string

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The compiler is now built for a *target*, the pair of the on-chain runtime
   and ZKIR versions it is built against (CoIP 5, phase 0).  The new
   `--target` flag prints the target, e.g.,
-  `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
+  `onchain-runtime=4.0, zkir=3.2`, and `--version --verbose` shows the target
   in the same form.  `contract-manifest.json` records the target's `onchain-runtime-version`
   and `zkir-version`.
 
@@ -27,15 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   live in `compiler/targets/<target>/`.  As a consequence, the standard library
   files listed among the `sources` of generated source maps (`.js.map`) have
   new paths, e.g.,
-  `compiler/targets/ocrt-4_0-zkir-3_1/standard-library.compact`.
+  `compiler/targets/ocrt-4_0-zkir-3_2/standard-library.compact`.
 - **Release assets are renamed.**  The internal release now releases every target:
   one `compactc` binary per operating system and target, named
   `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
-  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`, instead of
+  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.2.zip`, instead of
   `compactc_v<compiler-version>_<os>.zip`.  Scripts and tools that download assets
   by hardcoding name must be updated.
 - `doc/ledger-adt.mdx` is now generated per target as
-  `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_1.mdx`) and
+  `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_2.mdx`) and
   in the title it states the on-chain runtime and ZKIR versions of that target.
   The docs workflows check, and copy to the docs repository, every such file.
   **Action required in the docs repository:** the workflows no longer write
@@ -44,14 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be removed by hand (otherwise stale copies remain).
 - The standard library API documents moved from `doc/api/CompactStandardLibrary/`
   to `doc/api/CompactStandardLibrary-<target>/` (e.g.,
-  `doc/api/CompactStandardLibrary-ocrt-4_0-zkir-3_1/`), and their links to the
+  `doc/api/CompactStandardLibrary-ocrt-4_0-zkir-3_2/`), and their links to the
   ledger data types point at the target's `doc/ledger-adt-<target>.mdx`.  The docs
   workflows check and copy each directory to
   `docs/compact/standard-library/CompactStandardLibrary-<target>/` in the docs
   repository. **Action required in the docs repository:** the old
   `docs/compact/standard-library/exports.md` and `README.md` must be removed
   by hand.
-  `compiler/compact-reference.mdx` links to `ledger-adt-ocrt-4_0-zkir-3_1`
+  `compiler/compact-reference.mdx` links to `ledger-adt-ocrt-4_0-zkir-3_2`
   but it does not state there will be potentially more than one ledger-adt.
 
 ### Internal notes

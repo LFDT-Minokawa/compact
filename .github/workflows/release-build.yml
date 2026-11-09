@@ -44,7 +44,7 @@ on:
       target:
         description: >-
           Target the binary is built for, the name of a directory in compiler/targets/
-          (e.g. ocrt-4_0-zkir-3_1).  When set, it is part of the artifact name:
+          (e.g. ocrt-4_0-zkir-3_2).  When set, it is part of the artifact name:
           compactc_<tag>_<architecture>_ocrt_v<M.m>-zkir_v<M.m>.zip.  The buildCommand
           is expected to build that target.
         required: false

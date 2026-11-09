@@ -18,13 +18,13 @@
 # Print the part of a compactc release artifact name that identifies the target,
 # given the name of a directory in compiler/targets/:
 #
-#   ocrt-4_0-zkir-3_1  ->  ocrt_v4.0-zkir_v3.1
+#   ocrt-4_0-zkir-3_2  ->  ocrt_v4.0-zkir_v3.2
 #
 # so that the artifact of a release is
 #
 #   compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip
 #
-# e.g., compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip.  A name that is
+# e.g., compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.2.zip.  A name that is
 # not of the form ocrt-<major>_<minor>-zkir-<major>_<minor> is an error.
 
 set -o errexit
