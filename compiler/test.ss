@@ -84320,6 +84320,26 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #857: a ledger operation on the default of a native type was an internal error, or its
+  ; circuit failed the proof-data check.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger points: List<[JubjubPoint, JubjubScalar]>;"
+      "export ledger tree: MerkleTree<4, JubjubPoint>;"
+      "export circuit head(): Maybe<[JubjubPoint, JubjubScalar]> { return points.head(); }"
+      "export circuit insert(): [] { tree.insertIndexDefault(0); }"
+      )
+    (stage-javascript
+      '(
+        "test('native defaults in ledger operations', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await contract.circuits.head(context);"
+        "  await contract.circuits.insert(context);"
+        "  });"
+        ))
+    )
+
   ; Issue #880: casting a foreign field type to Uint was an internal error.
   (test
     '(

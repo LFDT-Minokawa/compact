@@ -327,17 +327,28 @@
                   instr*)))
             ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
             (cons* hash1 hash0 32 1 code*))))
-      ;; The number of zeros and alignment for the default value of an Lflattened type.
+      ;; The default value of an Lflattened type as a zkir-val.  A native atom gets the output of a
+      ;; `default` statement, which this adds to zkir-instr*.  JubjubScalar has no `default`
+      ;; statement: as in flatten-datatypes, its default is the field 0.
       (define (default-for type)
         (nanopass-case (Lflattened Type) type
           [(ty (,alignment* ...) (,primitive-type* ...))
-           (let ([count (fold-left
-                          (lambda (count atom)
-                            (nanopass-case (Lflattened Alignment) atom
-                              [(abytes ,nat) (+ count (ceiling (/ nat (field-bytes))))]
-                              [else (1+ count)]))
-                          0 alignment*)])
-             (values count alignment*))]))
+           (make-zkir-val primitive-type* alignment*
+             (apply append
+               (maplr
+                 (lambda (atom)
+                   (nanopass-case (Lflattened Alignment) atom
+                     [(anative ,zkir-type) (guard (not (string=? zkir-type "JubjubScalar")))
+                      (let ([var (make-temp-id default-src 'default)])
+                        (zkir-instr*
+                          (Statement
+                            (with-output-language (Lflattened Statement)
+                              `(= 1 (,var) (default ,zkir-type)))
+                            (zkir-instr*)))
+                        (list var))]
+                     [(abytes ,nat) (make-list (ceiling (/ nat (field-bytes))) 0)]
+                     [else (list 0)]))
+                 alignment*)))]))
 
       ;; Operands can be one of:
       ;;   - zkir-val, typed Lzkir outputs consisting of a list of
@@ -383,12 +394,7 @@
                          (if (zero? i)
                              (outer (cdr op*) (+ count len) alignment* (append var* tail))
                              (inner (1- i) (cdr tail) (cons (car tail) alignment*))))))))]
-            [(VMnull type)
-             (let-values ([(count alignment*) (default-for type)])
-               ;; Encoding in code* is in reversed order.
-               (append (make-list count 0)
-                 (map assemble-alignment-atom (reverse alignment*))
-                 (cons (length alignment*) code*)))]
+            [(VMnull type) (assemble-operand-acc code* (default-for type))]
             [(VMmax-sizeof type)
              ;; There's room to tighten this in the future, we just need to be careful to keep it
              ;; in sync with the Rust version.
@@ -396,7 +402,11 @@
              ;; call-by-value reasoning.
              (nanopass-case (Lflattened Type) type
                [(ty (,alignment* ...) (,primitive-type* ...))
-                (cons (if (null? alignment*)
+                ;; A native atom counts as the ledger atoms that encode it.
+                (define-values (ledger-alignment* triv* instr*)
+                  (circuit-alignment-for default-src alignment*
+                    (make-list (length primitive-type*) 0) '()))
+                (cons (if (null? ledger-alignment*)
                           2
                           (fold-left
                             (lambda (sum atom)
@@ -407,8 +417,8 @@
                                        3
                                        (+ 2 nat (ceiling (/ (integer-length nat) 8))))]
                                   [else 34])))
-                            (1+ (ceiling (/ (integer-length (length alignment*)) 8)))
-                            alignment*))
+                            (1+ (ceiling (/ (integer-length (length ledger-alignment*)) 8)))
+                            ledger-alignment*))
                   code*)])]
             [(VMvalue->int x)
              (let ([var* (zkir-val-input* x)])
@@ -449,8 +459,8 @@
                      [(VMop? val)
                       (VMop-case val
                         [(VMnull type)
-                         (let-values ([(count alignment*) (default-for type)])
-                           (values (make-list count 0) alignment*))]
+                         (let ([val (default-for type)])
+                           (values (zkir-val-input* val) (zkir-val-alignment* val)))]
                         [else (assert cannot-happen)])]
                      [else (assert cannot-happen)])])
                (let-values ([(sep-val sep-length) (domain-separator "mdn:lh")])
