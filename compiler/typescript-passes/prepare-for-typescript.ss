@@ -186,7 +186,10 @@
       (define rdescriptor* '())
       (define (register-descriptor! type)
         (let ([type (subst-tcontract type)])
-          (unless (public-adt? type)
+          ;; descriptors encode values into transcripts and ledger state, which an
+          ;; Accumulator never reaches
+          (unless (or (public-adt? type)
+                      (T (de-alias type) [(taccumulator ,src) #t]))
             ; types aren't recursive, so no need to handle cycles here
             (T (de-alias type)
                [(tvector ,src ,len ,type)

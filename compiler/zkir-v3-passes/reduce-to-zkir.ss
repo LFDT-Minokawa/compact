@@ -138,6 +138,27 @@
                 (cons (make-private-input test var-name primitive-type) instr*)))
             instr* var-name* primitive-type*)))
 
+    ;; accumulate is n-ary in ZKIR but binary in Compact, so a nested
+    ;; accumulate(accumulate(a, b), c) is emitted as one accumulate of a, b, and c.
+    ;; An accumulate is not emitted where it is called: its output is mapped here
+    ;; to its inputs, so that an accumulate taking that output absorbs them.  It
+    ;; is emitted when its output reaches anything else, which, because each
+    ;; Accumulator is used exactly once, happens once.
+    (define pending-accumulate-ht)
+    (define (accumulate-inputs triv)
+      (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
+        (if inputs
+            (begin (hashtable-delete! pending-accumulate-ht triv) inputs)
+            (list triv))))
+    (define (emit-pending-accumulate triv instr*)
+      (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
+        (if inputs
+            (begin
+              (hashtable-delete! pending-accumulate-ht triv)
+              (with-output-language (Lzkir Instruction)
+                (cons `(accumulate ,triv ,inputs ...) instr*)))
+            instr*)))
+
     (define (make-native name arg*)
       ;; Get the list of alignment atoms for a 0-based arg index.
       (define (arg->alignment arg* index)
@@ -148,6 +169,17 @@
         (with-output-language (Lzkir Instruction)
           ;; Generally assume that the arity is correct here.
           (case name
+            [(accumulate)
+             (assert (= (length var-name*) 1))
+             (hashtable-set! pending-accumulate-ht (car var-name*)
+               (append (accumulate-inputs (car triv*)) (accumulate-inputs (cadr triv*))))
+             instr*]
+            [(verifyAccumulator)
+             ;; verify_accumulator has no guard: a guarded-off Accumulator is the
+             ;; trivial one, which verifies
+             (assert (= (length var-name*) 0))
+             (cons `(verify_accumulator ,(car triv*))
+               (emit-pending-accumulate (car triv*) instr*))]
             [(constructJubjubPoint)
              (assert (= (length var-name*) 1))
              (cons `(from_coordinates ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
@@ -775,7 +807,7 @@
      ;; - Insert type constraints for inputs
      ;; - Translate the statements in the body
      ;; - Emit an (output ...) terminator with the result trivs as operands.
-     (fluid-let ([default-src src])
+     (fluid-let ([default-src src] [pending-accumulate-ht (make-eq-hashtable)])
        (let-values ([(var-name* arg-type*) (unzip-arguments arg*)])
          (let* ([constraint*
                   (fold-left (lambda (constraint* var-name type)
@@ -784,6 +816,8 @@
                 [instr*
                   (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                     constraint* stmt*)]
+                [_ (unless (fx= (hashtable-size pending-accumulate-ht) 0)
+                     (internal-errorf 'reduce-to-zkir "an accumulate result is never used"))]
                 [body
                   (if (null? triv*)
                       instr*
@@ -975,6 +1009,16 @@
             env
             vm-code
             instr*))])]
+    ;; prepare_verification takes the statement's test as its guard, and the
+    ;; inner_proof binding the proof witness must have the same guard; the proof
+    ;; triv is TypeScript's copy and has no use in the circuit
+    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,triv* ...))
+     (let ([proof (make-temp-id src 'proof)])
+       (with-output-language (Lzkir Instruction)
+         (cons*
+           `(prepare_verification ,var-name ,vk ,test ,proof ,triv* ...)
+           `(inner_proof ,proof ,test)
+           instr*)))]
     [(= ,test ,var-name ,single)
      (Single single var-name instr*)]
     [(assert ,src ,test ,mesg)
@@ -985,9 +1029,6 @@
       (assert cannot-happen)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
-    ;; TODO: replaced when ZKIR generation for proof verification lands
-    [(prepare-verification ,src ,vk ,triv ,triv* ...)
-     (source-errorf src "prepareVerification is not yet supported")]
     [(+ ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(add ,var-name ,triv0 ,triv1) instr*))]
@@ -1009,7 +1050,8 @@
        (cons `(test_eq ,var-name ,triv0 ,triv1) instr*))]
     [(select ,triv0 ,triv1 ,triv2)
      (with-output-language (Lzkir Instruction)
-       (cons `(cond_select ,var-name ,triv0 ,triv1 ,triv2) instr*))]
+       (cons `(cond_select ,var-name ,triv0 ,triv1 ,triv2)
+         (emit-pending-accumulate triv2 (emit-pending-accumulate triv1 instr*))))]
     [(bytes-ref ,triv ,nat)
      (with-output-language (Lzkir Instruction)
        (let ([quo (make-temp-id default-src 'quo)]

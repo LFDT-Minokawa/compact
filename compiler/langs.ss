@@ -1332,6 +1332,7 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      (verifying-key (vk))
       ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
       ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
@@ -1341,6 +1342,7 @@
       (circuit src (name* ...) ((var-name* zkir-type*) ...) (zkir-type0* ...) instr* ...) =>
         (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f (zkir-type0* 0 ...) #f instr* ...))
     (Instruction (instr)
+      (accumulate outp inp* ...)
       (add outp inp0 inp1)
       (assert inp)
       (bytes_from_natives outp imm inp* ...)
@@ -1358,6 +1360,8 @@
       (from_coordinates outp inp0 inp1)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
+      ;; inp is the guard
+      (inner_proof outp inp)
       (into_coordinates outp0 outp1 inp)
       (inv outp inp)
       (jubjub_scalar_from_native outp inp)
@@ -1368,6 +1372,8 @@
       (not outp inp)
       (output inp* ...)
       (persistent_hash outp (alignment* ...) inp* ...)
+      ;; inp0 is the guard, inp1 the proof bound by inner_proof, inp* the instance
+      (prepare_verification outp vk inp0 inp1 inp* ...)
       (private_input zkir-type outp inp)
       (private_input zkir-type outp)
       (public_input zkir-type outp inp)
@@ -1379,6 +1385,7 @@
       (test_eq outp inp0 inp1)
       (to_bytes outp inp)
       (transient_hash outp inp* ...)
+      (verify_accumulator inp)
       )
     (Input (inp)
       fr

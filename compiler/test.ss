@@ -51797,6 +51797,176 @@ groups than for single tests.
 )
 
 (run-tests print-zkir-v3
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%t.2\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.2\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.2\", \"output\": \"%t.3\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.3\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%c.0\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.4\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.4\", \"output\": \"%t.5\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%t.3\", \"output\": \"%proof.6\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%t.3\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.6\", \"output\": \"%t.7\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%a.8\", \"bit\": \"%c.0\", \"a\": \"%t.5\", \"b\": \"%t.7\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%a.8\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%a.2\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%b.4\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.2\", \"%b.4\"], \"output\": \"%t.5\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.5\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(accumulate(a, b), c));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%a.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%b.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%c.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.4\", \"%b.6\", \"%c.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
