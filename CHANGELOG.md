@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.0]
+## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.100]
 
 ### Fixed
 
@@ -16,6 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that is not called.  `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` inside
   an `if` failed the same way. Affected contracts must be recompiled to get
   the fix.
+
+## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit calls
+  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth in
+  `[16, 32]`, or stores a default tree of such a depth in a `Map` with
+  `insertDefault()` or `insert()`.
+
+## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- Compact JavaScript runtime now keeps a leading U+FEFF when it reads an
+  `Opaque<'string'>` value. It used to drop the character as a byte order
+  mark, so the string no longer matched the bytes stored on the ledger, and a
+  circuit that returned it, wrote it back, compared it with another string or
+  used it as a map key could not be proven.
 
 ## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
 

@@ -63987,6 +63987,69 @@ groups than for single tests.
         ))
     )
 
+  ; default Merkle trees deeper than 15 (issue #879)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger field1: MerkleTree<16, Field>;"
+      "export ledger field2: MerkleTree<20, Field>;"
+      "export ledger field3: MerkleTree<32, Field>;"
+      "export ledger field4: HistoricMerkleTree<16, Field>;"
+      "export ledger field5: HistoricMerkleTree<20, Field>;"
+      "export ledger field6: HistoricMerkleTree<32, Field>;"
+      "export ledger field7: Map<Boolean, MerkleTree<32, Field>>;"
+      "export ledger field8: Map<Boolean, HistoricMerkleTree<32, Field>>;"
+      ""
+      "export circuit reset(x: Field): [] {"
+      "  field1.insert(disclose(x));"
+      "  field2.insert(disclose(x));"
+      "  field3.insert(disclose(x));"
+      "  field4.insert(disclose(x));"
+      "  field5.insert(disclose(x));"
+      "  field6.insert(disclose(x));"
+      "  field1.resetToDefault();"
+      "  field2.resetToDefault();"
+      "  field3.resetToDefault();"
+      "  field4.resetToDefault();"
+      "  field5.resetToDefault();"
+      "  field6.resetToDefault();"
+      "}"
+      ""
+      "export circuit initDefault(b: Boolean): [] {"
+      "  field7.insertDefault(disclose(b));"
+      "  field8.insertDefault(disclose(b));"
+      "}"
+      ""
+      "export circuit initWithDefault(b: Boolean): [] {"
+      "  field7.insert(disclose(b), default<MerkleTree<32, Field>>);"
+      "  field8.insert(disclose(b), default<HistoricMerkleTree<32, Field>>);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const L0 = contractCode.ledger(Ctxt0.callContext.currentQueryContext.state);"
+        "  const Ctxt1 = (await C.circuits.reset(Ctxt0, 5n)).context;"
+        "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
+        "  expect(L1.field1.root()).toEqual(L0.field1.root());"
+        "  expect(L1.field2.root()).toEqual(L0.field2.root());"
+        "  expect(L1.field3.root()).toEqual(L0.field3.root());"
+        "  expect(L1.field4.root()).toEqual(L0.field4.root());"
+        "  expect(L1.field5.root()).toEqual(L0.field5.root());"
+        "  expect(L1.field6.root()).toEqual(L0.field6.root());"
+        "  const Ctxt2 = (await C.circuits.initDefault(Ctxt1, true)).context;"
+        "  const Ctxt3 = (await C.circuits.initWithDefault(Ctxt2, false)).context;"
+        "  const L3 = contractCode.ledger(Ctxt3.callContext.currentQueryContext.state);"
+        "  expect(L3.field7.lookup(true).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field7.lookup(false).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field8.lookup(true).root()).toEqual(L0.field6.root());"
+        "  expect(L3.field8.lookup(false).root()).toEqual(L0.field6.root());"
+        "});"
+        ))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -80355,6 +80418,48 @@ groups than for single tests.
         "  expect((await contract.circuits.test1(context, 'Hello, Compact!')).result).toEqual([]);"
         "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger memo: Opaque<'string'>;"
+      "export ledger archived: Opaque<'string'>;"
+      "export ledger seen: Map<Opaque<'string'>, Boolean>;"
+      "export circuit store(m: Opaque<'string'>): [] {"
+      "  memo = disclose(m);"
+      "}"
+      "export circuit markSeen(m: Opaque<'string'>): [] {"
+      "  seen.insert(disclose(m), true);"
+      "}"
+      "export circuit receipt(): Opaque<'string'> {"
+      "  return memo;"
+      "}"
+      "export circuit archive(): [] {"
+      "  archived = memo;"
+      "}"
+      "export circuit matches(m: Opaque<'string'>): Boolean {"
+      "  return disclose(memo == m);"
+      "}"
+      "export circuit wasSeen(): Boolean {"
+      "  return seen.member(memo);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an opaque string read from the ledger keeps a leading U+FEFF', async () => {"
+        "  // Each of these failed because the runtime dropped a leading U+FEFF as a byte order mark."
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const memo = '\\uFEFFmemo';"
+        "  const afterStore = (await contract.circuits.store(context, memo)).context;"
+        "  expect((await contract.circuits.receipt(afterStore)).result).toEqual(memo);"
+        "  const afterArchive = (await contract.circuits.archive(afterStore)).context;"
+        "  expect(contractCode.ledger(afterArchive.callContext.currentQueryContext.state).archived).toEqual(memo);"
+        "  expect((await contract.circuits.matches(afterStore, memo)).result).toEqual(true);"
+        "  const afterMark = (await contract.circuits.markSeen(afterStore, memo)).context;"
+        "  expect((await contract.circuits.wasSeen(afterMark)).result).toEqual(true);"
         "});"
         ))
     )
