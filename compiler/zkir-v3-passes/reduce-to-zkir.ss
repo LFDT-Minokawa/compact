@@ -327,9 +327,8 @@
                   instr*)))
             ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
             (cons* hash1 hash0 32 1 code*))))
-      ;; The default value of an Lflattened type as a zkir-val.  A native atom gets the output of a
-      ;; `default` statement, which this adds to zkir-instr*.  JubjubScalar has no `default`
-      ;; statement: as in flatten-datatypes, its default is the field 0.
+      ;; The default value of an Lflattened type as a zkir-val.  Each native atom other than
+      ;; JubjubScalar gets the output of a `default` statement, which this adds to zkir-instr*.
       (define (default-for type)
         (nanopass-case (Lflattened Type) type
           [(ty (,alignment* ...) (,primitive-type* ...))
