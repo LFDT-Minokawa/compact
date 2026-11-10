@@ -96,7 +96,7 @@ export interface EncodedShieldedCoinInfo {
    */
   readonly color: Uint8Array;
   /**
-   * The coin's value, in atomic units dependent on the currency. Bounded to be a non-negative 64-bit integer.
+   * The coin's value, in atomic units dependent on the currency. Bounded to be a non-negative 128-bit integer.
    */
   readonly value: bigint;
 }
@@ -277,28 +277,28 @@ export function createZswapInput(
 }
 
 /**
- * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
- * consumption.
+ * Type descriptors for {@link createCoinCommitment}, not intended for direct consumption. They mirror the standard
+ * library's `ShieldedCoinInfo` and recipient types, therefore every width here must equal the width declared there.
  */
 
 const Bytes32Descriptor = new CompactTypeBytes(32);
 
-const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
+const Uint128Descriptor = new CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);
 
 const ShieldedCoinInfoDescriptor = {
   alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
+    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(Uint128Descriptor.alignment()));
   },
   fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
     return {
       nonce: Bytes32Descriptor.fromValue(value),
       color: Bytes32Descriptor.fromValue(value),
-      value: MaxUint8Descriptor.fromValue(value),
+      value: Uint128Descriptor.fromValue(value),
     };
   },
   toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
     return Bytes32Descriptor.toValue(value.nonce).concat(
-      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
+      Bytes32Descriptor.toValue(value.color).concat(Uint128Descriptor.toValue(value.value)),
     );
   },
 };
