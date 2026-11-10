@@ -15,7 +15,4 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// Issue #616: key generation panics.
-export default defineCompileTest(import.meta.url, {
-    expectedError: /ZkStdLibArch must enable jubjub/,
-});
+export default defineCompileTest(import.meta.url);
