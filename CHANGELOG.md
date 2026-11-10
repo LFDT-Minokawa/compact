@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.1, language 0.28.0, runtime 0.21.0]
+
+### Fixed
+
+- Fix for [issue #856](https://github.com/LFDT-Minokawa/compact/issues/856).
+  A partial fix was made but it contained a bug that still triggered a typecheck
+  failure.
+
 ## [Toolchain 0.36.0, language 0.28.0, runtime 0.21.0]
 
 This release includes all changes for compiler versions in the range between
