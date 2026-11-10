@@ -37,7 +37,6 @@ import {
     tsFiles,
     VERSION_REGEX,
     zkirFiles,
-    LEDGER_VERSION_REGEX,
 } from '@';
 
 describe('[Smoke] Compiler', () => {
@@ -86,27 +85,21 @@ describe('[Smoke] Compiler', () => {
         expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
     });
 
-    test('should get ledger version', async () => {
-        const result = await compile([Arguments.LEDGER_VERSION]);
-
-        expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
-    });
-
     // The first version flag on the command line is the one that acts, so adding
     // a later one must not change the output.  Compared against the single-flag
-    // output rather than a version regex, because LEDGER_VERSION_REGEX also
-    // matches a bare compiler version and so cannot tell which flag won.
-    test('should get first version only (ledger), when passing multiple ones', async () => {
-        const ledgerOnly = await compile([Arguments.LEDGER_VERSION]);
-        const result = await compile([Arguments.LEDGER_VERSION, Arguments.VERSION]);
+    // output rather than a version regex, because VERSION_REGEX matches both the
+    // compiler and runtime versions and so cannot tell which flag won.
+    test('should get first version only (runtime), when passing multiple ones', async () => {
+        const runtimeOnly = await compile([Arguments.RUNTIME_VERSION]);
+        const result = await compile([Arguments.RUNTIME_VERSION, Arguments.VERSION]);
 
-        expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
-        expect(result.stdout).toBe(ledgerOnly.stdout);
+        expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
+        expect(result.stdout).toBe(runtimeOnly.stdout);
     });
 
     test('should get first version only (compiler), when passing multiple ones', async () => {
         const compilerOnly = await compile([Arguments.VERSION]);
-        const result = await compile([Arguments.VERSION, Arguments.LEDGER_VERSION]);
+        const result = await compile([Arguments.VERSION, Arguments.RUNTIME_VERSION]);
 
         expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
         expect(result.stdout).toBe(compilerOnly.stdout);

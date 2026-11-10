@@ -56,6 +56,12 @@
         (cons
           "runtime-version"
           runtime-version-string)
+        (cons
+          "onchain-runtime-version"
+          (target-onchain-runtime-version current-target))
+        (cons
+          "zkir-version"
+          (target-zkir-version current-target))
         (map (dir-entry output-directory-pathname)
              (filter (lambda (d)
                        (file-exists? (format "~a/~a" output-directory-pathname d)))
