@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix for [issue #616](https://github.com/LFDT-Minokawa/compact/issues/616).
+  This was an upstream bug in the ZKIR key-generation binary, it is fixed by
+  updating our ZKIR dependency version 3.2.1 which contains the fix.
+
 - Fix for [issue #856](https://github.com/LFDT-Minokawa/compact/issues/856).
   A partial fix was made but it contained a bug that still triggered a typecheck
   failure.
