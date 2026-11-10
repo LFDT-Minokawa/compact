@@ -13,7 +13,8 @@
     },
     "license": "Apache-2.0",
     "dependencies": {
-        "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
+        "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime",
+        "@midnightntwrk/zkir-v3": "link:./.zkir-v3"
     },
     "devDependencies": {
         "@noble/curves": "^2.2.0",

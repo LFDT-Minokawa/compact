@@ -77665,6 +77665,211 @@ groups than for single tests.
         ))
     )
 
+  ; guarded inv and into_coordinates on secp256K1 curve
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness getP(): Secp256k1Point;"
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export ledger x: Secp256k1Base;"
+      "export ledger y: Secp256k1Base;"
+      "export circuit invBase(b: Boolean, v: Secp256k1Base): [] {"
+      "  base = disclose(b ? inv(v) : v);"
+      "}"
+      "export circuit invScalar(b: Boolean, v: Secp256k1Scalar): [] {"
+      "  scalar = disclose(b ? inv(v) : v);"
+      "}"
+      "export circuit witnessCoordinates(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    const p = getP();"
+      "    x = disclose(secp256k1PointX(p));"
+      "    y = disclose(secp256k1PointY(p));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Secp256k1 inv and coordinates in a branch that is not taken', async () => {"
+        "  const P = runtime.secp256k1MulGenerator(2n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, P] };"
+        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  const xy = (r: any) => [L(r).x, L(r).y];"
+        "  expect(L(await C.circuits.invBase(Ctxt, false, 0n)).base).toEqual(0n);"
+        "  expect(L(await C.circuits.invScalar(Ctxt, false, 0n)).scalar).toEqual(0n);"
+        ,(format "  expect(L(await C.circuits.invBase(Ctxt, true, 2n)).base).toEqual(~dn);"
+           (quotient (+ (max-secp256k1-base) 2) 2))
+        ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
+           (quotient (+ (max-secp256k1-scalar) 2) 2))
+        "  // When getP is not called, ZKIR sees the identity in its place."
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([P.x, P.y]);"
+        "});"
+        ))
+    )
+
+  ; guarded inv and into_coordinates on secp256R1 curve
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness getP(): Secp256r1Point;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export ledger x: Secp256r1Base;"
+      "export ledger y: Secp256r1Base;"
+      "export circuit invBase(b: Boolean, v: Secp256r1Base): [] {"
+      "  base = disclose(b ? inv(v) : v);"
+      "}"
+      "export circuit invScalar(b: Boolean, v: Secp256r1Scalar): [] {"
+      "  scalar = disclose(b ? inv(v) : v);"
+      "}"
+      "export circuit witnessCoordinates(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    const p = getP();"
+      "    x = disclose(secp256r1PointX(p));"
+      "    y = disclose(secp256r1PointY(p));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Secp256r1 inv and coordinates in a branch that is not taken', async () => {"
+        "  const P = runtime.secp256r1MulGenerator(2n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, P] };"
+        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  const xy = (r: any) => [L(r).x, L(r).y];"
+        "  expect(L(await C.circuits.invBase(Ctxt, false, 0n)).base).toEqual(0n);"
+        "  expect(L(await C.circuits.invScalar(Ctxt, false, 0n)).scalar).toEqual(0n);"
+        ,(format "  expect(L(await C.circuits.invBase(Ctxt, true, 2n)).base).toEqual(~dn);"
+           (quotient (+ (max-secp256r1-base) 2) 2))
+        ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
+           (quotient (+ (max-secp256r1-scalar) 2) 2))
+        "  // When getP is not called, ZKIR sees the identity in its place."
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([P.x, P.y]);"
+        "});"
+        ))
+    )
+
+  ; guarded inv on Curve25519
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit invBase(b: Boolean, v: Curve25519Base): [] {"
+      "  base = disclose(b ? inv(v) : v);"
+      "}"
+      "export circuit invScalar(b: Boolean, v: Curve25519Scalar): [] {"
+      "  scalar = disclose(b ? inv(v) : v);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Curve25519 inv in a branch that is not taken', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  expect(L(await C.circuits.invBase(Ctxt, false, 0n)).base).toEqual(0n);"
+        "  expect(L(await C.circuits.invScalar(Ctxt, false, 0n)).scalar).toEqual(0n);"
+        ,(format "  expect(L(await C.circuits.invBase(Ctxt, true, 2n)).base).toEqual(~dn);"
+           (quotient (+ (max-curve25519-base) 2) 2))
+        ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
+           (quotient (+ (max-curve25519-scalar) 2) 2))
+        "});"
+        ))
+    )
+
+  ; guarded into_coordinates on Curve25519
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness getP(): Curve25519Point;"
+      "export ledger x: Curve25519Base;"
+      "export ledger y: Curve25519Base;"
+      "export circuit witnessCoordinates(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    const p = getP();"
+      "    x = disclose(curve25519PointX(p));"
+      "    y = disclose(curve25519PointY(p));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519 coordinates of the identity', async () => {"
+        "  const identity = runtime.curve25519MulGenerator(0n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, identity] };"
+        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  const xy = (r: any) => [L(r).x, L(r).y];"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([0n, 1n]);"
+        "});"
+        ))
+    )
+
+  ; guarded secp256k1 verify
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger ok: Boolean;"
+      "export circuit verify(b: Boolean, d: Bytes<32>,"
+      "                      sig: Secp256k1EcdsaSignature, pk: Secp256k1Point): [] {"
+      "  if (disclose(b)) {"
+      "    ok = disclose(secp256k1EcdsaVerify(d, sig, pk));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('secp256k1EcdsaVerify in a branch that is not taken', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const ok = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).ok;"
+        "  const d = new Uint8Array(32).fill(0xab);"
+        "  const SK = 7n;"
+        "  const parsed = secp256k1.Signature.fromBytes("
+        "    secp256k1.sign(d, secp256k1.Point.Fn.toBytes(SK), { prehash: false }));"
+        "  const sig = { r: parsed.r, s: parsed.s };"
+        "  const pk = runtime.secp256k1MulGenerator(SK);"
+        "  const identity = runtime.secp256k1MulGenerator(0n);"
+        "  expect(ok(await C.circuits.verify(Ctxt, false, d, { r: 0n, s: 0n }, identity))).toEqual(false);"
+        "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, pk))).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; guarded secp256r1 verify
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger ok: Boolean;"
+      "export circuit verify(b: Boolean, d: Bytes<32>,"
+      "                      sig: Secp256r1EcdsaSignature, pk: Secp256r1Point): [] {"
+      "  if (disclose(b)) {"
+      "    ok = disclose(secp256r1EcdsaVerify(d, sig, pk));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('secp256r1EcdsaVerify in a branch that is not taken', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const ok = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).ok;"
+        "  const d = new Uint8Array(32).fill(0xab);"
+        "  const SK = 7n;"
+        "  const parsed = p256.Signature.fromBytes("
+        "    p256.sign(d, p256.Point.Fn.toBytes(SK), { prehash: false }));"
+        "  const sig = { r: parsed.r, s: parsed.s };"
+        "  const pk = runtime.secp256r1MulGenerator(SK);"
+        "  const identity = runtime.secp256r1MulGenerator(0n);"
+        "  expect(ok(await C.circuits.verify(Ctxt, false, d, { r: 0n, s: 0n }, identity))).toEqual(false);"
+        "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, pk))).toEqual(true);"
+        "});"
+        ))
+    )
+
   (let ([v (+ (expt 2 248) 5)] [wide (+ (max-curve25519-scalar) 6)])
     (test
       `(
