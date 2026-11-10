@@ -40,7 +40,6 @@ export circuit proveBitcoinSignature(
 }
 
 // Multiply two secp256k1 scalars.
-// export { mul } doesn't work because it's implemented as a native.
 export circuit scalarMul(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar {
-  return mul(x, y);
+  return x * y;
 }

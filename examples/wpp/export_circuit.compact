@@ -15,7 +15,6 @@
 
 import CompactStandardLibrary;
 
-ledger x: Field;
 export ledger set: Set<Field>;
 export ledger counter: Counter;
 
@@ -25,17 +24,7 @@ struct bob {
 }
 
 export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  if (disclose(b)) x = 1 as Field;
-
   const p = disclose(c);
-  if (p) x = 1 as Field;
-
-  if(!disclose(c)) x = 1 as Field;
-
-  const a = (() => {return disclose(c);})();
-
-  if (a) x = 1 as Field;
-
   set.insert(disclose(b) as Field);
   set.insert(p as Field);
 

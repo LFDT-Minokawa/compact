@@ -1,0 +1,26 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Spread expressions nest: an inner spread builds a vector that an outer spread
+// then expands again, leaving the elements unchanged.
+export circuit vector_spread_nested(): Vector<3, Field> {
+    const result: Vector<3, Field> = [...[...[...[1 as Field, 2 as Field, 3 as Field]]]];
+    assert(result[0] == 1 as Field, "First element should survive nested spreads");
+    assert(result[2] == 3 as Field, "Last element should survive nested spreads");
+
+    return result;
+}

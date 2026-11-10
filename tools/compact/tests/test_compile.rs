@@ -13,15 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::common::{get_version, run_command};
+use crate::common::{LATEST_COMPACTC_VERSION, get_version, run_command};
 use std::env;
 
 mod common;
 
 #[test]
 fn test_compact_compile_no_param() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
@@ -97,12 +104,76 @@ fn test_compile_contract_no_compiler_installed() {
 
 #[test]
 fn test_compact_compile_invalid_param() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile", "latest"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+            "latest",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
         &[],
         Some(1),
+    );
+}
+
+#[test]
+fn test_compact_compile_help_forwarded_no_compiler() {
+    run_command(
+        &["compile", "--help"],
+        None,
+        None,
+        Some("./output/compile/err_default.txt"),
+        &[],
+        Some(1),
+    );
+}
+
+#[test]
+fn test_compact_compile_help_short_forwarded_no_compiler() {
+    run_command(
+        &["compile", "-h"],
+        None,
+        None,
+        Some("./output/compile/err_default.txt"),
+        &[],
+        Some(1),
+    );
+}
+
+#[test]
+fn test_compact_compile_help_forwarded() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
+    run_command(
+        &["--directory", &format!("{}", temp_path.display()), "update"],
+        None,
+        Some("./output/update/std_default.txt"),
+        None,
+        &[
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+            "--help",
+        ],
+        None,
+        Some("./output/compile/compact_help.txt"),
+        None,
+        &[],
+        None,
     );
 }

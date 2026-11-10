@@ -13,6 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { Result } from 'execa';
+
+export interface CompilationPaths {
+    /** Absolute path of the contract that was compiled */
+    readonly contractPath?: string;
+    /** Absolute path of the output directory */
+    readonly outputDir?: string;
+}
+
+export type Compilation = Result & CompilationPaths;
+
 type PrimitiveType = BooleanType | FieldType | UintType | BytesType | OpaqueType | VectorType | TupleType;
 
 interface BooleanType {
@@ -149,6 +160,7 @@ export type LedgerAdtType =
 /** Structure of contract-info.json */
 export interface ContractInfo {
     'compiler-version': string;
+    'compiler-commit': string;
     'language-version': string;
     'runtime-version': string;
     circuits: ContractInfoCircuit[];

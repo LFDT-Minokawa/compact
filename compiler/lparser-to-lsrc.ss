@@ -80,8 +80,12 @@
        `(external-contract ,src ,(and kwd-export? #t) ,(token-value contract-name) ,ecdecl-circuit* ...)])
     (External-Contract-Circuit : External-Contract-Circuit (ir) -> External-Contract-Circuit ()
       [(,src ,kwd-pure? ,kwd ,function-name ,arg-list ,[type])
+       (when kwd-pure?
+         (source-errorf (token-src kwd-pure?)
+           "a contract type cannot declare circuit ~a pure: a cross-contract call requires the called circuit to have a proof, and a pure circuit has none. To reuse pure logic from another contract, import its module"
+           (token-value function-name)))
        (let ([arg* (Argument-List arg-list)])
-         `(,src ,(and kwd-pure? #t) ,(token-value function-name) (,arg* ...) ,type))])
+         `(,src #f ,(token-value function-name) (,arg* ...) ,type))])
     (Contract-Implements-Declaration : Contract-Implements-Declaration (ir) -> Contract-Implements-Declaration ()
       [(contract-implements ,src ,kwd ,kwd-implements ,[type] ,semicolon)
        `(contract-implements ,src ,type)])
@@ -279,9 +283,6 @@
       [,tref (Type-Ref tref)]
       [(tboolean ,src ,kwd) `(tboolean ,src)]
       [(tfield ,src ,kwd) `(tfield ,src (field-native))]
-      [(tjubjub-scalar ,src ,kwd) `(tfield ,src (field-scalar (curve-jubjub)))]
-      [(tsecp256k1-base ,src ,kwd) `(tfield ,src (field-base (curve-secp256k1)))]
-      [(tsecp256k1-scalar ,src ,kwd) `(tfield ,src (field-scalar (curve-secp256k1)))]
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,rangle)
        `(tunsigned ,src ,tsize)]
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,dotdot ,[tsize^] ,rangle)

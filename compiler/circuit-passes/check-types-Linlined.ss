@@ -55,11 +55,29 @@
       (nanopass-case (Linlined Argument) arg
         [(,var-name ,type) type]))
     (define (format-field-type ftype)
-      (nanopass-case (Linlined Field-Type) ftype
+      (strict-nanopass-case (Linlined Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Linlined Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub)
+            ;; The base field of Jubjub is the native field type.
+            (assertf cannot-happen
+              "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Linlined Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
+    (define (format-point-type ctype)
+      (strict-nanopass-case (Linlined Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-type type)
       (define (format-adt-arg adt-arg)
         (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg
@@ -69,6 +87,7 @@
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -92,7 +111,11 @@
         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
          (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]))
       (define (same-curve-type? ctype1 ctype2)
-        (nanopass-case (Linlined Curve-Type) ctype1
+        (strict-nanopass-case (Linlined Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Linlined Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
           [(curve-jubjub)
            (nanopass-case (Linlined Curve-Type) ctype2
              [(curve-jubjub) #t]
@@ -100,9 +123,13 @@
           [(curve-secp256k1)
            (nanopass-case (Linlined Curve-Type) ctype2
              [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Linlined Curve-Type) ctype2
+             [(curve-secp256r1) #t]
              [else #f])]))
       (define (same-field-type? ftype1 ftype2)
-        (nanopass-case (Linlined Field-Type) ftype1
+        (strict-nanopass-case (Linlined Field-Type) ftype1
           [(field-native)
            (nanopass-case (Linlined Field-Type) ftype2
              [(field-native) #t]
@@ -115,7 +142,7 @@
            (nanopass-case (Linlined Field-Type) ftype2
              [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
              [else #f])]))
-    (define (sametype? type1 type2)
+    (define (same-type? type1 type2)
       (define (same-adt-arg? adt-arg1 adt-arg2)
         (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg1
           [,nat1
@@ -124,13 +151,15 @@
              [else #f])]
           [,type1
            (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg2
-             [,type2 (sametype? type1 type2)]
+             [,type2 (same-type? type1 type2)]
              [else #f])]))
       (T type1
          [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
          [(tfield ,src1 ,ftype1)
           (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
          [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+         [(tpoint ,src1 ,ctype1)
+          (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
          [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
          [(topaque ,src1 ,opaque-type1)
           (T type2
@@ -140,18 +169,18 @@
           (T type2
              [(tvector ,src2 ,len2 ,type2)
               (and (= len1 len2)
-                   (sametype? type1 type2))]
+                   (same-type? type1 type2))]
              [(ttuple ,src2 ,type2* ...)
               (and (= len1 (length type2*))
-                   (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
+                   (andmap (lambda (type2) (same-type? type1 type2)) type2*))])]
          [(ttuple ,src1 ,type1* ...)
           (T type2
              [(tvector ,src2 ,len2 ,type2)
               (and (= (length type1*) len2)
-                   (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
+                   (andmap (lambda (type1) (same-type? type1 type2)) type1*))]
              [(ttuple ,src2 ,type2* ...)
               (and (= (length type1*) (length type2*))
-                   (andmap sametype? type1* type2*))])]
+                   (andmap same-type? type1* type2*))])]
          [(tunknown) #t] ; tunknown originates from empty vectors
          [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
           (T type2
@@ -162,8 +191,8 @@
                                    (and (eq? elt-name1 elt-name2)
                                         (eq? pure-dcl1 pure-dcl2)
                                         (fx= (length type1*) (length type2*))
-                                        (andmap sametype? type1* type2*)
-                                        (sametype? type1 type2)))
+                                        (andmap same-type? type1* type2*)
+                                        (same-type? type1 type2)))
                                  elt-name1* pure-dcl1* type1** type1*))
                         elt-name2* pure-dcl2* type2** type2*))
               (and (eq? contract-name1 contract-name2)
@@ -177,7 +206,7 @@
               (and (eq? struct-name1 struct-name2)
                    (= (length elt-name1*) (length elt-name2*))
                    (andmap eq? elt-name1* elt-name2*)
-                   (andmap sametype? type1* type2*))])]
+                   (andmap same-type? type1* type2*))])]
           [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
            (T type2
               [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
@@ -189,22 +218,32 @@
         (format-type type)
         (format-type declared-type)
         what))
-    (define (arithmetic-binop src op mbits expr1 expr2)
+    (define (arithmetic-binop src op result-type expr1 expr2)
+      (define (valid-curve-type? ctype)
+        (strict-nanopass-case (Linlined Curve-Type) ctype
+          [(curve-curve25519) #t]
+          [(curve-jubjub) #f]
+          [(curve-secp256k1) #t]
+          [(curve-secp256r1) #t]))
       (let* ([type1 (Care expr1)] [type2 (Care expr2)])
-        (unless (T type1
-                  [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                  [(tfield ,src1 (field-scalar (curve-secp256k1)))
-                   (guard (string=? op "*"))
-                   (T type2 [(tfield ,src2 (field-scalar (curve-secp256k1))) #t])]
-                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
-          (source-errorf src "incompatible combination of types ~a and ~a for ~s"
-            (format-type type1) (format-type type2) op))
-        (unless (eqv? (T type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
-          (source-errorf src "mismatched mbits ~s and type ~a for ~s"
-                         mbits
-                         (format-type type1)
-                         op))
-        type1))
+        (unless (and (same-type? result-type type1)
+                     (same-type? result-type type2))
+          (source-errorf src "incompatible combination of types ~a ~s ~a = ~a"
+            (format-type type1) op (format-type type2) (format-type result-type)))
+        (unless (T result-type
+                  [(tfield ,src (field-native)) #t]
+                  [(tfield ,src (field-base ,ctype)) (valid-curve-type? ctype)]
+                  [(tfield ,src (field-scalar ,ctype)) (valid-curve-type? ctype)]
+                  [(tunsigned ,src ,nat) #t])
+          (source-errorf src "invalid operation type ~a for ~s" (format-type result-type) op))
+        result-type))
+
+    (define (valid-byte-length? ctype len)
+      (strict-nanopass-case (Linlined Curve-Type) ctype
+        [(curve-curve25519) (eqv? len 32)]
+        [(curve-jubjub) #f]
+        [(curve-secp256k1) (eqv? len 32)]
+        [(curve-secp256r1) (eqv? len 32)]))
     )
   (Program : Program (ir) -> Program ()
     [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -233,7 +272,7 @@
      (let ([id* (map arg->name arg*)] [type* (map arg->type arg*)])
        (for-each (lambda (id type) (set-idtype! id (Idtype-Base type))) id* type*)
        (let ([actual-type (Care expr)])
-         (unless (sametype? actual-type type)
+         (unless (same-type? actual-type type)
            (source-errorf src "mismatch between actual return type ~a and declared return type ~a"
              (format-type actual-type)
              (format-type type)))
@@ -258,7 +297,7 @@
                           [type (nanopass-case (Linlined Type) declared-type
                                   [(tunknown) actual-type]
                                   [else
-                                   (unless (sametype? actual-type declared-type)
+                                   (unless (same-type? actual-type declared-type)
                                      (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
                                                     (format-type actual-type)
                                                     (format-type declared-type)
@@ -293,7 +332,7 @@
                       (format-type type0)))
      (let ([type1 (Care expr1)] [type2 (Care expr2)])
        (cond
-         [(sametype? type1 type2) type1]
+         [(same-type? type1 type2) type1]
          [else (source-errorf src "mismatch between type ~a and type ~a of condition branches"
                               (format-type type1)
                               (format-type type2))]))]
@@ -334,7 +373,7 @@
        [(tunsigned ,src ,nat) nat]
        [else (source-errorf src "expected index to have an unsigned type, received ~a"
                             (format-type index-type))])
-     (unless (sametype? expr-type type)
+     (unless (same-type? expr-type type)
        (source-errorf src "expected bytes-ref argument to have type ~a, received ~a"
                       type expr-type))
      (with-output-language (Linlined Type) `(tunsigned ,src 255))]
@@ -343,7 +382,7 @@
        [(tunsigned ,src ,nat) nat]
        [else (source-errorf src "expected index to have an unsigned type, received ~a"
                             (format-type index-type))])
-     (unless (sametype? expr-type type)
+     (unless (same-type? expr-type type)
        (source-errorf src "expected vector-ref argument to have type ~a, received ~a"
                       type expr-type))
      (nanopass-case (Linlined Type) expr-type
@@ -351,7 +390,7 @@
         (guard (> len^ 0))
         type^]
        [(ttuple ,src^ ,type^ ,type^* ...)
-        (guard (andmap (lambda (type^^) (sametype? type^^ type^)) type^*))
+        (guard (andmap (lambda (type^^) (same-type? type^^ type^)) type^*))
         type^]
        [else (source-errorf src "expected vector-ref expr to have a non-empty vector type, received ~a"
                             (format-type expr-type))])]
@@ -360,7 +399,7 @@
        (unless (<= (+ kindex len) input-len)
          (source-errorf src "index ~d plus length ~d is out-of-bounds for a tuple or vector of length ~d"
                         kindex len input-len)))
-     (unless (sametype? expr-type type)
+     (unless (same-type? expr-type type)
        (source-errorf src "expected slice argument to have type ~a, received ~a"
                       type expr-type))
      (with-output-language (Linlined Type)
@@ -378,7 +417,7 @@
        [(tunsigned ,src ,nat) nat]
        [else (source-errorf src "expected index to have an unsigned type, received ~a"
                             (format-type index-type))])
-     (unless (sametype? expr-type type)
+     (unless (same-type? expr-type type)
        (source-errorf src "expected slice argument to have type ~a, received ~a"
                       type expr-type))
      (let ([input-len (nanopass-case (Linlined Type) expr-type
@@ -394,14 +433,14 @@
        [(tunsigned ,src ,nat) nat]
        [else (source-errorf src "expected index to have an unsigned type, received ~a"
                             (format-type index-type))])
-     (unless (sametype? expr-type type)
+     (unless (same-type? expr-type type)
        (source-errorf src "expected slice argument to have type ~a, received ~a"
                       type expr-type))
      (let-values ([(input-len elt-type) (nanopass-case (Linlined Type) expr-type
                                           [(tvector ,src^ ,len^ ,type^) (values len^ type^)]
                                           [(ttuple ,src^) (values 0 (with-output-language (Linlined Type) `(tunknown)))]
                                           [(ttuple ,src^ ,type^ ,type^* ...)
-                                           (guard (andmap (lambda (type^^) (sametype? type^^ type^)) type^*))
+                                           (guard (andmap (lambda (type^^) (same-type? type^^ type^)) type^*))
                                            (values (fx+ (length type^*) 1) type^)]
                                           [else (source-errorf src "expected slice expr to have a vector type, received ~a"
                                                                (format-type expr-type))])])
@@ -409,12 +448,12 @@
          (source-errorf src "length ~d exceeds the length ~d of the input vector" len input-len))
        (with-output-language (Linlined Type)
          `(tvector ,src ,len ,elt-type)))]
-    [(+ ,src ,mbits ,expr1 ,expr2)
-     (arithmetic-binop src "+" mbits expr1 expr2)]
-    [(- ,src ,mbits ,expr1 ,expr2)
-     (arithmetic-binop src "-" mbits expr1 expr2)]
-    [(* ,src ,mbits ,expr1 ,expr2)
-     (arithmetic-binop src "*" mbits expr1 expr2)]
+    [(+ ,src ,type ,expr1 ,expr2)
+     (arithmetic-binop src '+ type expr1 expr2)]
+    [(- ,src ,type ,expr1 ,expr2)
+     (arithmetic-binop src '- type expr1 expr2)]
+    [(* ,src ,type ,expr1 ,expr2)
+     (arithmetic-binop src '* type expr1 expr2)]
     [(< ,src ,bits ,expr1 ,expr2)
      (let* ([type1 (Care expr1)] [type2 (Care expr2)])
        (or (T type1
@@ -433,13 +472,13 @@
      (with-output-language (Linlined Type) `(tboolean ,src))]
     [(== ,src ,type ,expr1 ,expr2)
      (let* ([type1 (Care expr1)] [type2 (Care expr2)])
-       (unless (sametype? type1 type2)
+       (unless (same-type? type1 type2)
          ; the error message say "equality operator" here rather than "==" to avoid misleading
          ; type-mismatch messages for !=, which gets converted to == earlier in the compiler.
          (source-errorf src "non-equivalent types ~a and ~a for equality operator"
                         (format-type type1)
                         (format-type type2)))
-       (unless (sametype? type type1)
+       (unless (same-type? type type1)
          ; the error message say "equality operator" here rather than "==" to avoid misleading
          ; type-mismatch messages for !=, which gets converted to == earlier in the compiler.
          (source-errorf src "mismatch between recorded type ~a and equality operand type ~a"
@@ -452,7 +491,7 @@
          (let ([nactual (length actual-type*)])
            (lambda (arg-type*)
              (and (= (length arg-type*) nactual)
-                  (andmap sametype? actual-type* arg-type*)))))
+                  (andmap same-type? actual-type* arg-type*)))))
        (Idtype-case (get-idtype src function-name)
          [(Idtype-Function kind arg-name* arg-type* return-type)
           (unless (compatible? arg-type*)
@@ -482,7 +521,7 @@
                              struct-name)))
           (for-each
             (lambda (declared-type actual-type elt-name)
-              (unless (sametype? actual-type declared-type)
+              (unless (same-type? actual-type declared-type)
                 (source-errorf src "mismatch between actual type ~a and declared type ~a for field ~s of ~s"
                   (format-type actual-type)
                   (format-type declared-type)
@@ -504,7 +543,7 @@
                           [type (nanopass-case (Linlined Type) declared-type
                                   [(tunknown) actual-type]
                                   [else
-                                   (unless (sametype? actual-type declared-type)
+                                   (unless (same-type? actual-type declared-type)
                                      (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
                                                     (format-type actual-type)
                                                     (format-type declared-type)
@@ -559,7 +598,7 @@
                            `(tunknown)
                            (let ([type (car type*)])
                              (for-each (lambda (type^)
-                                         (unless (sametype? type^ type)
+                                         (unless (same-type? type^ type)
                                            (source-errorf src "different vector element types ~a and ~a"
                                                           (format-type type)
                                                           (format-type type^))))
@@ -571,39 +610,40 @@
        [(tbytes ,src ,len^)
         (unless (= len^ len)
           (source-errorf src "mismatch between Bytes lengths ~s and ~s for bytes->field"
-                         len
-                         len^))]
+            len
+            len^))]
        [else (source-errorf src "expected Bytes<~d>, got ~a for bytes->field"
-                            len
-                            (format-type type))])
-     (with-output-language (Linlined Type)
-       (nanopass-case (Linlined Field-Type) ftype
-         [(field-native) `(tfield ,src ,ftype)]
-         [(field-base (curve-secp256k1))
-          (unless (eqv? len 32)
-            (source-errorf src "expected Bytes<32>, got ~a for bytes->field"
-              (format-type type)))
-          `(tfield ,src ,ftype)]
-         [(field-scalar (curve-secp256k1))
-          (unless (eqv? len 32)
-            (source-errorf src "expected Bytes<32>, got ~a for bytes->field"
-              (format-type type)))
-          `(tfield ,src ,ftype)]
-         [else (source-errorf src "invalid target field type ~a for bytes->field"
-                 (format-type `(tfield ,src ,ftype)))]))]
+               len
+               (format-type type))])
+     (unless (strict-nanopass-case (Linlined Field-Type) ftype
+               [(field-native) #t]
+               [(field-base ,ctype) (valid-byte-length? ctype len)]
+               [(field-scalar ,ctype)
+                ;;  TODO(kmillikin): we allow casts from `Bytes<64>` to `Curve25519Scalar` so we
+                ;; have this special case.  Make casting more systematic so we can remove the
+                ;; special case.
+                (or (valid-byte-length? ctype len)
+                    (and (nanopass-case (Linlined Curve-Type) ctype
+                           [(curve-curve25519) #t]
+                           [else #f])
+                         (eqv? len 64)))])
+       (source-errorf src "cannot cast from Bytes<~d> to ~a" len (format-field-type ftype)))
+     (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
-     (unless (nanopass-case (Linlined Type) type
-               [(tfield ,src^ ,ftype^)
-                (and (same-field-type? ftype ftype^)
-                     (nanopass-case (Linlined Field-Type) ftype
-                       [(field-native) #t]
-                       [(field-base (curve-secp256k1)) (eqv? len 32)]
-                       [(field-scalar (curve-secp256k1)) (eqv? len 32)]
-                       [else #f]))]
-               [else #f])
-       (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
-         (format-type type)
-         (format-field-type ftype)))
+     (nanopass-case (Linlined Type) type
+       [(tfield ,src^ ,ftype^)
+        (unless (same-field-type? ftype^ ftype)
+          (source-errorf src "mismatch between field types ~s and ~s for field->bytes"
+            (format-field-type ftype)
+            (format-field-type ftype^)))]
+       [else (source-errorf src "expected ~a, got ~a for field->bytes"
+               (format-field-type ftype)
+               (format-type type))])
+     (unless (strict-nanopass-case (Linlined Field-Type) ftype
+               [(field-native) #t]
+               [(field-base ,ctype) (valid-byte-length? ctype len)]
+               [(field-scalar ,ctype) (valid-byte-length? ctype len)])
+       (source-errorf src "cannot cast from ~a to Bytes<~d>" (format-field-type ftype) len))
      (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
      (with-output-language (Linlined Type) `(tbytes ,src ,len))]
     [(bytes->vector ,src ,len ,[Care : expr -> * type])
@@ -632,7 +672,7 @@
                       (format-type type)))
      (with-output-language (Linlined Type) `(tbytes ,src ,len))]
     [(cast-to-field ,src ,ftype ,type ,[Care : expr -> * type^])
-     (unless (sametype? type type^)
+     (unless (same-type? type type^)
        (source-errorf src "expected ~a, got ~a for cast-to-field"
          (format-type type) (format-type type^)))
      (unless (nanopass-case (Linlined Type) type
@@ -660,7 +700,7 @@
          (format-type type)))
      (with-output-language (Linlined Type) `(tunsigned ,src ,nat1))]
     [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
-     (unless (sametype? type^^ type^)
+     (unless (same-type? type^^ type^)
        (source-errorf src "expected ~a, got ~a for upcast"
                       (format-type type^)
                       (format-type type^^)))
@@ -670,7 +710,7 @@
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
         (for-each
           (lambda (type type^ i)
-            (unless (sametype? type^ type)
+            (unless (same-type? type^ type)
               (source-errorf src "expected ~:r argument of ~s to have type ~a but received ~a"
                              (fx1+ i)
                              ledger-op
@@ -695,7 +735,7 @@
                                      contract-name elt-name ndeclared nactual)))
                   (for-each
                     (lambda (declared-type actual-type i)
-                      (unless (sametype? actual-type declared-type)
+                      (unless (same-type? actual-type declared-type)
                         (source-errorf src "expected ~:r argument of ~s.~s to have type ~a but received ~a"
                                        (fx1+ i)
                                        contract-name

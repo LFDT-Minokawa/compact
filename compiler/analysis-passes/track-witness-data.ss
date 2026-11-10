@@ -723,11 +723,11 @@
            [else (assert cannot-happen)])))]
 
     ; arithmetic isn't sanitizing: could be x + 0, x - 0, x * 1, age == 18, (age < 19 && 17 < age)
-    [(+ ,src ,mbits ,[* abs1] ,[* abs2])
+    [(+ ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of an addition involving" (combine-abs abs1 abs2))]
-    [(- ,src ,mbits ,[* abs1] ,[* abs2])
+    [(- ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of a subtraction involving" (combine-abs abs1 abs2))]
-    [(* ,src ,mbits ,[* abs1] ,[* abs2])
+    [(* ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of a multiplication involving" (combine-abs abs1 abs2))]
     [(< ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
     [(<= ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
@@ -809,7 +809,7 @@
               (cons abs abs*)]
              [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
               (Abs-case abs
-                ; this case isn't exercised because tuple forms don't vector-typed spreads
+                ; tuple forms don't usually contain vector spreads but can if the vector spread is cast to a tuple
                 [(Abs-single abs) (append (make-list nat abs) abs*)]
                 [(Abs-multiple abs^*) (append abs^* abs*)]
                 [else (assert cannot-happen)])]))
@@ -831,10 +831,7 @@
                    tuple-arg*)])
        (if (null? abs*)
            (Abs-multiple '())
-           (Abs-single
-             (add-witnesses
-               (fold-left merge-witnesses '() (map abs->witnesses (cdr abs*)))
-               (car abs*)))))]
+           (Abs-single (fold-left combine-abs (car abs*) (cdr abs*)))))]
 
     [(seq ,src ,[*] ... ,[* abs]) abs]
 
@@ -844,7 +841,7 @@
     ; define-pass doesn't realize above pattern covers let*
     [(let* ,src ([,local* ,[* abs*]] ...) ,expr) (assert cannot-happen)]
 
-    [(assert ,src ,[* abs] ,mesg) (Abs-atomic '())]
+    [(assert ,src ,[* abs] ,mesg) (Abs-multiple '())]
 
     [(cast-from-enum ,src ,type ,type^ ,[* abs]) abs]
     [(cast-to-enum ,src ,type ,type^ ,[* abs]) abs]
@@ -879,26 +876,24 @@
           (if (= (length abs*) 1) '(#f) (enumerate abs*)))
         (default-value type)])]
     [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
-     (let-values ([(pure? type)
+     (let ([type
             (nanopass-case (Lwithpaths Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-               (let loop ([elt-name* elt-name*]
-                          [pure-dcl* pure-dcl*]
-                          [type* type*])
+               (let loop ([elt-name* elt-name*] [type* type*])
+                 (assert (not (null? elt-name*)))
                  (if (eq? (car elt-name*) elt-name)
-                     (values (car pure-dcl*) (car type*))
-                     (loop (cdr elt-name*) (cdr pure-dcl*) (cdr type*))))])])
-       (unless pure?
-         (unless (null? control-witness*)
-           (record-leak! src "making this contract call" control-witness*))
-         (let ([witness* (abs->witnesses abs)])
-           (unless (null? witness*) (record-leak! src "contract call contract reference" witness*)))
-         (for-each
-           (lambda (abs i)
-             (let ([witness* (abs->witnesses abs)])
-               (unless (null? witness*) (record-leak! src (format "contract call argument ~d" (fx+ i 1)) witness*))))
-           abs*
-           (enumerate abs*)))
+                     (car type*)
+                     (loop (cdr elt-name*) (cdr type*))))])])
+       (unless (null? control-witness*)
+         (record-leak! src "making this contract call" control-witness*))
+       (let ([witness* (abs->witnesses abs)])
+         (unless (null? witness*) (record-leak! src "contract call contract reference" witness*)))
+       (for-each
+         (lambda (abs i)
+           (let ([witness* (abs->witnesses abs)])
+             (unless (null? witness*) (record-leak! src (format "contract call argument ~d" (fx+ i 1)) witness*))))
+         abs*
+         (enumerate abs*))
        (default-value type))]
     [(return ,src ,[* abs])
      (when disclosing-function-name?

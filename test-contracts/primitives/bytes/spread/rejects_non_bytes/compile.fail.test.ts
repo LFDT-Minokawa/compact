@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /expected tuple\/vector spread expression to have a tuple, Vector, or Bytes type but received\s+Boolean/,
+    expectedError:
+        /expected tuple\/vector spread expression to have a tuple, Vector, or Bytes type but received\s+Boolean/,
 });

@@ -24,7 +24,6 @@
 ;;; a full description of the pass and how it works is in ../compiler.md.
 
 (define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
-(define-syntax zkir-v3-library-path (identifier-syntax "compiler/zkir-v3-library.compact"))
 
 (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
   (definitions
@@ -38,7 +37,7 @@
                  x*))
              (list x)
              passes))]))
-    (module (zkir-v3-library-pelt* standard-library-pelt*)
+    (module (standard-library-pelt*)
       (define standard-library-pelt*
         (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
                                                               frontend-passes
@@ -51,22 +50,8 @@
                                          [sfd (datum->syntax #'* (source-object-sfd src))])
                              (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
           a))
-      (define zkir-v3-library-pelt*
-        (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
-                                                              frontend-passes
-                                                              (run-passes
-                                                                parser-passes
-                                                                zkir-v3-library-path))
-                          [(program ,src ,pelt* ...)
-                           (#%$require-include zkir-v3-library-path)
-                           (with-syntax ([(pelt ...) (datum->syntax #'* pelt*)]
-                                         [sfd (datum->syntax #'* (source-object-sfd src))])
-                             (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
-          a))
       (unless (member standard-library-path (registered-source-pathnames))
-        (register-source-pathname! standard-library-path))
-      (unless (member zkir-v3-library-path (registered-source-pathnames))
-        (register-source-pathname! zkir-v3-library-path)))
+        (register-source-pathname! standard-library-path)))
     (define program-src)
     (module (make-instance-table instance-table-cell)
       (define (combine hash*)
@@ -81,40 +66,58 @@
           [,type (type-hash type)]))
       (define (type-hash type)
         (define max-tuple-elts-to-hash 10)
-        (nanopass-case (Lexpanded Type) type
+        (strict-nanopass-case (Lexpanded Type) type
           [(tboolean ,src) 1]
           [(tfield ,src ,ftype)
-           (nanopass-case (Lexpanded Field-Type) ftype
+           (strict-nanopass-case (Lexpanded Field-Type) ftype
              [(field-native) 2]
-             [(field-scalar (curve-jubjub)) 3]
-             [(field-base (curve-secp256k1)) 4]
-             [(field-scalar (curve-secp256k1)) 5])]
-          [(tunsigned ,src ,nat) (+ 6 nat)]
-          [(tbytes ,src ,len) (+ 7 len)]
-          [(topaque ,src ,opaque-type) (+ 8 (string-hash opaque-type))]
+             [(field-base ,ctype)
+              (strict-nanopass-case (Lexpanded Curve-Type) ctype
+                [(curve-curve25519) 3]
+                [(curve-jubjub)
+                 ;; The base field of Jubjub is the native field type.
+                 (assertf cannot-happen
+                   "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+                [(curve-secp256k1) 4]
+                [(curve-secp256r1) 5])]
+             [(field-scalar ,ctype)
+              (strict-nanopass-case (Lexpanded Curve-Type) ctype
+                [(curve-curve25519) 6]
+                [(curve-jubjub) 7]
+                [(curve-secp256k1) 8]
+                [(curve-secp256r1) 9])])]
+          [(tunsigned ,src ,nat) (+ 10 nat)]
+          [(tbytes ,src ,len) (+ 11 len)]
+          [(topaque ,src ,opaque-type) (+ 12 (string-hash opaque-type))]
           ;; arrange for equivalent vectors and tuples to hash to same value with same elements,
           ;; limiting the cost in the case of large vectors
           [(tvector ,src ,len ,type)
-           (+ 9 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
+           (+ 13 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
           [(ttuple ,src ,type* ...)
-           (+ 9 (combine (map type-hash
-                              (if (fx<= (length type*) max-tuple-elts-to-hash)
-                                  type*
-                                  (list-head type* max-tuple-elts-to-hash)))))]
+           (+ 13 (combine (map type-hash
+                            (if (fx<= (length type*) max-tuple-elts-to-hash)
+                                type*
+                                (list-head type* max-tuple-elts-to-hash)))))]
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (+ 11 (combine (list (symbol-hash contract-name)
+           (+ 14 (combine (list (symbol-hash contract-name)
                             ;; contract elts are unordered, so just add their hashes
                             (apply + (map symbol-hash elt-name*)))))]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-           (+ 12 (combine (map symbol-hash (cons struct-name elt-name*))))]
+           (+ 15 (combine (map symbol-hash (cons struct-name elt-name*))))]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-           (+ 13 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
+           (+ 16 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
           [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-           (+ 14 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
+           (+ 17 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
           [(talias ,src ,nominal? ,type-name ,type)
            (if nominal?
-               (+ 15 (combine (list (symbol-hash type-name) (type-hash type))))
+               (+ 18 (combine (list (symbol-hash type-name) (type-hash type))))
                (type-hash type))]
+          [(tpoint ,src ,ctype)
+           (strict-nanopass-case (Lexpanded Curve-Type) ctype
+             [(curve-curve25519) 19]
+             [(curve-jubjub) 20]
+             [(curve-secp256k1) 21]
+             [(curve-secp256r1) 22])]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
@@ -164,6 +167,7 @@
       (Info-enum src enum-name elt-name elt-name*)
       (Info-struct src struct-name type-param* elt-name* type* p)
       (Info-type-alias src nominal? type-name type-param* type p)
+      (Info-native-type src type-name type p)
       (Info-ledger ledger-field-name)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
@@ -201,7 +205,23 @@
     (define empty-env (string #\m #\t))
     (define outer-module-rib (make-hashtable equal-hash equal?))
     (define outer-module-next-seqno '(0 -1))
-    (define Cell-ADT-env #f)
+    (define force-kernel-binding!
+      (let ([forced? #f])
+        (lambda (src)
+          (unless forced?
+            ; the kernel binding is established merely by importing the standard library
+            (do-import src 'CompactStandardLibrary '() "" '() empty-env)))))
+    (define Cell-ADT-env
+      (let ([p #f])
+        (lambda (src)
+          (or p
+              (let ([p^ (add-rib empty-env)])
+                (do-import src 'CompactStandardLibrary '() ""
+                           (list (with-output-language (Lpreexpand Import-Element)
+                                   `(,src __compact_Cell __compact_Cell)))
+                           p^)
+                (set! p p^)
+                p^)))))
     (define (env-insert! p src sym info)
       (assert (env? p))
       (let ([a (hashtable-cell (env-rib p) sym #f)])
@@ -295,51 +315,84 @@
                                 (sametype? type1 type2)))
                          elt-name1* pure-dcl1* type1** type1*))
                 elt-name2* pure-dcl2* type2** type2*))
+      (define (same-curve-type? ctype1 ctype2)
+        (strict-nanopass-case (Lexpanded Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
+          [(curve-jubjub)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-secp256r1) #t]
+             [else #f])]))
+      (define (same-field-type? ftype1 ftype2)
+        (strict-nanopass-case (Lexpanded Field-Type) ftype1
+          [(field-native)
+           (nanopass-case (Lexpanded Field-Type) ftype2
+             [(field-native) #t]
+             [else #f])]
+          [(field-base ,ctype1)
+           (nanopass-case (Lexpanded Field-Type) ftype2
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lexpanded Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]))
       (define (sametype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
-          (T type1
-             [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-             [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-             [(tfield ,src1 (field-scalar (curve-jubjub)))
-              (T type2
-                [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
-             [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-             [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-             [(topaque ,src1 ,opaque-type1)
-              (T type2
-                 [(topaque ,src2 ,opaque-type2)
-                  (string=? opaque-type1 opaque-type2)])]
-             [(tvector ,src1 ,len1 ,type1)
-              (T type2
-                 [(tvector ,src2 ,len2 ,type2)
-                  (and (= len1 len2)
-                       (sametype? type1 type2))]
-                 [(ttuple ,src2 ,type2* ...)
-                  (and (= len1 (length type2*))
-                       (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
-             [(ttuple ,src1 ,type1* ...)
-              (T type2
-                 [(tvector ,src2 ,len2 ,type2)
-                  (and (= (length type1*) len2)
-                       (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
-                 [(ttuple ,src2 ,type2* ...)
-                  (and (= (length type1*) (length type2*))
-                       (andmap sametype? type1* type2*))])]
-             ; only one of the two arguments can be tundeclared, so (T ...) here might be unreachable
-             [(tundeclared) (T type2 [(tundeclared) #t])]
-             [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-              (T type2
-                 [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                  (and (eq? contract-name1 contract-name2)
-                       (fx= (length elt-name1*) (length elt-name2*))
-                       (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+          (strict-nanopass-case (Lexpanded Type) type1
+            [,tvar-name (assertf cannot-happen "sametype? should not be applied to external type declarations")]
+            [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+            [(tfield ,src1 ,ftype1)
+             (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
+            [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+            [(tpoint ,src1 ,ctype1)
+             (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+            [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+            [(topaque ,src1 ,opaque-type1)
+             (T type2
+                [(topaque ,src2 ,opaque-type2)
+                 (string=? opaque-type1 opaque-type2)])]
+            [(tvector ,src1 ,len1 ,type1)
+             (T type2
+                [(tvector ,src2 ,len2 ,type2)
+                 (and (= len1 len2)
+                      (sametype? type1 type2))]
+                [(ttuple ,src2 ,type2* ...)
+                 (and (= len1 (length type2*))
+                      (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
+            [(ttuple ,src1 ,type1* ...)
+             (T type2
+                [(tvector ,src2 ,len2 ,type2)
+                 (and (= (length type1*) len2)
+                      (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
+                [(ttuple ,src2 ,type2* ...)
+                 (and (= (length type1*) (length type2*))
+                      (andmap sametype? type1* type2*))])]
+            ; only one of the two arguments can be tundeclared, so (T ...) here might be unreachable
+            [(tundeclared) (T type2 [(tundeclared) #t])]
+            [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+             (T type2
+                [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                 (and (eq? contract-name1 contract-name2)
+                      (fx= (length elt-name1*) (length elt-name2*))
+                      (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
             [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-              (T type2
-                 [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                  (and (eq? struct-name1 struct-name2)
-                       (fx= (length elt-name1*) (length elt-name2*))
-                       (andmap eq? elt-name1* elt-name2*)
-                       (andmap sametype? type1* type2*))])]
+             (T type2
+                [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                 (and (eq? struct-name1 struct-name2)
+                      (fx= (length elt-name1*) (length elt-name2*))
+                      (andmap eq? elt-name1* elt-name2*)
+                      (andmap sametype? type1* type2*))])]
             [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
              (T type2
                 [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
@@ -564,6 +617,7 @@
         [(Info-enum src enum-name elt-name elt-name*) "enum"]
         [(Info-struct src struct-name type-param* elt-name type* p) "struct"]
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
+        [(Info-native-type src type-name type p) "type"]
         [(Info-ledger ledger-field-name) "ledger field"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
@@ -595,6 +649,9 @@
                  (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
                 [(Info-type-alias src^ nominal? type-name type-param* type p)
                  (apply-type-alias src src^ nominal? type-name type-param* type p info*)]
+                [(Info-native-type src type-name type p)
+                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                 (Type type p)]
                 [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
                  (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)]
                 [(Info-fixup-alias aliased-name info)
@@ -638,11 +695,7 @@
                                   (let ([info (Info-module
                                                 '()
                                                 (append standard-library-pelt*
-                                                        (if (feature-zkir-v3) zkir-v3-library-pelt* '())
-                                                        (let-values ([(native* zkir-v3-native*) (native-declarations)])
-                                                          (if (feature-zkir-v3)
-                                                              (append native* zkir-v3-native*)
-                                                              native*))
+                                                        (native-declarations)
                                                         (event-declarations)
                                                         (inline-declarations)
                                                         (map (lambda (adt-defn)
@@ -808,6 +861,8 @@
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'witness pelt exported? function-name type-param*)]
                   [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
+                   ; desugar-contract-calls counts on the binding of kernel to the Kernel ledger type to be available
+                   (force-kernel-binding! src)
                    (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* pure-dcl* type** type*) p)])
                      (env-insert! p src contract-name info)
                      (set! ecdecl* (cons (cons pelt p) ecdecl*))
@@ -828,6 +883,12 @@
                            unresolved-export*))]
                   [(typedef ,src ,exported? ,nominal? ,type-name (,type-param* ...) ,type)
                    (let ([info (Info-type-alias src nominal? type-name type-param* type p)])
+                     (env-insert! p src type-name info)
+                     (loop pelt* seqno*
+                           (if exported? (cons (make-exportit src type-name info) export*) export*)
+                           unresolved-export*))]
+                  [(native-type ,src ,exported? ,type-name ,type)
+                   (let ([info (Info-native-type src type-name type p)])
                      (env-insert! p src type-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src type-name info) export*) export*)
@@ -1039,6 +1100,8 @@
                               (with-output-language (Lexpanded Export-Type-Definition)
                                 `(export-typedef ,src^ ,export-name (,tvar-name* ...) ,type)))
                             exported-type*)))]
+                     [(Info-native-type src type-name type p)
+                      (source-errorf src "cannot export standard-library type (~s) from the top level" export-name)]
                      [(Info-ledger ledger-field-name)
                       (unless (already-exported? src export-name ledger-field-name)
                         (id-exported?-set! ledger-field-name #t)
@@ -1118,15 +1181,8 @@
      `(public-ledger-declaration ,src ,id
         ,(if (public-adt? type)
              type
-             (let ([p (or Cell-ADT-env
-                          (let ([p (add-rib empty-env)])
-                            (do-import src 'CompactStandardLibrary '() ""
-                                       (list (with-output-language (Lpreexpand Import-Element)
-                                               `(,src __compact_Cell __compact_Cell)))
-                                       p)
-                            (set! Cell-ADT-env p)
-                            p))])
-               (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
+             (handle-type-ref src 'Cell (list (Info-type src type)) p
+               (lookup (Cell-ADT-env src) src '__compact_Cell))))]
     [(constructor ,src (,[arg*] ...) ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
        (for-each
@@ -1231,8 +1287,8 @@
   (Type : Type (ir p) -> Type ()
     [,tref (Type-Ref->Type ir p)]
     [(tunsigned ,src ,[Type-Size->nat : tsize p 1 -> * nat])
-     (unless (<= 1 nat (unsigned-bits))
-        (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
+     (unless (<= nat (unsigned-bits))
+        (source-errorf src "Uint width ~d exceeds the maximum Uint width ~d"
                        nat
                        (unsigned-bits)))
      `(tunsigned ,src ,(- (expt 2 nat) 1))]

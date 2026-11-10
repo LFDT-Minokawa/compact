@@ -23,6 +23,7 @@
           (field)
           (datatype)
           (nanopass)
+          (only (nanopass-extension) strict-nanopass-case) 
           (langs)
           (ledger)
           (natives)

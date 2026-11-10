@@ -38,7 +38,8 @@ make sense.)
 The following flags, if present, affect the tool's behavior as follows:
   --help prints help text and exits.
 
-  --version prints the compiler version and exits.
+  --version prints the compiler version and exits.  Builds that recorded a
+    commit follow the version with that commit and its date in parentheses.
 
   --language-version prints the language version and exits.
 

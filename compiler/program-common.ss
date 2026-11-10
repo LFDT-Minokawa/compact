@@ -41,10 +41,45 @@
       (fprintf (current-error-port)
         "       --help displays detailed usage information\n")))
 
-  (define (print-compiler-version)
-    (fprintf (current-output-port)
-             "~a\n"
-             compiler-version-string))
+  ;; Verbose prints every field always, `unknown` where the build recorded
+  ;; nothing, so the shape does not depend on how the compiler was built and
+  ;; `--version --verbose | grep commit-hash` always answers. `rustc -vV` does
+  ;; the same.
+  (define print-compiler-version
+    (case-lambda
+      [() (print-compiler-version #f)]
+      [(verbose?)
+       (define (or-unknown s)
+         (if (string=? s "") "unknown" s))
+       ;; Nine characters, as `rustc` and `cargo` show: enough to read and to
+       ;; `git show`. Verbose and contract-info.json keep all forty. Must match
+       ;; `${COMMIT:0:9}` in scripts/stamp-compiler-version.sh; release-build.yml
+       ;; asserts the two agree.
+       (define short-commit-length 9)
+       (define (abbreviate-commit commit)
+         (if (fx> (string-length commit) short-commit-length)
+             (substring commit 0 short-commit-length)
+             commit))
+       (let ([op (current-output-port)])
+         (if verbose?
+             (begin
+               (fprintf op "release:          ~a\n" compiler-version-string)
+               (fprintf op "commit-hash:      ~a\n" (or-unknown compiler-version-commit))
+               (fprintf op "commit-date:      ~a\n" (or-unknown compiler-version-commit-date))
+               (fprintf op "language-version: ~a\n" language-version-string)
+               (fprintf op "runtime-version:  ~a\n" runtime-version-string))
+             (cond
+               [(string=? compiler-version-commit "")
+                (fprintf op "~a\n" compiler-version-string)]
+               [(string=? compiler-version-commit-date "")
+                (fprintf op "~a (~a)\n"
+                         compiler-version-string
+                         (abbreviate-commit compiler-version-commit))]
+               [else
+                (fprintf op "~a (~a ~a)\n"
+                         compiler-version-string
+                         (abbreviate-commit compiler-version-commit)
+                         compiler-version-commit-date)])))]))
 
   (define (print-language-version)
     (fprintf (current-output-port)
@@ -56,10 +91,10 @@
              "~a\n"
              runtime-version-string))
 
-  (define (print-ledger-version zkir-v3)
+  (define (print-ledger-version)
     (fprintf (current-output-port)
              "~a\n"
-             (cdr (assoc (if zkir-v3 "zkir-v3" "zkir-v2") ledger-version-strings))))
+             (cdr (assoc "zkir-v3" ledger-version-strings))))
 
   (define (check-pathname pathname)
     (when (and (>= (string-length pathname) 1)

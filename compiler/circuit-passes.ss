@@ -23,6 +23,7 @@
           (datatype)
           (config-params)
           (nanopass)
+          (only (nanopass-extension) strict-nanopass-case) 
           (langs)
           (pass-helpers))
 
@@ -69,11 +70,11 @@
     (prune-unnecessary-circuits      Lnovectorref)
     (reduce-to-circuit               Lcircuit)
     (flatten-datatypes               Lflattened)
+    (desugar-contract-calls          Lflattened)
     (optimize-circuit                Lflattened)
     (missing-guard-workarounds       Lflattened)
     ; rerun optimize-circuit to optimize code added by missing-guard-workarounds
-    (optimize-circuit2               Lflattened)
-    (desugar-contract-calls          Lflattened))
+    (optimize-circuit2               Lflattened))
 
   (define-checker check-types/Linlined Linlined)
   (define-checker check-types/Lflattened Lflattened)

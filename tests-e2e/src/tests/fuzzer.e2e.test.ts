@@ -13,45 +13,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { Arguments, compile, createTempFolder, ExitCodes, expectCompilerResult, expectFiles, getFileContent, isRelease } from '@';
 import path from 'node:path';
 import fs from 'fs';
-import { generate } from '../fuzzer/fuzzers.cjs';
+import { generate, resolveContractCount } from '../fuzzer/fuzzers';
 
 const contractsDir: string = createTempFolder();
-generate(contractsDir, process.env.NO_OF_FUZZER_TESTS || 1000);
-const generatedContracts = fs.readdirSync(contractsDir);
+
+/* Each contract comes with the compiler flags its grammar needs. */
+const generatedContracts = generate(contractsDir, resolveContractCount(process.env.NO_OF_FUZZER_TESTS));
 const failDir = path.join(process.cwd(), 'failed-contracts');
 
 describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
+    fs.rmSync(failDir, { recursive: true, force: true });
     fs.mkdirSync(failDir, { recursive: true });
 
-    generatedContracts.forEach((fileName) => {
-        const filePath = path.join(contractsDir, fileName);
+    generatedContracts.forEach(({ file, flags }) => {
+        const fileName = path.basename(file);
 
-        test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
-            const contractContent = getFileContent(filePath);
+        /* Up to --maxConcurrency compiles run at once; the test:fuzzer script sets it. */
+        test.concurrent(`should be able to compile synthetic contract: '${fileName}'`, async () => {
+            const contractContent = getFileContent(file);
             const outputDir = createTempFolder();
 
-            console.log(contractContent);
-
-            // Write the contract preemptively — remove it if the test passes
             const failPath = path.join(failDir, fileName);
             fs.writeFileSync(failPath, contractContent);
 
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([...flags, Arguments.SKIP_ZK, file, outputDir]);
             expectCompilerResult(result, {
-                contract: contractContent,
+                contract: '',
                 ignoreStdOut: false,
                 ignoreStdErr: false,
             }).stdErrToNotContain(['Internal']);
 
             if (result.exitCode == ExitCodes.Success) {
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
             }
 
-            // Only reached if the test passed — clean up
             fs.rmSync(failPath);
         });
     });

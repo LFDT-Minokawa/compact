@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, saveContract } from '@';
 
@@ -65,28 +64,28 @@ describe('[Generated] Compiler', () => {
     test('should transpile minimum', async () => {
         const tempPath = createTempFolder();
         const contractFilePath = saveContract(getMinimumContractContent());
-        const result: Result = await compile([contractFilePath, tempPath]);
+        const result = await compile([contractFilePath, tempPath]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(tempPath).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should transpile with 10 000 circuits', async () => {
         const tempPath = createTempFolder();
         const contractFilePath = saveContract(generateContractExports());
         // skipping ZK, otherwise this takes a lot of time with new implementation
-        const result: Result = await compile([Arguments.SKIP_ZK, contractFilePath, tempPath]);
+        const result = await compile([Arguments.SKIP_ZK, contractFilePath, tempPath]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(tempPath).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should transpile with 10 000 enums', async () => {
         const tempPath = createTempFolder();
         const contractFilePath = saveContract(generateContractEnums());
-        const result: Result = await compile([contractFilePath, tempPath]);
+        const result = await compile([contractFilePath, tempPath]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(tempPath).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

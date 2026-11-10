@@ -70,14 +70,12 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const aLedger = aCode.ledger(chain.getContractStateOrThrow(a.address).data);
     const bLedger = bCode.ledger(chain.getContractStateOrThrow(b.address).data);
 
-    // Each `set` mutation was committed back to the chain.
     expect(bytesEqual(aLedger.b.bytes, b.encodedAddress.bytes)).toEqual(true);
     expect(bytesEqual(bLedger.a.bytes, a.encodedAddress.bytes)).toEqual(true);
   });
 
-  // TODO: Enable when contract re-entrancy is supported
-  // Skipped: this descends A -> B -> A, re-entering A while it is still executing,
-  // which the re-entrancy guard (on by default) now rejects. See the guard tests below.
+  // TODO: Enable when contract re-entrancy is supported.
+  // Skipped: descends A -> B -> A, re-entering A.
   test.skip('A.isOdd descends through B.isEven and back; B is fetched from the provider', async () => {
     const { chain, a, b } = await buildWiredChain();
 
@@ -99,8 +97,8 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(chain.fetchCount(a.address)).toEqual(0);
   });
 
-  // TODO: Enable when contract re-entrancy is supported
-  // Skipped: re-enters A (A -> B -> A), now rejected by the re-entrancy guard.
+  // TODO: Enable when contract re-entrancy is supported.
+  // Skipped: re-enters A (A -> B -> A).
   test.skip('re-entrant turns thread ledger state: per-contract counters accumulate', async () => {
     const { chain, a, b } = await buildWiredChain();
 
@@ -118,9 +116,8 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(bCalled(chain, b.address)).toEqual(3n);
   });
 
-  // TODO: Enable when contract re-entrancy is supported
-  // Skipped: isOdd(4) descends A -> B -> A before reaching the base case, re-entering
-  // A — now rejected by the re-entrancy guard.
+  // TODO: Enable when contract re-entrancy is supported.
+  // Skipped: isOdd(4) descends A -> B -> A before the base case, re-entering A.
   test.skip('an even argument returns false', async () => {
     const { chain, a } = await buildWiredChain();
 
@@ -153,8 +150,8 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(chain.fetchCount(b.address)).toEqual(0);
   });
 
-  // TODO: Enable when contract re-entrancy is supported
-  // Skipped: B.isEven(6) descends B -> A -> B, re-entering B — now rejected by the guard.
+  // TODO: Enable when contract re-entrancy is supported.
+  // Skipped: B.isEven(6) descends B -> A -> B, re-entering B.
   test.skip('starting from B: B.isEven composes symmetrically', async () => {
     const { chain, a, b } = await buildWiredChain();
 
@@ -175,9 +172,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(bCalled(chain, b.address)).toEqual(4n);
     expect(aCalled(chain, a.address)).toEqual(3n);
   });
-
-  // The re-entrancy guard (on by default) rejects any chain that re-enters an
-  // already-executing contract. A single non-re-entrant hop is still allowed.
 
   test('a single non-re-entrant hop A.isOdd(1) -> B.isEven(0) still composes', async () => {
     const { chain, a, b } = await buildWiredChain();

@@ -32,8 +32,7 @@ export default [
     ...compat.extends('plugin:prettier/recommended', 'plugin:@typescript-eslint/recommended-requiring-type-checking'),
     {
         plugins: { vitest },
-        // fuzzer is in cjs, so ignore ts checks there for now
-        ignores: ['src/fuzzer/**/*', 'src/resources/**/*'],
+        ignores: ['src/resources/**/*'],
         languageOptions: {
             globals: {
                 ...globals.browser,
@@ -62,5 +61,15 @@ export default [
             'vitest/expect-expect': 'off',
             'vitest/valid-expect': 'off',
         },
+    },
+    {
+        /*
+         * The grammar table is hand-formatted: one alternative per line, so each
+         * reads as the line of Compact it generates. Prettier breaks them one token
+         * per line, which costs ~290 lines and the whole point of the layout. Every
+         * other rule -- including the type-aware ones -- still applies here.
+         */
+        files: ['src/fuzzer/grammar/compact.ts'],
+        rules: { 'prettier/prettier': 'off' },
     },
 ];

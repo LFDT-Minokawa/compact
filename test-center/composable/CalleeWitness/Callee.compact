@@ -36,3 +36,9 @@ export circuit leak(): Field {
   v = v + disclose(secret());
   return v;
 }
+
+// Witness-only: no ledger access, so no proof and no verifier key. Exported without being pure.
+// TODO: exporting such a circuit is to become a compile-time error; drop `peek` then.
+export circuit peek(): Field {
+  return disclose(secret());
+}

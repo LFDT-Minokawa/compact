@@ -179,6 +179,13 @@
           [else (values
                   `(elt-ref ,src ,expr ,elt-name)
                   (CTV-unknown no-var-name))])))
+    (define (allows-nat-literal? type)
+      ; Only these types can be represented as a native field literal in ZKIR.
+      (nanopass-case (Lnovectorref Type) type
+        [(tfield ,src (field-native)) #t]
+        [(tfield ,src (field-scalar (curve-jubjub))) #t]
+        [(tunsigned ,src ,nat) #t]
+        [else #f]))
     (define (handle-binop src proc expr1 expr2 special-cases build-expr)
       ; handle-binop processes expr1 and expr2 to get residual expr1 and expr2 and CTVs ctv1 and ctv2.
       ; If the ctvs are both CTV-const, it applies proc to the constants to effect constant folding.
@@ -263,7 +270,11 @@
      (define (ifdefault-value type k)
        (nanopass-case (Lnovectorref Type) type
          [(tboolean ,src) (k #f)]
-         [(tfield ,src ,ftype) (k 0)]
+         [(tfield ,src ,ftype)
+          (nanopass-case (Lnovectorref Field-Type) ftype
+            [(field-native) (k 0)]
+            [(field-scalar (curve-jubjub)) (k 0)]
+            [else #f])]
          [(tunsigned ,src ,nat) (k 0)]
          [(tbytes ,src ,len) (and (<= len (field-bytes)) (k (make-bytevector len 0)))]
          [else #f]))
@@ -452,12 +463,16 @@
      (values
        `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
        (CTV-unknown no-var-name))]
-    [(+ ,src ,mbits ,expr1 ,expr2)
+    [(+ ,src ,[type] ,expr1 ,expr2)
      (define (add x y)
        (let ([a (+ x y)])
-         (if mbits
-             a ; guaranteed by infer-types not to overflow
-             (modulo a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
+           [else (assertf cannot-happen "infer-types should not allow this addition")])))
      (handle-binop src add expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -465,27 +480,35 @@
            [(ifconstant ctv2 iszero?) ctv1]
            [else #f]))
        (lambda (expr1 expr2)
-         `(+ ,src ,mbits ,expr1 ,expr2)))]
-    [(- ,src ,mbits ,expr1 ,expr2)
+         `(+ ,src ,type ,expr1 ,expr2)))]
+    [(- ,src ,[type] ,expr1 ,expr2)
      (define (subtract x y)
        (let ([a (- x y)])
-         (if mbits
-             (if (< a 0) (raise 'fail) a)
-             (mod a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) (if (< a 0) (raise 'fail) a)]
+           [else (assertf cannot-happen "infer-types should not allow this subtraction")])))
      (handle-binop src subtract expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
            [(ifconstant ctv2 iszero?) ctv1]
-           [(same-var-name? ctv1 ctv2) (CTV-const no-var-name 0)]
+           [(and (same-var-name? ctv1 ctv2) (allows-nat-literal? type)) (CTV-const no-var-name 0)]
            [else #f]))
        (lambda (expr1 expr2)
-         `(- ,src ,mbits ,expr1 ,expr2)))]
-    [(* ,src ,mbits ,expr1 ,expr2)
+         `(- ,src ,type ,expr1 ,expr2)))]
+    [(* ,src ,[type] ,expr1 ,expr2)
      (define (multiply x y)
        (let ([a (* x y)])
-         (if mbits
-             a ; guaranteed by infer-types not to overflow
-             (modulo a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
+           [else (assertf cannot-happen "infer-types should not allow this multiplication")])))
      (handle-binop src multiply expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -494,7 +517,7 @@
            [(ifconstant ctv1 isone?) ctv2]
            [(ifconstant ctv2 isone?) ctv1]
            [else #f]))
-       (lambda (expr1 expr2) `(* ,src ,mbits ,expr1 ,expr2)))]
+       (lambda (expr1 expr2) `(* ,src ,type ,expr1 ,expr2)))]
     [(< ,src ,bits ,expr1 ,expr2)
      (handle-binop src < expr1 expr2
        (lambda (ctv1 ctv2)

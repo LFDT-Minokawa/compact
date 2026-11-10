@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// keccak256 does not accept ledger types, so hashing a Counter is an error.
+//
+// Compiled with the v3 flag on purpose. Without it the missing keccak256 in
+// zkir v2 would fail first and the test would pass for the wrong reason.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export ledger hits: Counter;
+
+export circuit keccak256_hashes_adt(): Bytes<32> {
+    return disclose(keccak256<Counter>(hits));
+}

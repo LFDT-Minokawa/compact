@@ -1,0 +1,31 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// A Bytes value can reinterpret as a Vector whose element Uint width exceeds 8
+// bits; each byte zero-extends into the wider element.
+export circuit bytes_casts_to_vector_wide_element(): Vector<4, Uint<16>> {
+    const source = [1, 2, 3, 255] as Bytes<4>;
+
+    const wide = source as Vector<4, Uint<16>>;
+    assert(wide[0] == 1, "First widened element should be 1");
+    assert(wide[3] == 255, "Last widened element should be 255");
+
+    const wider = source as Vector<4, Uint<32>>;
+    assert(wider[3] == 255, "Element should be preserved at Uint<32>");
+
+    return wide;
+}

@@ -1,0 +1,30 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// A Bytes value reinterprets as a Uint using little-endian byte order: the
+// first byte is the least significant.
+export circuit bytes_casts_to_uint(): Uint<32> {
+    const source = [1, 2, 3, 4] as Bytes<4>;
+
+    const value = source as Uint<32>;
+    assert(value == 67305985, "Little-endian Bytes<4> [1,2,3,4] should be 0x04030201");
+
+    const single = [42] as Bytes<1> as Uint<8>;
+    assert(single == 42, "Single byte should convert to 42");
+
+    return value;
+}
