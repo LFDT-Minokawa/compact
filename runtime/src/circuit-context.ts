@@ -202,11 +202,7 @@ export type CircuitContextOptions<PS = any> = {
   /** The address of the contract defining the circuit being executed. */
   readonly contractAddress: ocrt.ContractAddress;
   /** The initial Zswap local state, for tracking shielded coin transfers. */
-  readonly coinPublicKeyOrZswapState:
-    | ocrt.CoinPublicKey
-    | EncodedCoinPublicKey
-    | ZswapLocalState
-    | EncodedZswapLocalState;
+  readonly coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState;
   /** The ledger state to execute against — most often a snapshot fetched from the chain. */
   readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
   /** The witness / private state — most often a snapshot from local storage. */
@@ -511,9 +507,7 @@ export const queryLedgerState = (
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(
       program.map((op) =>
-        typeof op === 'object' && 'popeq' in op
-          ? { popeq: { ...op.popeq, result: reads[i++].content } }
-          : op,
+        typeof op === 'object' && 'popeq' in op ? { popeq: { ...op.popeq, result: reads[i++].content } } : op,
       ) as ocrt.Op<ocrt.AlignedValue>[],
     );
     if (res.events.length === 1 && res.events[0].tag === 'read') {
