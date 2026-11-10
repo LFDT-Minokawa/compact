@@ -29,7 +29,7 @@
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
       # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
       # which has dropped x86_64-darwin; build it from 26.05 too.
@@ -203,7 +203,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.0"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.1"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
