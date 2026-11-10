@@ -806,16 +806,16 @@
         "utils": "utils_5"
       },
       "locked": {
-        "lastModified": 1793387870,
-        "narHash": "sha256-KuZiMX7U/xJ9c046CqV61/EvJoOdiNHwE6tVtbYdRE8=",
+        "lastModified": 1794331902,
+        "narHash": "sha256-nLXEO6fy7VDHR+au5gFCJ4SZe6RyJD4C88GoqaXNACg=",
         "owner": "midnightntwrk",
         "repo": "midnight-zkir",
-        "rev": "eeb8a31620d07f74fd3f596ef8b20b9bd1cebec2",
+        "rev": "7a51b3385bbf4bce3604df87a7c70867c9ab43c0",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "zkir-3.2.0-rc.2",
+        "ref": "zkir-3.2.1",
         "repo": "midnight-zkir",
         "type": "github"
       }
