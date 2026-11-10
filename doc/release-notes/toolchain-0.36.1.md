@@ -7,7 +7,7 @@
 
 ## High-level summary
 
-Version 0.36.1 of the Compact toolchain is a patch release.  It contains fixes for a pair of bugs in toolchain 0.38.0.
+Version 0.36.1 of the Compact toolchain is a patch release.  It contains fixes for a pair of bugs in toolchain 0.36.0.
 
 ## Audience
 
