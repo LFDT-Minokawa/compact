@@ -252,18 +252,16 @@ describe('signatureTypesEqual: nested contract types', () => {
   test('argument and result types are compared', () => {
     expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([BOOL], UNIT) }))).toEqual(false);
     expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([FIELD], FIELD) }))).toEqual(false);
-    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([FIELD, FIELD], UNIT) }))).toEqual(
-      false,
-    );
+    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([FIELD, FIELD], UNIT) }))).toEqual(false);
   });
 
   test('contract types nest', () => {
     const inner: InterfaceDescriptor = { balance: decl([], FIELD) };
     const outer = (t: SignatureType): SignatureType => contract('Outer', { vault: decl([], t) });
     expect(signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Safe', inner)))).toEqual(true);
-    expect(
-      signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Vault', { balance: decl([], BOOL) }))),
-    ).toEqual(false);
+    expect(signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Vault', { balance: decl([], BOOL) })))).toEqual(
+      false,
+    );
   });
 
   test('a circuit named for an Object.prototype member does not resolve through the prototype', () => {
@@ -334,7 +332,11 @@ describe('checkConformance', () => {
 
   test('an impure implementation without a proof cannot satisfy a declaration either', () => {
     const notProvable: CircuitSignatures = { ...conforming, transfer: sig(false, false, [FIELD, uint('255')], BOOL) };
-    expect(checkConformance(declaration, notProvable)).toEqual({ outcome: 'Violation', circuitId: 'transfer', check: 'Provability' });
+    expect(checkConformance(declaration, notProvable)).toEqual({
+      outcome: 'Violation',
+      circuitId: 'transfer',
+      check: 'Provability',
+    });
   });
 
   test('arity must match exactly', () => {
@@ -370,13 +372,21 @@ describe('checkConformance', () => {
 
   test('a differing result type is reported', () => {
     const wrongResult: CircuitSignatures = { ...conforming, transfer: sig(false, true, [FIELD, uint('255')], FIELD) };
-    expect(checkConformance(declaration, wrongResult)).toEqual({ outcome: 'Violation', circuitId: 'transfer', check: 'ResultType' });
+    expect(checkConformance(declaration, wrongResult)).toEqual({
+      outcome: 'Violation',
+      circuitId: 'transfer',
+      check: 'ResultType',
+    });
   });
 
   test('rules apply in order, so the earliest failure is the one reported', () => {
     // Absent, and would also fail every later rule.
     const absentAndWrong: CircuitSignatures = { balance: sig(false, false, [BOOL], BOOL) };
-    expect(checkConformance(declaration, absentAndWrong)).toEqual({ outcome: 'Violation', circuitId: 'transfer', check: 'Existence' });
+    expect(checkConformance(declaration, absentAndWrong)).toEqual({
+      outcome: 'Violation',
+      circuitId: 'transfer',
+      check: 'Existence',
+    });
     // Present, but breaks provability before it breaks arity.
     const unprovableAndWrongArity: CircuitSignatures = { ...conforming, balance: sig(true, false, [BOOL], FIELD) };
     expect(checkConformance(declaration, unprovableAndWrongArity)).toEqual({
