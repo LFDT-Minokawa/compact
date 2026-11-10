@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.101]
+
+### Fixed
+
+- Compact JavaScript runtime now accepts a shielded coin whose value does not
+  fit in 64 bits. It used to reject one when it created or looked up the coin's
+  commitment, although `ShieldedCoinInfo.value` is a `Uint<128>`, so a circuit
+  that received, merged or sent such a coin through the standard library failed
+  before it could be proven.
+
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 
 ### Fixed
