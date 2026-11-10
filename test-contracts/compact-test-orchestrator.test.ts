@@ -19,6 +19,7 @@ import { pathToFileURL } from 'node:url';
 
 import { afterAll, describe, test } from 'vitest';
 
+import { checkGeneratedKeys } from './generated-keys.ts';
 import type {
     CompactContractConstructor,
     CompileResult,
@@ -228,9 +229,27 @@ async function runCompileTest(fixture: SelectedFixture) {
         const result = await compileFixture(fixture);
 
         assertExpectedCompileResult(fixture.compileDefinition, result);
+
+        if (result.exitCode === 0) {
+            await assertGeneratedKeys(fixture);
+        }
     } catch (error) {
         markFixtureFailed(fixture);
         throw error;
+    }
+}
+
+/**
+ * Fails a successful compile whose keys are missing or malformed. A failed
+ * compile deletes its output, so there is nothing to check then.
+ */
+async function assertGeneratedKeys(fixture: SelectedFixture) {
+    const problems = await checkGeneratedKeys(fixture.outputDir);
+
+    if (problems.length > 0) {
+        throw new Error(
+            `${fixture.relativeFixtureDir} generated bad keys:\n${problems.map((problem) => `  ${problem}`).join('\n')}`,
+        );
     }
 }
 
