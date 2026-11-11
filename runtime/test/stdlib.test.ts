@@ -42,6 +42,70 @@ describe('createCoinCommitment', () => {
   });
 });
 
+const Bytes32 = new compactRuntime.CompactTypeBytes(32);
+
+const coinPreimageFields = [
+  new compactRuntime.CompactTypeBytes(21),
+  Bytes32,
+  Bytes32,
+  new compactRuntime.CompactTypeUnsignedInteger(2n ** 128n - 1n, 16),
+  compactRuntime.CompactTypeBoolean,
+  Bytes32,
+] as compactRuntime.CompactType<unknown>[];
+
+const CoinPreimage: compactRuntime.CompactType<unknown[]> = {
+  alignment: () => coinPreimageFields.flatMap((field) => field.alignment()),
+  toValue: (fields) => coinPreimageFields.flatMap((field, i) => field.toValue(fields[i])),
+  fromValue: (value) => coinPreimageFields.map((field) => field.fromValue(value)),
+};
+
+const circuitCoinCommitment = (
+  coin: compactRuntime.EncodedShieldedCoinInfo,
+  recipient: compactRuntime.EncodedRecipient,
+): string =>
+  compactRuntime.toHex(
+    compactRuntime.persistentHash(CoinPreimage, [
+      new TextEncoder().encode('midnight:zswap-cc[v1]'),
+      coin.nonce,
+      coin.color,
+      coin.value,
+      recipient.is_left,
+      recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
+    ]),
+  );
+
+describe('createZswapOutput coin values', () => {
+  const setup = () => {
+    const address = ocrt.sampleContractAddress();
+    const context = compactRuntime.createCircuitContext({
+      circuitId: 'test',
+      contractAddress: address,
+      coinPublicKeyOrZswapState: '0'.repeat(64),
+      contractState: new ocrt.ContractState(),
+      privateState: undefined,
+    });
+    const recipient = {
+      is_left: false,
+      left: { bytes: new Uint8Array(32) },
+      right: { bytes: ocrt.encodeContractAddress(address) },
+    };
+    return { context, recipient };
+  };
+  const coin = (value: bigint) => ({ nonce: new Uint8Array(32).fill(1), color: new Uint8Array(32).fill(2), value });
+
+  test.each([0n, 2n ** 64n - 1n, 2n ** 64n, 2n ** 128n - 1n])('Records the circuit commitment for value %s', (value) => {
+    const { context, recipient } = setup();
+    compactRuntime.createZswapOutput(context, coin(value), recipient);
+    expect(context.callContext.currentQueryContext.comIndices.has(circuitCoinCommitment(coin(value), recipient))).toBe(true);
+    expect(compactRuntime.hasCoinCommitment(context, coin(value), recipient)).toBe(true);
+  });
+
+  test('Rejects a value outside Uint<128>', () => {
+    const { context, recipient } = setup();
+    expect(() => compactRuntime.createZswapOutput(context, coin(2n ** 128n), recipient)).toThrow(compactRuntime.CompactError);
+  });
+});
+
 describe('CompactError', () => {
   const msg = 'my message';
 
@@ -116,8 +180,7 @@ describe('__compact.convertBigintToBytes', () => {
 describe('__compact.convertBytesToUint for Field', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0, 1]);
-    const x = compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, a.length, a, 'Field',
-                                                'source');
+    const x = compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, a.length, a, 'Field', 'source');
     expect(x).toBe(256n);
   });
 

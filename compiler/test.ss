@@ -63987,6 +63987,69 @@ groups than for single tests.
         ))
     )
 
+  ; default Merkle trees deeper than 15 (issue #879)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger field1: MerkleTree<16, Field>;"
+      "export ledger field2: MerkleTree<20, Field>;"
+      "export ledger field3: MerkleTree<32, Field>;"
+      "export ledger field4: HistoricMerkleTree<16, Field>;"
+      "export ledger field5: HistoricMerkleTree<20, Field>;"
+      "export ledger field6: HistoricMerkleTree<32, Field>;"
+      "export ledger field7: Map<Boolean, MerkleTree<32, Field>>;"
+      "export ledger field8: Map<Boolean, HistoricMerkleTree<32, Field>>;"
+      ""
+      "export circuit reset(x: Field): [] {"
+      "  field1.insert(disclose(x));"
+      "  field2.insert(disclose(x));"
+      "  field3.insert(disclose(x));"
+      "  field4.insert(disclose(x));"
+      "  field5.insert(disclose(x));"
+      "  field6.insert(disclose(x));"
+      "  field1.resetToDefault();"
+      "  field2.resetToDefault();"
+      "  field3.resetToDefault();"
+      "  field4.resetToDefault();"
+      "  field5.resetToDefault();"
+      "  field6.resetToDefault();"
+      "}"
+      ""
+      "export circuit initDefault(b: Boolean): [] {"
+      "  field7.insertDefault(disclose(b));"
+      "  field8.insertDefault(disclose(b));"
+      "}"
+      ""
+      "export circuit initWithDefault(b: Boolean): [] {"
+      "  field7.insert(disclose(b), default<MerkleTree<32, Field>>);"
+      "  field8.insert(disclose(b), default<HistoricMerkleTree<32, Field>>);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const L0 = contractCode.ledger(Ctxt0.callContext.currentQueryContext.state);"
+        "  const Ctxt1 = (await C.circuits.reset(Ctxt0, 5n)).context;"
+        "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
+        "  expect(L1.field1.root()).toEqual(L0.field1.root());"
+        "  expect(L1.field2.root()).toEqual(L0.field2.root());"
+        "  expect(L1.field3.root()).toEqual(L0.field3.root());"
+        "  expect(L1.field4.root()).toEqual(L0.field4.root());"
+        "  expect(L1.field5.root()).toEqual(L0.field5.root());"
+        "  expect(L1.field6.root()).toEqual(L0.field6.root());"
+        "  const Ctxt2 = (await C.circuits.initDefault(Ctxt1, true)).context;"
+        "  const Ctxt3 = (await C.circuits.initWithDefault(Ctxt2, false)).context;"
+        "  const L3 = contractCode.ledger(Ctxt3.callContext.currentQueryContext.state);"
+        "  expect(L3.field7.lookup(true).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field7.lookup(false).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field8.lookup(true).root()).toEqual(L0.field6.root());"
+        "  expect(L3.field8.lookup(false).root()).toEqual(L0.field6.root());"
+        "});"
+        ))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -65033,9 +65096,9 @@ groups than for single tests.
         "  \"version\": 3,"
         "  \"file\": \"index.js\","
         "  \"sourceRoot\": \"../src/\","
-        "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
+        "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -75880,6 +75943,59 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #881: * or + on a nominal Uint alias was an internal error when the
+  ; result range equaled the alias's range.
+  (test
+    '(
+      "new type Bit = Uint<1>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<1> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 0n)).result).toEqual(0n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Zero = Uint<0..1>;"
+      "export circuit add(x: Zero, y: Zero): Zero {"
+      "  return x + y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..1> addition', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.add(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Bit = Uint<0..2>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..2> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 1n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
   (test
     `(
       "type Q = Field;"
@@ -77546,6 +77662,118 @@ groups than for single tests.
         "  expect((await C.circuits.foo(Ctxt, true, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([0x12, 0x34, 0x56, 0x78, 0x91, 0x23, 0x45]));"
         "  expect((await C.circuits.foo(Ctxt, false, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7]));"
         "  });"
+        ))
+    )
+
+  (let ([v (+ (expt 2 248) 5)] [wide (+ (max-curve25519-scalar) 6)])
+    (test
+      `(
+        "import CompactStandardLibrary;"
+        "export ledger k1b: Secp256k1Base;"
+        "export ledger k1s: Secp256k1Scalar;"
+        "export ledger r1b: Secp256r1Base;"
+        "export ledger r1s: Secp256r1Scalar;"
+        "export ledger c25519b: Curve25519Base;"
+        "export ledger c25519s: Curve25519Scalar;"
+        "export ledger f: Field;"
+        "export circuit castK1(b: Boolean, x: Secp256k1Base, y: Secp256k1Scalar): [] {"
+        ,(format "  k1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256k1Base);" v)
+        ,(format "  k1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256k1Scalar);" v)
+        "}"
+        "export circuit castR1(b: Boolean, x: Secp256r1Base, y: Secp256r1Scalar): [] {"
+        ,(format "  r1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256r1Base);" v)
+        ,(format "  r1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256r1Scalar);" v)
+        "}"
+        "export circuit castC25519(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
+        ,(format "  c25519b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
+        ,(format "  c25519s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
+        "}"
+        "export circuit castZero(): [] {"
+        "  k1b = disclose((0 as Field as Bytes<32>) as Secp256k1Base);"
+        "  k1s = disclose((0 as Field as Bytes<32>) as Secp256k1Scalar);"
+        "  r1b = disclose((0 as Field as Bytes<32>) as Secp256r1Base);"
+        "  r1s = disclose((0 as Field as Bytes<32>) as Secp256r1Scalar);"
+        "  c25519b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
+        "  c25519s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
+        "}"
+        "export circuit castWide(): [] {"
+        ,(format "  c25519s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
+        "}"
+        "export circuit castNative(v: Bytes<32>, x: Uint<8>, y: Uint<8>): [] {"
+        ,(format "  const k = (x < y) == (x < y) ? (~d as Field as Bytes<32>) : v;" v)
+        "  f = disclose(k as Field);"
+        "}"
+        )
+      (stage-javascript
+        `(
+          "test('constant casts to field types', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+          ,(format "  const V = ~dn;" v)
+          "  let l = L(await C.circuits.castK1(Ctxt, false, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castK1(Ctxt, true, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castR1(Ctxt, false, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castR1(Ctxt, true, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, false, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, true, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castZero(Ctxt));"
+          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25519b, l.c25519s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+          "  expect(L(await C.circuits.castWide(Ctxt)).c25519s).toEqual(5n);"
+          "  expect(L(await C.circuits.castNative(Ctxt, new Uint8Array(32), 1n, 2n)).f).toEqual(V);"
+          "});"
+          ))
+      )
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct K1 { a: Secp256k1Base, b: Field }"
+      "struct R1 { a: Secp256r1Base, b: Field }"
+      "export ledger n: Field;"
+      "export circuit unusedK1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256k1Base;"
+      "  const s = v as Secp256k1Scalar;"
+      "  n = 1 as Field;"
+      "}"
+      "export circuit unusedR1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256r1Base;"
+      "  const s = v as Secp256r1Scalar;"
+      "  n = 2 as Field;"
+      "}"
+      "export circuit unusedC25519(v: Bytes<32>, w: Bytes<64>): [] {"
+      "  const b = v as Curve25519Base;"
+      "  const s = v as Curve25519Scalar;"
+      "  const t = w as Curve25519Scalar;"
+      "  n = 3 as Field;"
+      "}"
+      "export circuit unusedFieldK1(v: Bytes<32>, f: Field): [] {"
+      "  const p = K1 { a: v as Secp256k1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      "export circuit unusedFieldR1(v: Bytes<32>, f: Field): [] {"
+      "  const p = R1 { a: v as Secp256r1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('unused casts to foreign field types', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const n = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).n;"
+        "  const v = new Uint8Array(32).fill(7);"
+        "  expect(n(await C.circuits.unusedK1(Ctxt, v))).toEqual(1n);"
+        "  expect(n(await C.circuits.unusedR1(Ctxt, v))).toEqual(2n);"
+        "  expect(n(await C.circuits.unusedC25519(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
+        "  expect(n(await C.circuits.unusedFieldK1(Ctxt, v, 4n))).toEqual(4n);"
+        "  expect(n(await C.circuits.unusedFieldR1(Ctxt, v, 5n))).toEqual(5n);"
+        "});"
         ))
     )
 
@@ -79991,6 +80219,48 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "export ledger memo: Opaque<'string'>;"
+      "export ledger archived: Opaque<'string'>;"
+      "export ledger seen: Map<Opaque<'string'>, Boolean>;"
+      "export circuit store(m: Opaque<'string'>): [] {"
+      "  memo = disclose(m);"
+      "}"
+      "export circuit markSeen(m: Opaque<'string'>): [] {"
+      "  seen.insert(disclose(m), true);"
+      "}"
+      "export circuit receipt(): Opaque<'string'> {"
+      "  return memo;"
+      "}"
+      "export circuit archive(): [] {"
+      "  archived = memo;"
+      "}"
+      "export circuit matches(m: Opaque<'string'>): Boolean {"
+      "  return disclose(memo == m);"
+      "}"
+      "export circuit wasSeen(): Boolean {"
+      "  return seen.member(memo);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an opaque string read from the ledger keeps a leading U+FEFF', async () => {"
+        "  // Each of these failed because the runtime dropped a leading U+FEFF as a byte order mark."
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const memo = '\\uFEFFmemo';"
+        "  const afterStore = (await contract.circuits.store(context, memo)).context;"
+        "  expect((await contract.circuits.receipt(afterStore)).result).toEqual(memo);"
+        "  const afterArchive = (await contract.circuits.archive(afterStore)).context;"
+        "  expect(contractCode.ledger(afterArchive.callContext.currentQueryContext.state).archived).toEqual(memo);"
+        "  expect((await contract.circuits.matches(afterStore, memo)).result).toEqual(true);"
+        "  const afterMark = (await contract.circuits.markSeen(afterStore, memo)).context;"
+        "  expect((await contract.circuits.wasSeen(afterMark)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "import { JubjubScalar as nativeJubjubScalar,"
       "         JubjubPoint as nativeJubjubPoint,"
       "         ecMul as nativeEcMul }"
@@ -81662,6 +81932,50 @@ groups than for single tests.
           ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256k1-scalar))))
         "});"
         )))
+    )
+
+  ; Issue #866: x - x on a foreign field was folded to a Uint<0..1> constant.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger k1: Secp256k1Scalar;"
+      "export ledger r1: Secp256r1Base;"
+      "export ledger c: Curve25519Scalar;"
+      "circuit diff(a: Secp256k1Scalar, b: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return a - b;"
+      "}"
+      "export circuit selfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k - k);"
+      "  return k1;"
+      "}"
+      "export circuit inlinedSelfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(diff(k, k));"
+      "  return k1;"
+      "}"
+      "export circuit mulSelfSub(k: Secp256k1Scalar, z: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k * (z - z));"
+      "  return k1;"
+      "}"
+      "export circuit selfSubR1(k: Secp256r1Base): Secp256r1Base {"
+      "  r1 = disclose(k - k);"
+      "  return r1;"
+      "}"
+      "export circuit selfSubC(k: Curve25519Scalar): Curve25519Scalar {"
+      "  c = disclose(k - k);"
+      "  return c;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('foreign field self-subtraction', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.selfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.inlinedSelfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.mulSelfSub(context, 12345n, 678n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubR1(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubC(context, 12345n)).result).toEqual(0n);"
+        "  });"
+        ))
     )
 
 
@@ -84004,6 +84318,98 @@ groups than for single tests.
         "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
         "  });"
         ))
+    )
+
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
+  ; Casting any field type other than Field to Boolean is a type error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Secp256r1Base): Boolean {"
+      "  return a as Boolean;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: Curve25519Scalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: JubjubScalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Boolean")))
     )
 
   (test

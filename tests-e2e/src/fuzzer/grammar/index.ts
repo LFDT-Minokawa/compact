@@ -14,9 +14,32 @@
 // limitations under the License.
 
 import { Grammar, Token } from './types';
-import { CATEGORIES, ENTRY_POINTS, TERMINALS, compact, type Category, type FuzzerName, type Terminal } from './compact';
+import {
+    CATEGORIES,
+    ENTRY_POINTS,
+    FEATURES,
+    TERMINALS,
+    buildGrammar,
+    compact,
+    unusedStdlibCalls,
+    unusedTypes,
+    type Category,
+    type Feature,
+    type FuzzerName,
+    type Terminal,
+} from './compact';
 
-export { CATEGORIES, ENTRY_POINTS, TERMINALS, type Category, type FuzzerName, type Terminal };
+export {
+    CATEGORIES,
+    ENTRY_POINTS,
+    FEATURES,
+    TERMINALS,
+    buildGrammar,
+    type Category,
+    type Feature,
+    type FuzzerName,
+    type Terminal,
+};
 
 export const grammar: Grammar = compact;
 
@@ -153,4 +176,19 @@ export function validate(spec: GrammarSpec = {}): string[] {
     }
 
     return problems;
+}
+
+/*
+ * Types and calls the catalogue holds that no grammar writes. Only meaningful once every
+ * grammar has been built, since some are reachable only under a feature flag.
+ */
+export function validateCatalogue(): string[] {
+    return [
+        ...unusedTypes().map(
+            (type) => `the type '${type}' is in the catalogue but no production writes it, so it is never fuzzed`,
+        ),
+        ...unusedStdlibCalls().map(
+            (call) => `the call '${call}' is in STDLIB_CALLS but no production writes it, so it is never fuzzed`,
+        ),
+    ];
 }

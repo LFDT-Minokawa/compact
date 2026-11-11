@@ -751,11 +751,12 @@
                     (with-output-language (Ltypes Expression)
                       (nanopass-case (Ltypes Type) unaliased-type1
                         [(tunsigned ,src1 ,nat1)
-                         (if (eq? op '-)
-                             result-expr
-                             (let ([result-nat (nanopass-case (Ltypes Type) result-type
-                                                 [(tunsigned ,src ,nat) nat]
-                                                 [else (assert cannot-happen)])])
+                         ;; result-nat is nat1 for -, for + when nat1 is 0, and for * when nat1 is 0 or 1.
+                         (let ([result-nat (nanopass-case (Ltypes Type) result-type
+                                             [(tunsigned ,src ,nat) nat]
+                                             [else (assert cannot-happen)])])
+                           (if (= result-nat nat1)
+                               result-expr
                                `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))]
                         [else `(safe-cast ,src ,type1 ,result-type ,result-expr)]))
                     type1)))))))
@@ -1918,6 +1919,12 @@
               [(tunsigned ,src1 ,nat1)
                (T source-type
                   [(tfield ,src2 ,ftype)
+                   ;; Only the field types that resolve-indices-simplify handles for
+                   ;; cast-from-field are allowed.
+                   (guard (nanopass-case (Ltypes Field-Type) ftype
+                            [(field-native) #t]
+                            [(field-scalar (curve-jubjub)) #t]
+                            [else #f]))
                    `(cast-from-field ,src ,nat1 ,ftype ,expr)]
                   [(tunsigned ,src2 ,nat2)
                    (assert (> nat2 nat1))
@@ -1939,7 +1946,8 @@
                             (safe-cast ,src ,target-type (tunsigned ,src 0) (quote ,src 0))))])]
               [(tboolean ,src1)
                (T source-type
-                  [(tfield ,src2 ,ftype)
+                  ;; Only Field: later passes cannot compare other field types with the 0 below.
+                  [(tfield ,src2 (field-native))
                    `(if ,src
                         (== ,src ,source-type ,expr
                           (safe-cast ,src ,source-type (tunsigned ,src 0) (quote ,src 0)))
@@ -1954,7 +1962,8 @@
                             (quote ,src #f)
                             (quote ,src #t)))])]
               [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
-               (guard (T source-type [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
+               ;; replace-enums lowers casts from a field to cast-from-field on the native field.
+               (guard (T source-type [(tfield ,src (field-native)) #t] [(tunsigned ,src ,nat) #t]))
                `(cast-to-enum ,src ,target-type ,source-type ,expr)])
            (source-errorf src "cannot cast from type ~a to type ~a"
                           (format-type source-type)

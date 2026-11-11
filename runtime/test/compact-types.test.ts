@@ -49,11 +49,7 @@ function isDescriptorClass(value: unknown): boolean {
   if (typeof value !== 'function') return false;
   const proto = (value as { prototype?: Record<string, unknown> }).prototype;
   if (proto == null) return false;
-  return (
-    typeof proto.alignment === 'function' &&
-    typeof proto.toValue === 'function' &&
-    typeof proto.fromValue === 'function'
-  );
+  return typeof proto.alignment === 'function' && typeof proto.toValue === 'function' && typeof proto.fromValue === 'function';
 }
 
 /**
@@ -114,13 +110,12 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
   CompactTypeUnsignedInteger: [
     sample('Uint[<=255]', new runtime.CompactTypeUnsignedInteger(255n, 1), 200n),
     sample('Uint[<=255] (zero)', new runtime.CompactTypeUnsignedInteger(255n, 1), 0n),
-    sample(
-      'Uint[<=2^64-1]',
-      new runtime.CompactTypeUnsignedInteger(18446744073709551615n, 8),
-      18446744073709551615n,
-    ),
+    sample('Uint[<=2^64-1]', new runtime.CompactTypeUnsignedInteger(18446744073709551615n, 8), 18446744073709551615n),
   ],
-  CompactTypeEnum: [sample('Enum[<=7]', new runtime.CompactTypeEnum(7, 1), 5), sample('Enum[<=7] (zero)', new runtime.CompactTypeEnum(7, 1), 0)],
+  CompactTypeEnum: [
+    sample('Enum[<=7]', new runtime.CompactTypeEnum(7, 1), 5),
+    sample('Enum[<=7] (zero)', new runtime.CompactTypeEnum(7, 1), 0),
+  ],
   CompactTypeVector: [
     sample('Vector<3, Field>', new runtime.CompactTypeVector(3, runtime.CompactTypeField), [1n, 2n, 3n]),
     // A Vector of one element passes even when its element does not consume, so n >= 2 is the case that matters.
@@ -203,25 +198,20 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
     }),
     // The leaf is decoded before the path, so a bare curve point still has to chain here.
     // Reached from `MerkleTree<n, Secp256k1Point>.findPathForLeaf`.
-    sample(
-      'MerkleTreePath<2, Secp256k1Point>',
-      new runtime.CompactTypeMerkleTreePath(2, runtime.CompactTypeSecp256k1Point),
-      {
-        leaf: SECP256K1_G,
-        path: [
-          { sibling: { field: 1n }, goes_left: true },
-          { sibling: { field: 2n }, goes_left: false },
-        ],
-      },
-    ),
+    sample('MerkleTreePath<2, Secp256k1Point>', new runtime.CompactTypeMerkleTreePath(2, runtime.CompactTypeSecp256k1Point), {
+      leaf: SECP256K1_G,
+      path: [
+        { sibling: { field: 1n }, goes_left: true },
+        { sibling: { field: 2n }, goes_left: false },
+      ],
+    }),
   ],
   CompactTypeOpaqueString: [
     sample('Opaque<"string">', runtime.CompactTypeOpaqueString, 'hello'),
     sample('Opaque<"string"> (empty)', runtime.CompactTypeOpaqueString, ''),
+    sample('Opaque<"string"> (leading U+FEFF)', runtime.CompactTypeOpaqueString, '\uFEFFhello'),
   ],
-  CompactTypeOpaqueUint8Array: [
-    sample('Opaque<"Uint8Array">', runtime.CompactTypeOpaqueUint8Array, new Uint8Array([7, 8, 9])),
-  ],
+  CompactTypeOpaqueUint8Array: [sample('Opaque<"Uint8Array">', runtime.CompactTypeOpaqueUint8Array, new Uint8Array([7, 8, 9]))],
 };
 
 describe('conformance coverage', () => {
@@ -352,9 +342,7 @@ describe('input validation', () => {
   });
 
   test('Bytes rejects an over-long value on encode', () => {
-    expect(() => new runtime.CompactTypeBytes(4).toValue(new Uint8Array([1, 2, 3, 4, 5]))).toThrow(
-      /expected Bytes\[4\]/,
-    );
+    expect(() => new runtime.CompactTypeBytes(4).toValue(new Uint8Array([1, 2, 3, 4, 5]))).toThrow(/expected Bytes\[4\]/);
   });
 
   test('Bytes.fromValue does not alias the atom it decoded', () => {
@@ -372,9 +360,7 @@ describe('input validation', () => {
   });
 
   test('Secp256k1Base rejects an out-of-range value on encode', () => {
-    expect(() => runtime.CompactTypeSecp256k1Base.toValue(runtime.SECP256K1_BASE_MODULUS)).toThrow(
-      /expected Secp256k1Base/,
-    );
+    expect(() => runtime.CompactTypeSecp256k1Base.toValue(runtime.SECP256K1_BASE_MODULUS)).toThrow(/expected Secp256k1Base/);
   });
 
   test('Secp256k1Scalar rejects an out-of-range value on encode', () => {
@@ -397,5 +383,17 @@ describe('identity points', () => {
     const other = { ...SECP256R1_G, identity: true };
     expect(point.toValue(other)).toStrictEqual(point.toValue(SECP256R1_IDENTITY));
     expect(point.fromValue(point.toValue(other))).toStrictEqual(SECP256R1_IDENTITY);
+  });
+});
+
+describe('opaque strings', () => {
+  test.each([
+    ['a leading U+FEFF', [0xef, 0xbb, 0xbf, 0x68, 0x69]],
+    ['two leading U+FEFFs', [0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, 0x68, 0x69]],
+    ['nothing but U+FEFF', [0xef, 0xbb, 0xbf]],
+  ])('Opaque<"string"> decoded from bytes with %s encodes back to those bytes', (_label, bytes) => {
+    const stored = new Uint8Array(bytes);
+    const decoded = runtime.CompactTypeOpaqueString.fromValue([stored]);
+    expect(runtime.CompactTypeOpaqueString.toValue(decoded)).toStrictEqual([stored]);
   });
 });

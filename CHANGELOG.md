@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.101]
+
+### Fixed
+
+- Compact JavaScript runtime now accepts a shielded coin whose value does not
+  fit in 64 bits. It used to reject one when it created or looked up the coin's
+  commitment, although `ShieldedCoinInfo.value` is a `Uint<128>`, so a circuit
+  that received, merged or sent such a coin through the standard library failed
+  before it could be proven.
+
+## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit calls
+  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth in
+  `[16, 32]`, or stores a default tree of such a depth in a `Map` with
+  `insertDefault()` or `insert()`.
+
+## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- Compact JavaScript runtime now keeps a leading U+FEFF when it reads an
+  `Opaque<'string'>` value. It used to drop the character as a byte order
+  mark, so the string no longer matched the bytes stored on the ledger, and a
+  circuit that returned it, wrote it back, compared it with another string or
+  used it as a map key could not be proven.
+
+## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
+
+### Changed
+
+- `zkir-v3-natives.ss` and `zkir-v3-library.compact` and the mechanism to pull them 
+  within scope in `expand-modules-and-types` pass have been removed. They are now
+  simply included in `midnight-natives.ss` and `standard-library.compact`. This
+  changes the `sources` of generated sourcemap `contract/index.js.map` when a contract
+  uses a functionality that was previously in `zkir-v3-library.compact`.
+
+## [Toolchain 0.36.0, language 0.28.0, runtime 0.21.0]
+
+This release includes all changes for compiler versions in the range between
+0.35.100 and 0.36.0; language versions in the range between 0.27.100 and 0.28.0;
+and Compact runtime versions in the range between 0.20.100 and 0.21.0.
+
+## [Toolchain 0.35.114, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit
+  subtracts a foreign field value from itself, such as `k - k` for a
+  `Secp256k1Scalar` `k`, including when the two operands become the same
+  only after inlining.  Fixes issue
+  [#866](https://github.com/LFDT-Minokawa/compact/issues/866).
+
+## [Toolchain 0.35.113, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error on a cast to a foreign
+  field type (`Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base` or `Curve25519Scalar`) when the cast is a
+  constant, such as `(1 as Bytes<32>) as Secp256k1Base`, or when its result is
+  never used, such as a struct field that is never read.
+
+## [Toolchain 0.35.112, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error for `*` or `+` on
+  operands of a nominal `Uint` type whose result range equals the type's own
+  range, such as `x * y` where `x` and `y` have type `Bit` declared by
+  `new type Bit = Uint<1>`.  Fixes issue
+  [#881](https://github.com/LFDT-Minokawa/compact/issues/881).
+
+## [Toolchain 0.35.111, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- Casting `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type
+  is now reported as a type error instead of failing with an internal error.
+  Fixes issue [#880](https://github.com/LFDT-Minokawa/compact/issues/880).
+- Casting any field type other than `Field`, including `JubjubScalar`, to an
+  enum type is now reported as a type error instead of failing with an
+  internal error.
+- Casting any field type other than `Field` to `Boolean` is now always a type
+  error. These casts used to be accepted in pure circuits, and failed when
+  compiled to a ZK circuit.
+
+## [Toolchain 0.35.110, language 0.27.100, runtime 0.20.104]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.2.0-rc.2`.
+
 ## [Toolchain 0.35.109, language 0.27.100, runtime 0.20.104]
 
 ### Changed
