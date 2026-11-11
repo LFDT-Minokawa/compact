@@ -51950,7 +51950,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -51985,7 +51985,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52021,7 +52021,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52050,7 +52050,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52082,7 +52082,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52120,7 +52120,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52155,7 +52155,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/main.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52242,7 +52242,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52272,7 +52272,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52303,7 +52303,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52333,7 +52333,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52364,7 +52364,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52418,7 +52418,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52437,7 +52437,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52474,7 +52474,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52519,7 +52519,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52541,7 +52541,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52577,7 +52577,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52628,7 +52628,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52648,7 +52648,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52678,7 +52678,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
@@ -52745,7 +52745,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52764,7 +52764,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/ismember.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52786,7 +52786,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52805,7 +52805,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/update.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52824,7 +52824,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52864,7 +52864,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52883,7 +52883,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52905,7 +52905,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52943,7 +52943,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52976,7 +52976,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53003,7 +53003,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53035,7 +53035,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53070,7 +53070,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53110,7 +53110,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53162,7 +53162,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53194,7 +53194,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53234,7 +53234,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53320,7 +53320,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53407,7 +53407,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53560,7 +53560,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53597,7 +53597,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53702,7 +53702,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53730,7 +53730,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53761,7 +53761,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53791,7 +53791,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53825,7 +53825,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53859,7 +53859,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53886,7 +53886,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53919,7 +53919,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53958,7 +53958,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54003,7 +54003,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54032,7 +54032,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54062,7 +54062,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54097,7 +54097,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54151,7 +54151,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54172,7 +54172,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54190,7 +54190,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54208,7 +54208,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar4.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54238,7 +54238,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54270,7 +54270,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54297,7 +54297,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54327,7 +54327,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54355,7 +54355,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54383,7 +54383,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54411,7 +54411,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54441,7 +54441,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54472,7 +54472,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54504,7 +54504,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54539,7 +54539,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54572,7 +54572,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54605,7 +54605,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54638,7 +54638,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54672,7 +54672,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54710,7 +54710,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54742,7 +54742,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54771,7 +54771,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54803,7 +54803,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54833,7 +54833,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54863,7 +54863,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54894,7 +54894,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54924,7 +54924,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54955,7 +54955,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54986,7 +54986,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55017,7 +55017,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55069,7 +55069,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55146,7 +55146,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55209,7 +55209,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55236,7 +55236,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55263,7 +55263,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55290,7 +55290,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55317,7 +55317,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55345,7 +55345,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55372,7 +55372,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55399,7 +55399,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55439,7 +55439,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55475,7 +55475,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55513,7 +55513,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55545,7 +55545,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55583,7 +55583,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55673,7 +55673,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55964,7 +55964,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
@@ -55998,7 +55998,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56035,7 +56035,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56056,7 +56056,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56093,7 +56093,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56114,7 +56114,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56151,7 +56151,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56177,7 +56177,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56222,7 +56222,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56256,7 +56256,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56310,7 +56310,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56339,7 +56339,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56364,7 +56364,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/tres.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56410,7 +56410,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56453,7 +56453,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56493,7 +56493,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/hello.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56528,7 +56528,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/_arguments.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%_eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56582,7 +56582,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/red_guess.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56613,7 +56613,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56645,7 +56645,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56678,7 +56678,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56718,7 +56718,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/rat.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56766,7 +56766,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56799,7 +56799,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56882,7 +56882,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56925,7 +56925,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56976,7 +56976,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -57030,7 +57030,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -57167,7 +57167,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57193,7 +57193,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57282,7 +57282,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57308,7 +57308,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57357,7 +57357,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57376,7 +57376,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57398,7 +57398,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57450,7 +57450,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57469,7 +57469,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/incr_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57488,7 +57488,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57508,7 +57508,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57575,7 +57575,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57593,7 +57593,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/insert_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57613,7 +57613,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57694,7 +57694,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57713,7 +57713,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57733,7 +57733,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/increment_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57753,7 +57753,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57774,7 +57774,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57872,7 +57872,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57905,7 +57905,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57985,7 +57985,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58089,7 +58089,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58327,7 +58327,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58357,7 +58357,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58390,7 +58390,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58428,7 +58428,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58460,7 +58460,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58492,7 +58492,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58649,7 +58649,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -58681,7 +58681,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58719,7 +58719,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58769,7 +58769,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58897,7 +58897,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59042,7 +59042,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -59074,7 +59074,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59112,7 +59112,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59161,7 +59161,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59288,7 +59288,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59505,7 +59505,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59540,7 +59540,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59608,7 +59608,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test5.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59678,7 +59678,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -59697,7 +59697,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59717,7 +59717,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59737,7 +59737,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59770,7 +59770,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/gris.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -59802,7 +59802,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -59855,7 +59855,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testFtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%f.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59883,7 +59883,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoF.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -59909,7 +59909,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testUtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%u.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59939,7 +59939,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoU.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -59991,7 +59991,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256k1>\" }"
@@ -60009,7 +60009,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -60089,7 +60089,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -60124,7 +60124,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Point<Jubjub>\" }"
@@ -60156,7 +60156,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -60193,7 +60193,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -60231,7 +60231,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -60454,7 +60454,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60542,7 +60542,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/d1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60566,7 +60566,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/d2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60641,7 +60641,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256r1>\" }"
@@ -60659,7 +60659,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
@@ -60739,7 +60739,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
@@ -60771,7 +60771,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256k1>\" }"
@@ -60803,7 +60803,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256r1>\" }"
@@ -60835,7 +60835,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Curve25519>\" }"
@@ -60867,7 +60867,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Curve25519>\" }"
@@ -60899,7 +60899,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256r1>\" },"
@@ -60936,7 +60936,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256r1>\" },"
@@ -60973,7 +60973,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%pt0.0\", \"type\": \"Point<Secp256k1>\" },"
@@ -61006,7 +61006,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
