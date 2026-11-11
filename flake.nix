@@ -23,13 +23,16 @@
   };
 
   inputs = {
-    onchain-runtime-v4 = {
-      # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+    onchain-runtime-v5 = {
+      # dependency for Compact runtime release; the midnight-ledger commit the pinned
+      # zkir (iquerejeta/pass-zkir-v3) builds against (merge of #791), whose
+      # proofDataIntoSerializedPreimage takes inner proofs
+      url = "github:midnightntwrk/midnight-ledger/6f72b82f0a86e32622538bf2e036c43d5b6e64b8";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2"; # zkir-v3
+      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof).
+      url = "github:midnightntwrk/midnight-zkir/3deaa1135f623cf80a0f788826eb4152fcf01e79"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
       # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
       # which has dropped x86_64-darwin; build it from 26.05 too.
@@ -37,7 +40,7 @@
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2";
+      url = "github:midnightntwrk/midnight-zkir/3deaa1135f623cf80a0f788826eb4152fcf01e79"; # iquerejeta/pass-zkir-v3
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -56,7 +59,7 @@
 
   outputs = {
     self,
-    onchain-runtime-v4,
+    onchain-runtime-v5,
     zkir-v3,
     zkir-v3-wasm,
     nixpkgs,
@@ -165,11 +168,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnightntwrk/onchain-runtime-v4" = let
-                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v4";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
               };
             };
           };

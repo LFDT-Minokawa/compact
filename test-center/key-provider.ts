@@ -20,7 +20,7 @@ import {
   jsonIrToBinary as jsonIrToBinaryV3
 } from '@midnightntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
-import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v4';
+import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v5';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -93,7 +93,7 @@ export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProvi
 
 export const checkProofData = async (contractDir: string, circuitName: string, proofData: ProofData): Promise<(bigint | undefined)[]> => {
   const json = await readZkirJson(contractDir, circuitName);
-  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
+  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName, proofData.innerProofs);
   const keyProvider = createKeyMaterialProvider(contractDir);
   return backendFor(json).check(preimage, keyProvider);
 };
