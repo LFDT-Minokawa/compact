@@ -1059,7 +1059,7 @@ accumulator is used by:
   branches must use the same accumulators bound outside them.
 
 A witness may return an accumulator: the accumulator an inner proof carries
-(see [`prepareVerification`](#prepareverification)).  Otherwise an accumulator
+(see [`prepareRecursiveVerification`](#preparerecursiveverification)).  Otherwise an accumulator
 cannot be stored in a ledger field, passed to a witness, passed to or returned
 from an exported circuit, or placed in a tuple, vector, or structure.  It cannot
 be compared, serialized, or deserialized, and it has no default value.
@@ -1076,9 +1076,9 @@ verified only once that accumulator reaches
 [`verifyAccumulator`](#verifyaccumulator), possibly combined with others by
 [`accumulate`](#accumulate).
 
-It is called as `prepareVerification(vk, publicInputs, proof)`, or as
-`prepareVerification(vk, publicInputs, proof, carried)` for an inner proof that
-carries an accumulator, and returns an `Accumulator`:
+It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
+`Accumulator`.  For an inner proof that carries an accumulator of its own, use
+[`prepareRecursiveVerification`](#preparerecursiveverification) instead.
 
 * `vk` must be a string literal naming the inner proof's verifying key file.
   The compiler finds the file along the compact path, as it finds imported
@@ -1088,12 +1088,6 @@ carries an accumulator, and returns an `Accumulator`:
   taken from the argument; `prepareVerification` takes no generic arguments.
 * `proof` is the inner proof, an `Opaque<"Uint8Array">`, typically returned
   by a witness.
-* `carried`, if given, is the [`Accumulator`](#accumulator) the inner proof
-  carries because it verified proofs of its own.  Its encoding is the tail of
-  the inner proof's public inputs, so it is not repeated in `publicInputs`.
-  The circuit appends it to the public inputs and accumulates it into the
-  result, so that its check happens too.  It typically comes from a witness,
-  which builds it in TypeScript with `Accumulator.fromPublicInputs`.
 
 ```compact
 const acc = prepareVerification("inner.verifier", [x, y], innerProof());
@@ -1105,8 +1099,8 @@ consumes no proof and its accumulator is trivially valid.
 
 Whether a `prepareVerification` runs can be observed, so calling it in a branch
 whose condition depends on witness data discloses that condition.  Its public
-inputs and carried accumulator are treated as disclosed, so ones derived from
-witness data must be wrapped in `disclose`.  The proof itself is not disclosed.
+inputs are treated as disclosed, so ones derived from witness data must be
+wrapped in `disclose`.  The proof itself is not disclosed.
 
 For example, this circuit verifies two proofs of the same value against
 different keys:
@@ -1124,6 +1118,42 @@ export circuit attest(x: Field): [] {
   const a = prepareVerification("a.verifier", [attested], proofA());
   const b = prepareVerification("b.verifier", [attested], proofB());
   verifyAccumulator(accumulate(a, b));
+}
+```
+
+### `prepareRecursiveVerification`
+
+This is a native circuit.
+
+Like [`prepareVerification`](#prepareverification), but for an inner proof that
+carries an [`Accumulator`](#accumulator) because it verified proofs of its own,
+such as a step of an IVC chain.  It is called as
+`prepareRecursiveVerification(vk, publicInputs, proof, carried)` and returns an
+`Accumulator`:
+
+* `vk`, `publicInputs`, and `proof` are as for
+  [`prepareVerification`](#prepareverification).
+* `carried` is the accumulator the inner proof carries.  Its encoding is the
+  tail of the inner proof's public inputs, so it is not repeated in
+  `publicInputs`.  The circuit appends it to the public inputs and accumulates
+  it into the result, so that its check happens too.  It typically comes from a
+  witness, which builds it in TypeScript with `Accumulator.fromPublicInputs`.
+
+Like its public inputs, `carried` is treated as disclosed.  Everything else
+said of `prepareVerification` holds for `prepareRecursiveVerification` too.
+
+```compact
+import CompactStandardLibrary;
+
+witness ivcProof(): Opaque<"Uint8Array">;
+witness carried(): Accumulator;
+
+export ledger steps: Field;
+
+export circuit verifyIvc(n: Field): [] {
+  steps = disclose(n);
+  const acc = prepareRecursiveVerification("ivc.verifier", [steps], ivcProof(), disclose(carried()));
+  verifyAccumulator(acc);
 }
 ```
 

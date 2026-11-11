@@ -3148,7 +3148,8 @@
         (source-errorf src "internal: contract-call type is not a tcontract")])]
     ;; Lower prepareVerification(vk, publicInputs, proof) to
     ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', publicInputs, proof)
-    ;; which records the proof as the next inner proof the circuit consumes.  The key
+    ;; which records the proof as the next inner proof the circuit consumes.
+    ;; prepareRecursiveVerification passes its carried accumulator as a fifth argument.  The key
     ;; goes out as the hex of the same bytes the circuit's inner_vks holds.
     [(prepare-verification ,src ,vk
        ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]

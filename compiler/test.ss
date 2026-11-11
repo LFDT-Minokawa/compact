@@ -18835,7 +18835,31 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three or four arguments, received ~d" (2)))
+      irritants: '("testfile.compact line 2 char 58" "~a expects ~a arguments, received ~d" ("prepareVerification" "three" 2)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "~a expects ~a arguments, received ~d" ("prepareVerification" "three" 4)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "~a expects ~a arguments, received ~d" ("prepareRecursiveVerification" "four" 3)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18847,7 +18871,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
+      irritants: '("testfile.compact line 2 char 58" "~a expects no generic arguments, received ~d" ("prepareVerification" 1)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18859,7 +18883,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
+      irritants: '("testfile.compact line 2 char 72" "~a expects its first argument to be a string literal naming a verifying key file" ("prepareVerification")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18895,7 +18919,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 72" "expected the public inputs of prepareVerification to have type Vector<n, Field> for some n, received ~a" ("[Bytes<32>]")))
+      irritants: '("testfile.compact line 2 char 72" "expected the public inputs of ~a to have type Vector<n, Field> for some n, received ~a" ("prepareVerification" "[Bytes<32>]")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18907,7 +18931,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 43" "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a" ("Field")))
+      irritants: '("testfile.compact line 2 char 43" "expected the proof of ~a to have type Opaque<'Uint8Array'>, received ~a" ("prepareVerification" "Field")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -19007,36 +19031,36 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, x: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, x); }"
+      "circuit f(p: Opaque<'Uint8Array'>, x: Field): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, x); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 68" "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a" ("Field")))
+      irritants: '("testfile.compact line 2 char 68" "expected the carried accumulator of prepareRecursiveVerification to have type Accumulator, received ~a" ("Field")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a, a); }"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, a, a); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three or four arguments, received ~d" (5)))
+      irritants: '("testfile.compact line 2 char 74" "~a expects ~a arguments, received ~d" ("prepareRecursiveVerification" "four" 5)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareVerification(\"testfile.verifier\", [1 as Field], p, a), a); }"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, a), a); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 147" "Accumulator ~s is used more than once" (a)))
+      irritants: '("testfile.compact line 2 char 156" "Accumulator ~s is used more than once" (a)))
     ))
 
   (test
@@ -32001,7 +32025,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
       "}"
       )
     (succeeds)))
@@ -32013,14 +32037,14 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), carried()));"
+      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), carried()));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 5 char 21" "potential witness-value disclosure must be declared but is not:
     witness value potentially disclosed:
-      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the carried accumulator of prepareVerification at line 5 char 21"))))
+      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareRecursiveVerification might disclose the witness value\n    via this path through the program:\n      the carried accumulator of prepareRecursiveVerification at line 5 char 21"))))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -51920,7 +51944,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -61007,7 +61031,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
       "}"
       )
     (stage-javascript

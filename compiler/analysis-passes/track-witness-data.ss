@@ -669,18 +669,19 @@
     ;; inputs, and the accumulator it carries, are treated as disclosed too.
     ;; The proof itself is not.
     [(prepare-verification ,src ,vk ,[* abs1] ,[* abs2] ,expr?)
-     (unless (null? control-witness*)
-       (record-leak! src "performing this prepareVerification" control-witness*))
-     (let ([witness* (abs->witnesses
-                       (add-path-point src "the public inputs of prepareVerification" "" abs1))])
-       (unless (null? witness*)
-         (record-leak! src "prepareVerification" witness*)))
-     (when expr?
+     (let ([name (if expr? "prepareRecursiveVerification" "prepareVerification")])
+       (unless (null? control-witness*)
+         (record-leak! src (format "performing this ~a" name) control-witness*))
        (let ([witness* (abs->witnesses
-                         (add-path-point src "the carried accumulator of prepareVerification" ""
-                           (Expression expr? p control-witness* disclosing-function-name?)))])
+                         (add-path-point src (format "the public inputs of ~a" name) "" abs1))])
          (unless (null? witness*)
-           (record-leak! src "prepareVerification" witness*))))
+           (record-leak! src name witness*)))
+       (when expr?
+         (let ([witness* (abs->witnesses
+                           (add-path-point src (format "the carried accumulator of ~a" name) ""
+                             (Expression expr? p control-witness* disclosing-function-name?)))])
+           (unless (null? witness*)
+             (record-leak! src name witness*)))))
      (Abs-atomic '())]
 
     [(serialize ,src ,len ,type ,[* abs])

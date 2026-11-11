@@ -683,35 +683,39 @@
     ;; prepareVerification(vk, publicInputs, proof) names its inner verifying
     ;; key with a string literal, which is resolved along the compact path and
     ;; read here, because the key is fixed circuit data: the circuit embeds it
-    ;; and commits to its hash.  An optional fourth argument is the Accumulator
-    ;; the inner proof carries, the tail of its public inputs.
-    (define (expand-prepare-verification src p p^ info* expr*)
-      (unless (null? info*)
-        (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
-      (let ([n (length expr*)])
-        (unless (or (fx= n 3) (fx= n 4))
-          (source-errorf src "prepareVerification expects three or four arguments, received ~d" n)))
-      (let ([vk-expr (car expr*)] [pi-expr (cadr expr*)] [proof-expr (caddr expr*)]
-            [carried-expr (and (fx= (length expr*) 4) (cadddr expr*))])
-        (let* ([pathname (or (nanopass-case (Lpreexpand Expression) vk-expr
-                               ; the parser has already turned a string literal into its UTF-8 bytes
-                               [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
-                               [else #f])
-                             (source-errorf src "prepareVerification expects its first argument to be a string literal naming a verifying key file"))]
-               [resolved-pathname (find-source-pathname "" pathname
-                                    (lambda (pathname)
-                                      (source-errorf src "failed to locate verifying key file ~s" pathname)))]
-               [content (guard (c [else (error-accessing-file c "reading verifying key file")])
-                          (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
-                            (if (eof-object? x) (bytevector) x)))])
-          (when (fx= (bytevector-length content) 0)
-            (source-errorf src "verifying key file ~s is empty" pathname))
-          (with-output-language (Lexpanded Expression)
-            `(prepare-verification ,src
-               ,(make-verifying-key pathname resolved-pathname content)
-               ,(Expression pi-expr p)
-               ,(Expression proof-expr p)
-               ,(and carried-expr (Expression carried-expr p)))))))
+    ;; and commits to its hash.  prepareRecursiveVerification takes a fourth
+    ;; argument, the Accumulator the inner proof carries, the tail of its public
+    ;; inputs.  Both expand to prepare-verification, with or without that
+    ;; accumulator.
+    (define (make-expand-prepare-verification name recursive?)
+      (lambda (src p p^ info* expr*)
+        (unless (null? info*)
+          (source-errorf src "~a expects no generic arguments, received ~d" name (length info*)))
+        (let ([n (length expr*)])
+          (unless (fx= n (if recursive? 4 3))
+            (source-errorf src "~a expects ~a arguments, received ~d" name (if recursive? "four" "three") n)))
+        (expand-prepare-verification src p name (car expr*) (cadr expr*) (caddr expr*)
+          (and recursive? (cadddr expr*)))))
+    (define (expand-prepare-verification src p name vk-expr pi-expr proof-expr carried-expr)
+      (let* ([pathname (or (nanopass-case (Lpreexpand Expression) vk-expr
+                             ; the parser has already turned a string literal into its UTF-8 bytes
+                             [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
+                             [else #f])
+                           (source-errorf src "~a expects its first argument to be a string literal naming a verifying key file" name))]
+             [resolved-pathname (find-source-pathname "" pathname
+                                  (lambda (pathname)
+                                    (source-errorf src "failed to locate verifying key file ~s" pathname)))]
+             [content (guard (c [else (error-accessing-file c "reading verifying key file")])
+                        (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
+                          (if (eof-object? x) (bytevector) x)))])
+        (when (fx= (bytevector-length content) 0)
+          (source-errorf src "verifying key file ~s is empty" pathname))
+        (with-output-language (Lexpanded Expression)
+          `(prepare-verification ,src
+             ,(make-verifying-key pathname resolved-pathname content)
+             ,(Expression pi-expr p)
+             ,(Expression proof-expr p)
+             ,(and carried-expr (Expression carried-expr p))))))
     ;; accumulate(a, b, c, ...) takes any number (at least two) of Accumulators and
     ;; expands to nested calls of the binary native __compact_accumulate, which the
     ;; ZKIR backend flattens back into one n-ary accumulate.  The native is private
@@ -740,7 +744,11 @@
       (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)])
         (list
           (with-output-language (Lpreexpand Program-Element)
-            `(native-keyword ,src #t prepareVerification ,expand-prepare-verification))
+            `(native-keyword ,src #t prepareVerification
+               ,(make-expand-prepare-verification "prepareVerification" #f)))
+          (with-output-language (Lpreexpand Program-Element)
+            `(native-keyword ,src #t prepareRecursiveVerification
+               ,(make-expand-prepare-verification "prepareRecursiveVerification" #t)))
           (with-output-language (Lpreexpand Program-Element)
             `(native-keyword ,src #t accumulate ,expand-accumulate)))))
     (define (do-import src import-name info* prefix maybe-ielt* p)

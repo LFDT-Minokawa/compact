@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Circuits can verify other proofs.  The standard library has a new type
-  `Accumulator` and new circuits `prepareVerification`, `accumulate`, and
-  `verifyAccumulator`.  `prepareVerification(vk, publicInputs, proof)`
+  `Accumulator` and new circuits `prepareVerification`,
+  `prepareRecursiveVerification`, `accumulate`, and `verifyAccumulator`.
+  `prepareVerification(vk, publicInputs, proof)`
   partially verifies an inner proof against a verifying key that the compiler
   reads from a file at compile time, and returns an `Accumulator` holding the
   proof's deferred final check.  `accumulate` combines any number of
@@ -19,9 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it is checked when the transaction's own proof is verified.  Each accumulator
   must be used exactly once on every path through a circuit, and the compiler
   reports one that is dropped or used twice.  An inner proof that carries an
-  accumulator of its own, because it verified proofs itself, is verified by
-  passing that accumulator, typically returned by a witness, as an optional
-  fourth argument to `prepareVerification`.
+  accumulator of its own, because it verified proofs itself, is verified with
+  `prepareRecursiveVerification(vk, publicInputs, proof, carried)`, where
+  `carried` is that accumulator, typically returned by a witness.
 
   **Proving a circuit that uses these features requires ZKIR and ledger
   releases that support in-circuit proof verification.**

@@ -215,10 +215,11 @@
              (none (No-Accumulator* (cons expr expr*) env "an argument of a ledger operation"))]
             [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
              (none (No-Accumulator* (cons expr expr*) env "an argument of a contract call"))]
-            ;; the carried accumulator, if any, is used: prepareVerification binds it
-            ;; to the inner proof and accumulates it into its result
+            ;; the carried accumulator, if any, is used: prepareRecursiveVerification
+            ;; binds it to the inner proof and accumulates it into its result
             [(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr?)
-             (let* ([env (No-Accumulator* (list expr1 expr2) env "an argument of prepareVerification")]
+             (let* ([env (No-Accumulator* (list expr1 expr2) env
+                           (format "an argument of ~a" (if expr? "prepareRecursiveVerification" "prepareVerification")))]
                     [env (if expr?
                              (let-values ([(env acc-src) (Expr expr? env)]) env)
                              env)])
