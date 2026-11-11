@@ -23,6 +23,15 @@
   };
 
   inputs = {
+    # fenix dropped x86_64-darwin in e659899 (2026-09-28); pin to a rev before that.
+    # This is the revision of the last good x86_64-darwin build on our CI.  There
+    # are newer revisions than this before 2026-09-28 but they are not known good.
+    # This freezes zkir-v3's Rust toolchain at whatever stable version that fenix
+    # revision pulled in.
+    fenix-zkir = {
+      url = "github:nix-community/fenix/c957e2d0e505ad7be04c7f2f2f3d7885fb9e242c";
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
+    };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
@@ -31,9 +40,7 @@
       # zkir-v3 key-generation binary for v3 IR format
       url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
-      # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
-      # which has dropped x86_64-darwin; build it from 26.05 too.
-      inputs.fenix.inputs.nixpkgs.follows = "nixpkgs-zkir";
+      inputs.fenix.follows = "fenix-zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
