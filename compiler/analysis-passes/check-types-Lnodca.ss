@@ -711,25 +711,32 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type)))
      (with-output-language (Lnodca Type) `(ttuple ,src))]
-    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2] ,expr?)
-     (when expr?
-       (let ([type3 (Care expr?)])
-         (unless (nanopass-case (Lnodca Type) (de-alias type3)
-                   [(taccumulator ,src1) #t]
-                   [else #f])
-           (source-errorf src "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a"
-                          (format-type type3)))))
-     (unless (nanopass-case (Lnodca Type) (de-alias type1)
-               [(tvector ,src1 ,len (tfield ,src2 (field-native))) #t]
-               [(ttuple ,src1 ,type* ...)
-                (andmap (lambda (type)
-                          (nanopass-case (Lnodca Type) (de-alias type)
-                            [(tfield ,src2 (field-native)) #t]
-                            [else #f]))
-                        type*)]
-               [else #f])
-       (source-errorf src "expected the public inputs of prepareVerification to have type Vector<n, Field>, received ~a"
-                      (format-type type1)))
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[Care : expr2 -> * type2])
+     (define (field-representable? type)
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tfield ,src1 (field-native)) #t]
+         [(tunsigned ,src1 ,nat) #t]
+         [(tboolean ,src1) #t]
+         [(tvector ,src1 ,len ,type) (field-representable? type)]
+         [(ttuple ,src1 ,type* ...) (andmap field-representable? type*)]
+         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...) (andmap field-representable? type*)]
+         [else #f]))
+     (for-each
+       (lambda (pubin)
+         (nanopass-case (Lnodca Public-Input) pubin
+           [(pi-fields ,expr)
+            (let ([type (Care expr)])
+              (unless (field-representable? type)
+                (source-errorf src "expected a public input of prepareVerification to hold only Field, Uint, and Boolean values, received ~a"
+                               (format-type type))))]
+           [(pi-accumulator ,expr)
+            (let ([type (Care expr)])
+              (unless (nanopass-case (Lnodca Type) (de-alias type)
+                        [(taccumulator ,src1) #t]
+                        [else #f])
+                (source-errorf src "expected an accumulator public input of prepareVerification to have type Accumulator, received ~a"
+                               (format-type type))))]))
+       pubin*)
      (unless (nanopass-case (Lnodca Type) (de-alias type2)
                [(topaque ,src1 ,opaque-type) (string=? opaque-type "Uint8Array")]
                [else #f])

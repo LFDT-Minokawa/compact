@@ -1059,9 +1059,11 @@ accumulator is used by:
   branches must use the same accumulators bound outside them.
 
 A witness may return an accumulator: the accumulator an inner proof carries
-(see [`prepareRecursiveVerification`](#preparerecursiveverification)).  Otherwise an accumulator
-cannot be stored in a ledger field, passed to a witness, passed to or returned
-from an exported circuit, or placed in a tuple, vector, or structure.  It cannot
+(see [`prepareVerification`](#prepareverification)), which may appear as an
+element of a tuple literal passed as `prepareVerification`'s public inputs.
+Otherwise an accumulator cannot be stored in a ledger field, passed to a
+witness, passed to or returned from an exported circuit, or placed in a tuple,
+vector, or structure.  It cannot
 be compared, serialized, or deserialized, and it has no default value.
 `disclose` passes an accumulator through unchanged.  An accumulator bound
 outside a `for` loop, `map`, or `fold` cannot be used inside it.
@@ -1077,20 +1079,34 @@ verified only once that accumulator reaches
 [`accumulate`](#accumulate).
 
 It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
-`Accumulator`.  For an inner proof that carries an accumulator of its own, use
-[`prepareRecursiveVerification`](#preparerecursiveverification) instead.
+`Accumulator`:
 
 * `vk` must be a string literal naming the inner proof's verifying key file.
   The compiler finds the file along the compact path, as it finds imported
   modules, reads it at compile time, and embeds the key in the circuit.
-* `publicInputs` are the inner proof's public inputs, either a
-  `Vector<n, Field>` or a tuple of `Field`s such as `[x, y]`.  Their number is
-  taken from the argument; `prepareVerification` takes no generic arguments.
+* `publicInputs` are the inner proof's public inputs: any value made only of
+  `Field`, `Uint`, and `Boolean` values, such as a tuple `[x, y]`, a
+  `Vector<n, Field>`, or a structure.  Each `Field`, `Uint`, and `Boolean` is
+  one field of the inner proof's instance, in order, with a structure's fields
+  in the order it declares them.  `prepareVerification` takes no generic
+  arguments.
 * `proof` is the inner proof, an `Opaque<"Uint8Array">`, typically returned
   by a witness.
 
 ```compact
 const acc = prepareVerification("inner.verifier", [x, y], innerProof());
+```
+
+An inner proof that verified proofs of its own, such as a step of an IVC
+chain, carries an [`Accumulator`](#accumulator) in its instance.  When
+`publicInputs` is written as a tuple literal, an element of it may be that
+accumulator, typically returned by a witness that builds it in TypeScript with
+`Accumulator.fromPublicInputs`.  Its encoding takes its place in the instance,
+binding it to the inner proof, and it is accumulated into the result, so that
+its check happens too:
+
+```compact
+const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], ivcProof());
 ```
 
 A circuit that calls `prepareVerification`, directly or through another
@@ -1099,8 +1115,9 @@ consumes no proof and its accumulator is trivially valid.
 
 Whether a `prepareVerification` runs can be observed, so calling it in a branch
 whose condition depends on witness data discloses that condition.  Its public
-inputs are treated as disclosed, so ones derived from witness data must be
-wrapped in `disclose`.  The proof itself is not disclosed.
+inputs, including any accumulator among them, are treated as disclosed, so ones
+derived from witness data must be wrapped in `disclose`.  The proof itself is
+not disclosed.
 
 For example, this circuit verifies two proofs of the same value against
 different keys:
@@ -1118,42 +1135,6 @@ export circuit attest(x: Field): [] {
   const a = prepareVerification("a.verifier", [attested], proofA());
   const b = prepareVerification("b.verifier", [attested], proofB());
   verifyAccumulator(accumulate(a, b));
-}
-```
-
-### `prepareRecursiveVerification`
-
-This is a native circuit.
-
-Like [`prepareVerification`](#prepareverification), but for an inner proof that
-carries an [`Accumulator`](#accumulator) because it verified proofs of its own,
-such as a step of an IVC chain.  It is called as
-`prepareRecursiveVerification(vk, publicInputs, proof, carried)` and returns an
-`Accumulator`:
-
-* `vk`, `publicInputs`, and `proof` are as for
-  [`prepareVerification`](#prepareverification).
-* `carried` is the accumulator the inner proof carries.  Its encoding is the
-  tail of the inner proof's public inputs, so it is not repeated in
-  `publicInputs`.  The circuit appends it to the public inputs and accumulates
-  it into the result, so that its check happens too.  It typically comes from a
-  witness, which builds it in TypeScript with `Accumulator.fromPublicInputs`.
-
-Like its public inputs, `carried` is treated as disclosed.  Everything else
-said of `prepareVerification` holds for `prepareRecursiveVerification` too.
-
-```compact
-import CompactStandardLibrary;
-
-witness ivcProof(): Opaque<"Uint8Array">;
-witness carried(): Accumulator;
-
-export ledger steps: Field;
-
-export circuit verifyIvc(n: Field): [] {
-  steps = disclose(n);
-  const acc = prepareRecursiveVerification("ivc.verifier", [steps], ivcProof(), disclose(carried()));
-  verifyAccumulator(acc);
 }
 ```
 

@@ -52,5 +52,5 @@
     [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
      (raise 'ledger)]
     ;; a verified proof is checked on chain, so the circuit needs a proof of its own
-    [(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr?)
+    [(prepare-verification ,src ,vk (,pubin* ...) ,expr)
      (raise 'verify)]))

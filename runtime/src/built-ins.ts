@@ -848,21 +848,19 @@ function checkAccumulator(value: unknown, what: string): void {
  *
  * Records `proof` as the next inner proof the circuit consumes. `vk` is the inner verifying key
  * the circuit commits to, as `0x`-prefixed hex, and `publicInputs` the inner proof's public
- * inputs; neither is checked here. `carried`, if present, is the accumulator the inner proof
- * carries, which the circuit appends to its public inputs and accumulates.
+ * inputs, one element per element of the tuple the circuit passes (or the one value it passes
+ * otherwise); neither is checked here. An accumulator among the public inputs comes from a
+ * witness, whose result is checked where it is returned, or from `prepareVerification` or
+ * `accumulate`.
  */
 export function prepareVerification(
   partialProofData: PartialProofData,
   vk: string,
-  publicInputs: bigint[],
+  publicInputs: readonly unknown[],
   proof: Uint8Array,
-  carried?: Accumulator,
 ): Accumulator {
   if (!(proof instanceof Uint8Array)) {
     throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
-  }
-  if (carried !== undefined) {
-    checkAccumulator(carried, 'the carried accumulator of prepareVerification');
   }
   partialProofData.innerProofs.push(proof);
   return Accumulator.computed();

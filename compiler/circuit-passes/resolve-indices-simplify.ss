@@ -637,12 +637,14 @@
      (values
        `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (CTV-unknown no-var-name))]
-    [(prepare-verification ,src ,vk ,[expr1 ctv1] ,[expr2 ctv2] ,expr?)
+    [(prepare-verification ,src ,vk (,[Public-Input : pubin*] ...) ,[expr ctv])
      (values
-       `(prepare-verification ,src ,vk ,expr1 ,expr2
-          ,(and expr? (let-values ([(expr3 ctv3) (Expression expr?)]) expr3)))
+       `(prepare-verification ,src ,vk (,pubin* ...) ,expr)
        (CTV-unknown no-var-name))]
     [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnosafecast ir))])
+  (Public-Input : Public-Input (ir) -> Public-Input ()
+    [(pi-fields ,[expr ctv]) `(pi-fields ,expr)]
+    [(pi-accumulator ,[expr ctv]) `(pi-accumulator ,expr)])
   (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument (maybe-ctv*)
     [(single ,src ,[expr ctv]) (values `(single ,src ,expr) (list ctv))]
     [(spread ,src ,nat ,[expr ctv])

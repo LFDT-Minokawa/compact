@@ -105,7 +105,6 @@ Key parts of the API are:
 - In-circuit proof verification:
   - [`Accumulator`](exports.md#accumulator)
   - [`prepareVerification`](exports.md#prepareverification)
-  - [`prepareRecursiveVerification`](exports.md#preparerecursiveverification)
   - [`accumulate`](exports.md#accumulate)
   - [`verifyAccumulator`](exports.md#verifyaccumulator)
 - Ledger fields:

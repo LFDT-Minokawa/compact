@@ -1839,33 +1839,44 @@
                             ...)
                   ,expr)
                 body-type)))))]
-    [(prepare-verification ,src ,vk ,[Care : expr1 type1] ,[Care : expr2 type2] ,expr?)
-     ;; the public inputs are a Vector<n, Field> for some n, so a tuple of
-     ;; Fields or Uints is accepted and cast
-     (let ([name (if expr? "prepareRecursiveVerification" "prepareVerification")]
-           [pi-type (with-output-language (Ltypes Type)
-                      (nanopass-case (Ltypes Type) (de-alias type1 #t)
-                        [(tvector ,src^ ,len ,type) `(tvector ,src ,len (tfield ,src (field-native)))]
-                        [(ttuple ,src^ ,type* ...) `(ttuple ,src ,(map (lambda (type) `(tfield ,src (field-native))) type*) ...)]
-                        [else #f]))])
-       (unless (and pi-type (subtype? type1 pi-type))
-         (source-errorf src "expected the public inputs of ~a to have type Vector<n, Field> for some n, received ~a"
-                        name (format-type type1)))
-       (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
-                 [(topaque ,src^ ,opaque-type) (string=? opaque-type "Uint8Array")]
-                 [else #f])
-         (source-errorf src "expected the proof of ~a to have type Opaque<'Uint8Array'>, received ~a"
-                        name (format-type type2)))
-       (let ([expr? (and expr?
-                         (let-values ([(expr3 type3) (Care expr?)])
-                           (unless (nanopass-case (Ltypes Type) (de-alias type3 #t)
-                                     [(taccumulator ,src^) #t]
-                                     [else #f])
-                             (source-errorf src "expected the carried accumulator of prepareRecursiveVerification to have type Accumulator, received ~a"
-                                            (format-type type3)))
-                           expr3))])
+    [(prepare-verification ,src ,vk (,expr1* ...) ,expr2)
+     ;; each element of the public inputs is either an Accumulator the inner proof
+     ;; carries or a value whose type flattens to native fields, one for each
+     ;; Field, Uint, or Boolean it holds
+     (define (field-representable? type)
+       (nanopass-case (Ltypes Type) (de-alias type #t)
+         [(tfield ,src^ ,ftype)
+          (nanopass-case (Ltypes Field-Type) ftype
+            [(field-native) #t]
+            [else #f])]
+         [(tunsigned ,src^ ,nat) #t]
+         [(tboolean ,src^) #t]
+         [(tvector ,src^ ,len ,type) (field-representable? type)]
+         [(ttuple ,src^ ,type* ...) (andmap field-representable? type*)]
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...) (andmap field-representable? type*)]
+         [else #f]))
+     (let ([pubin* (maplr
+                     (lambda (expr1)
+                       (let-values ([(expr1 type1) (Care expr1)])
+                         (cond
+                           [(nanopass-case (Ltypes Type) (de-alias type1 #t)
+                              [(taccumulator ,src^) #t]
+                              [else #f])
+                            (with-output-language (Ltypes Public-Input) `(pi-accumulator ,expr1))]
+                           [(field-representable? type1)
+                            (with-output-language (Ltypes Public-Input) `(pi-fields ,expr1))]
+                           [else
+                            (source-errorf src "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a"
+                                           (format-type type1))])))
+                     expr1*)])
+       (let-values ([(expr2 type2) (Care expr2)])
+         (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
+                   [(topaque ,src^ ,opaque-type) (string=? opaque-type "Uint8Array")]
+                   [else #f])
+           (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
+                          (format-type type2)))
          (values
-           `(prepare-verification ,src ,vk ,(maybe-safecast src pi-type type1 expr1) ,expr2 ,expr?)
+           `(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
            (with-output-language (Ltypes Type) `(taccumulator ,src)))))]
     [(assert ,src ,[Care : expr type0] ,mesg)
      (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)

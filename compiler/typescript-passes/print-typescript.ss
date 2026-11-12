@@ -3147,28 +3147,32 @@
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])]
     ;; Lower prepareVerification(vk, publicInputs, proof) to
-    ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', publicInputs, proof)
-    ;; which records the proof as the next inner proof the circuit consumes.
-    ;; prepareRecursiveVerification passes its carried accumulator as a fifth argument.  The key
-    ;; goes out as the hex of the same bytes the circuit's inner_vks holds.
-    [(prepare-verification ,src ,vk
-       ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
-       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2]
-       ,expr?)
-     (parenthesize level (precedence call)
-       (make-Qconcat
-         (compact-stdlib "prepareVerification")
-         "("
-         (apply (make-Qsep ",")
-            "partialProofData"
-            (format-javascript-string
-              (apply string-append "0x"
-                (map (lambda (b) (format "~(~2,'0x~)" b))
-                     (bytevector->u8-list (verifying-key-content vk)))))
-            expr1
-            expr2
-            (if expr? (list (Expr expr? (precedence add1 comma) outer-pure?)) '()))
-         ")"))])
+    ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', [publicInput, ...], proof)
+    ;; which records the proof as the next inner proof the circuit consumes.  The key
+    ;; goes out as the hex of the same bytes the circuit's inner_vks holds.  An
+    ;; accumulator among the public inputs needs no check here: a witness's result is
+    ;; checked where the witness returns it.
+    [(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
+     (let* ([pi* (maplr (lambda (pubin)
+                          (Expr (nanopass-case (Ltypescript Public-Input) pubin
+                                  [(pi-fields ,expr) expr]
+                                  [(pi-accumulator ,expr) expr])
+                                (precedence add1 comma) outer-pure?))
+                        pubin*)]
+            [proof (Expr expr2 (precedence add1 comma) outer-pure?)])
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (compact-stdlib "prepareVerification")
+           "("
+           (apply (make-Qsep ",")
+              "partialProofData"
+              (format-javascript-string
+                (apply string-append "0x"
+                  (map (lambda (b) (format "~(~2,'0x~)" b))
+                       (bytevector->u8-list (verifying-key-content vk)))))
+              (make-Qconcat "[" (apply (make-Qsep ",") pi*) "]")
+              (list proof))
+           ")")))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
      (values

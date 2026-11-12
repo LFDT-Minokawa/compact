@@ -62,11 +62,11 @@ describe('accumulate and verifyAccumulator', () => {
 const ENCODING = Array.from({ length: compactRuntime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));
 
 describe('carried accumulators', () => {
-  test('prepareVerification accepts one and records the proof', () => {
+  test('prepareVerification accepts one among the public inputs and records the proof', () => {
     const proofData = emptyProofData();
     const p = new Uint8Array([1]);
     const carried = compactRuntime.Accumulator.fromPublicInputs(ENCODING);
-    compactRuntime.verifyAccumulator(compactRuntime.prepareVerification(proofData, VK, [1n], p, carried));
+    compactRuntime.verifyAccumulator(compactRuntime.prepareVerification(proofData, VK, [1n, carried], p));
     expect(proofData.innerProofs).toEqual([p]);
   });
 

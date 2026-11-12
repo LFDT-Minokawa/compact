@@ -500,13 +500,24 @@
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
        (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat2 ,nat1 ,triv))))]
-    ;; the public inputs flatten to one field each; the proof is a single opaque value
-    [(prepare-verification ,src ,vk ,[* wump1] ,[Single-Triv : triv2] ,triv?)
+    ;; a public input of fields flattens to its fields, in order, and an
+    ;; accumulator public input stays a single value; the proof is a single
+    ;; opaque value
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[Single-Triv : triv])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
        (list `(= ,test ,var-name
-                (prepare-verification ,src ,vk ,triv2 ,(and triv? (Single-Triv triv?))
-                  ,(wump->elts wump1) ...))))]
+                (prepare-verification ,src ,vk ,triv
+                  ,(map (lambda (pubin)
+                          (nanopass-case (Lcircuit Public-Input) pubin
+                            [(pi-fields ,triv^)
+                             (with-output-language (Lflattened Public-Input)
+                               `(pi-fields ,(wump->elts (Triv triv^)) ...))]
+                            [(pi-accumulator ,triv^)
+                             (with-output-language (Lflattened Public-Input)
+                               `(pi-accumulator ,(Single-Triv triv^)))]))
+                        pubin*)
+                  ...))))]
     [(elt-ref ,[* wump] ,elt-name)
      (hashtable-set! var-ht var-name
        (Wump-case wump

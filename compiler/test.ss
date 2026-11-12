@@ -18835,7 +18835,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "~a expects ~a arguments, received ~d" ("prepareVerification" "three" 2)))
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18847,19 +18847,20 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 74" "~a expects ~a arguments, received ~d" ("prepareVerification" "three" 4)))
+      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three arguments, received ~d" (4)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "struct S { x: Field, b: Bytes<32> }"
+      "circuit f(s: S, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", s, p); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "~a expects ~a arguments, received ~d" ("prepareRecursiveVerification" "four" 3)))
+      irritants: '("testfile.compact line 3 char 64" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("struct S<x: Field, b: Bytes<32>>")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18871,7 +18872,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "~a expects no generic arguments, received ~d" ("prepareVerification" 1)))
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18883,7 +18884,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 72" "~a expects its first argument to be a string literal naming a verifying key file" ("prepareVerification")))
+      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18919,7 +18920,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 72" "expected the public inputs of ~a to have type Vector<n, Field> for some n, received ~a" ("prepareVerification" "[Bytes<32>]")))
+      irritants: '("testfile.compact line 2 char 72" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("Bytes<32>")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18931,7 +18932,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 43" "expected the proof of ~a to have type Opaque<'Uint8Array'>, received ~a" ("prepareVerification" "Field")))
+      irritants: '("testfile.compact line 2 char 43" "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a" ("Field")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -19031,36 +19032,36 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, x: Field): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, x); }"
+      "circuit f(p: Opaque<'Uint8Array'>, x: JubjubPoint): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field, x], p); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 68" "expected the carried accumulator of prepareRecursiveVerification to have type Accumulator, received ~a" ("Field")))
+      irritants: '("testfile.compact line 2 char 74" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("JubjubPoint")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, a, a); }"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field, [a]], p); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 74" "~a expects ~a arguments, received ~d" ("prepareRecursiveVerification" "four" 5)))
+      irritants: '("testfile.compact line 2 char 74" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("[Accumulator]")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], p, a), a); }"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareVerification(\"testfile.verifier\", [1 as Field, a], p), a); }"
       "export circuit main(): [] { }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 156" "Accumulator ~s is used more than once" (a)))
+      irritants: '("testfile.compact line 2 char 147" "Accumulator ~s is used more than once" (a)))
     ))
 
   (test
@@ -32025,7 +32026,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
       "}"
       )
     (succeeds)))
@@ -32037,14 +32038,14 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), carried()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, carried()], innerProof()));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 5 char 21" "potential witness-value disclosure must be declared but is not:
     witness value potentially disclosed:
-      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareRecursiveVerification might disclose the witness value\n    via this path through the program:\n      the carried accumulator of prepareRecursiveVerification at line 5 char 21"))))
+      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the public inputs of prepareVerification at line 5 char 21"))))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -45886,8 +45887,7 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.15
-               #f
-               1))
+               (pi-fields 1)))
           (= %c.14 () (call %verifyAccumulator.2 %t.9)) ())))
     ))
 
@@ -45924,15 +45924,13 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
-               #f
-               1))
+               (pi-fields 1)))
           (= %t.21
              %t.13
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %q.19
-               #f
-               2))
+               (pi-fields 2)))
           (= 1 %a.22 (select %c.17 %t.11 %t.13))
           (= 1 () (call %verifyAccumulator.2 %a.22)) ())))
     ))
@@ -45975,15 +45973,13 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
-               #f
-               1))
+               (pi-fields 1)))
           (= 1
              %b.9
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
-               #f
-               1))
+               (pi-fields 1)))
           (= 1 (%t.19) (call %__compact_accumulate.2 %a.8 %b.9))
           (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
     ))
@@ -51944,7 +51940,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -51960,15 +51956,58 @@ groups than for single tests.
         "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"encode\", \"outputs\": [\"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"input\": \"%t.1\" },"
+        "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"input\": \"%t.0\" },"
         "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.14\" },"
         "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\", \"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"proof\": \"%proof.14\", \"output\": \"%acc.15\" },"
-        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.15\", \"%t.1\"], \"output\": \"%t.16\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.15\", \"%t.0\"], \"output\": \"%t.16\" },"
         "    { \"op\": \"verify_accumulator\", \"input\": \"%t.16\" }"
         "  ]"
         "}"))
+    ))
+
+ ;; public inputs of any Field, Uint, and Boolean shape, with an accumulator in the
+ ;; middle: the instance is their fields in order, the accumulator's encoding in place
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { n: Uint<64>, ok: Boolean }"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(s: S, v: Vector<2, Field>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(s), disclose(carried()), disclose(v)], innerProof()));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+      "{"
+      "  \"version\": { \"major\": 3, \"minor\": 3 },"
+      "  \"do_communications_commitment\": true,"
+      "  \"inputs\": ["
+      "    { \"name\": \"%s.0\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%s.1\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" }"
+      "  ],"
+      "  \"outputs\": ["
+      "  ],"
+      "  \"inner_vks\": ["
+      "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+      "  ],"
+      "  \"instructions\": ["
+      "    { \"op\": \"constrain_bits\", \"val\": \"%s.0\", \"bits\": 64 },"
+      "    { \"op\": \"constrain_to_boolean\", \"val\": \"%s.1\" },"
+      "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.4\", \"guard\": null },"
+      "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+      "    { \"op\": \"encode\", \"outputs\": [\"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"input\": \"%t.4\" },"
+      "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.18\" },"
+      "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"%s.0\", \"%s.1\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\", \"%v.2\", \"%v.3\"], \"proof\": \"%proof.18\", \"output\": \"%acc.19\" },"
+      "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.19\", \"%t.4\"], \"output\": \"%t.20\" },"
+      "    { \"op\": \"verify_accumulator\", \"input\": \"%t.20\" }"
+      "  ]"
+      "}"))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -61031,7 +61070,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareRecursiveVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
       "}"
       )
     (stage-javascript
@@ -61050,9 +61089,10 @@ groups than for single tests.
         "  const r = await C.provableCircuits.main(Ctxt);"
         "  const data = r.context.callProofDataTrace.at(-1);"
         "  expect(data?.innerProofs).toEqual([p]);"
-        "  // the proof, then the carried accumulator's encoding, which the circuit reads"
+        "  // the carried accumulator's encoding, which the circuit reads, then the proof:"
+        "  // the public inputs come before the proof"
         "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
-        "  expect(data?.privateTranscriptOutputs[1]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
+        "  expect(data?.privateTranscriptOutputs[0]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
         "});"
         ))
     ))

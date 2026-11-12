@@ -1015,26 +1015,35 @@
     ;; prepare_verification takes the statement's test as its guard, and the
     ;; inner_proof binding the proof witness must have the same guard; the proof
     ;; triv is TypeScript's copy and has no use in the circuit
-    ;; A carried accumulator is the tail of the inner proof's public inputs: its
-    ;; encoding is appended to the instance, binding it to the inner proof, and it
-    ;; is accumulated into the result, so that its pairing is checked too.
-    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,triv? ,triv* ...))
+    ;; The public inputs are laid out in order.  An accumulator among them
+    ;; contributes its encoding, which binds it to the inner proof, and is
+    ;; accumulated into the result, so that its pairing is checked too.
+    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,pubin* ...))
      (let ([proof (make-temp-id src 'proof)])
        (with-output-language (Lzkir Instruction)
-         (if triv?
-             (let ([acc (make-temp-id src 'acc)]
-                   [enc* (map (lambda (i) (make-temp-id src 'carried)) (iota accumulator-encoding-length))])
-               (let ([instr* (emit-pending-accumulate triv? instr*)])
-                 (hashtable-set! pending-accumulate-ht var-name (list acc triv?))
-                 (cons*
-                   `(prepare_verification ,acc ,vk ,test ,proof ,triv* ... ,enc* ...)
-                   `(inner_proof ,proof ,test)
-                   `(encode (,enc* ...) ,triv?)
-                   instr*)))
-             (cons*
-               `(prepare_verification ,var-name ,vk ,test ,proof ,triv* ...)
-               `(inner_proof ,proof ,test)
-               instr*))))]
+         (let loop ([pubin* pubin*] [rinput* '()] [acc* '()] [instr* instr*])
+           (if (null? pubin*)
+               (let ([input* (reverse rinput*)])
+                 (if (null? acc*)
+                     (cons*
+                       `(prepare_verification ,var-name ,vk ,test ,proof ,input* ...)
+                       `(inner_proof ,proof ,test)
+                       instr*)
+                     (let ([acc (make-temp-id src 'acc)])
+                       (hashtable-set! pending-accumulate-ht var-name (cons acc (reverse acc*)))
+                       (cons*
+                         `(prepare_verification ,acc ,vk ,test ,proof ,input* ...)
+                         `(inner_proof ,proof ,test)
+                         instr*))))
+               (nanopass-case (Lflattened Public-Input) (car pubin*)
+                 [(pi-fields ,triv* ...)
+                  (loop (cdr pubin*) (append (reverse triv*) rinput*) acc* instr*)]
+                 [(pi-accumulator ,triv)
+                  (let ([enc* (map (lambda (i) (make-temp-id src 'carried)) (iota accumulator-encoding-length))])
+                    (loop (cdr pubin*)
+                          (append (reverse enc*) rinput*)
+                          (cons triv acc*)
+                          (cons `(encode (,enc* ...) ,triv) (emit-pending-accumulate triv instr*))))])))))]
     [(= ,test ,var-name ,single)
      (Single single var-name instr*)]
     [(assert ,src ,test ,mesg)

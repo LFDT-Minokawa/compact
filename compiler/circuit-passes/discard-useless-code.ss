@@ -203,16 +203,14 @@
      (values
        `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (idset-union-all (cons idset idset*)))]
-    [(prepare-verification ,src ,vk ,[Value : expr1 idset1] ,[Value : expr2 idset2] ,expr?)
-     (if expr?
-         (let-values ([(expr3 idset3) (Value expr?)])
-           (values
-             `(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr3)
-             (idset-union-all (list idset1 idset2 idset3))))
-         (values
-           `(prepare-verification ,src ,vk ,expr1 ,expr2 #f)
-           (idset-union idset1 idset2)))]
+    [(prepare-verification ,src ,vk (,[Public-Input-Value : pubin* idset*] ...) ,[Value : expr idset])
+     (values
+       `(prepare-verification ,src ,vk (,pubin* ...) ,expr)
+       (idset-union-all (cons idset idset*)))]
     [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
+  (Public-Input-Value : Public-Input (ir) -> Public-Input (idset)
+    [(pi-fields ,[Value : expr idset]) (values `(pi-fields ,expr) idset)]
+    [(pi-accumulator ,[Value : expr idset]) (values `(pi-accumulator ,expr) idset)])
   (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
     [(single ,src ,[Value : expr idset])
      (values `(single ,src ,expr) idset)]

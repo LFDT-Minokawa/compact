@@ -545,22 +545,28 @@
        (source-errorf src "expected Uint for downcast-unsigned, received ~a"
          (format-primitive-type primitive-type)))
      (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))]
-    [(prepare-verification ,src ,vk ,[* primitive-type] ,triv? ,[* primitive-type*] ...)
-     (when triv?
-       (let ([primitive-type^ (Triv triv?)])
-         (unless (T primitive-type^ [(taccumulator) #t])
-           (source-errorf src "expected Accumulator for the carried accumulator of prepareVerification, received ~a"
-             (format-primitive-type primitive-type^)))))
+    [(prepare-verification ,src ,vk ,[* primitive-type] ,pubin* ...)
      (unless (T primitive-type [(topaque ,opaque-type) (string=? opaque-type "Uint8Array")])
        (source-errorf src "expected Opaque<'Uint8Array'> for the proof of prepareVerification, received ~a"
          (format-primitive-type primitive-type)))
      (let ([field-type (with-output-language (Lflattened Primitive-Type) `(tfield (field-native)))])
        (for-each
-         (lambda (primitive-type)
-           (unless (sub-primitive-type? primitive-type field-type)
-             (source-errorf src "expected Field for a public input of prepareVerification, received ~a"
-               (format-primitive-type primitive-type))))
-         primitive-type*))
+         (lambda (pubin)
+           (nanopass-case (Lflattened Public-Input) pubin
+             [(pi-fields ,triv* ...)
+              (for-each
+                (lambda (triv)
+                  (let ([primitive-type (Triv triv)])
+                    (unless (sub-primitive-type? primitive-type field-type)
+                      (source-errorf src "expected Field for a public input of prepareVerification, received ~a"
+                        (format-primitive-type primitive-type)))))
+                triv*)]
+             [(pi-accumulator ,triv)
+              (let ([primitive-type (Triv triv)])
+                (unless (T primitive-type [(taccumulator) #t])
+                  (source-errorf src "expected Accumulator for an accumulator public input of prepareVerification, received ~a"
+                    (format-primitive-type primitive-type))))]))
+         pubin*))
      (with-output-language (Lflattened Primitive-Type) `(taccumulator))]
     [else (internal-errorf 'Single "unhandled form ~s\n" ir)])
   (Path-Element : Path-Element (ir) -> Path-Element ()

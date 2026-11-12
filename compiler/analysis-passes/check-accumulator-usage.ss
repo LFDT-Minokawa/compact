@@ -215,14 +215,17 @@
              (none (No-Accumulator* (cons expr expr*) env "an argument of a ledger operation"))]
             [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
              (none (No-Accumulator* (cons expr expr*) env "an argument of a contract call"))]
-            ;; the carried accumulator, if any, is used: prepareRecursiveVerification
+            ;; an Accumulator among the public inputs is used: prepareVerification
             ;; binds it to the inner proof and accumulates it into its result
-            [(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr?)
-             (let* ([env (No-Accumulator* (list expr1 expr2) env
-                           (format "an argument of ~a" (if expr? "prepareRecursiveVerification" "prepareVerification")))]
-                    [env (if expr?
-                             (let-values ([(env acc-src) (Expr expr? env)]) env)
-                             env)])
+            [(prepare-verification ,src ,vk (,pubin* ...) ,expr)
+             (let* ([env (fold-left
+                           (lambda (env pubin)
+                             (nanopass-case (Ltypes Public-Input) pubin
+                               [(pi-fields ,expr) (No-Accumulator expr env "a public input of prepareVerification")]
+                               [(pi-accumulator ,expr) (let-values ([(env acc-src) (Expr expr env)]) env)]))
+                           env
+                           pubin*)]
+                    [env (No-Accumulator expr env "the proof of prepareVerification")])
                (values env (and (not (dead? env)) src)))]
             [(return ,src ,expr)
              (let-values ([(env acc-src) (Expr expr env)])

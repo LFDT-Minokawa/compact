@@ -666,22 +666,22 @@
     ;; verified, and a skipped verification exposes the trivial Accumulator, so
     ;; verifying under witness-dependent control flow discloses the condition.
     ;; Until the Accumulator is shown to hide them, the inner proof's public
-    ;; inputs, and the accumulator it carries, are treated as disclosed too.
+    ;; inputs, including any accumulator among them, are treated as disclosed too.
     ;; The proof itself is not.
-    [(prepare-verification ,src ,vk ,[* abs1] ,[* abs2] ,expr?)
-     (let ([name (if expr? "prepareRecursiveVerification" "prepareVerification")])
-       (unless (null? control-witness*)
-         (record-leak! src (format "performing this ~a" name) control-witness*))
-       (let ([witness* (abs->witnesses
-                         (add-path-point src (format "the public inputs of ~a" name) "" abs1))])
-         (unless (null? witness*)
-           (record-leak! src name witness*)))
-       (when expr?
-         (let ([witness* (abs->witnesses
-                           (add-path-point src (format "the carried accumulator of ~a" name) ""
-                             (Expression expr? p control-witness* disclosing-function-name?)))])
-           (unless (null? witness*)
-             (record-leak! src name witness*)))))
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[* abs])
+     (unless (null? control-witness*)
+       (record-leak! src "performing this prepareVerification" control-witness*))
+     (for-each
+       (lambda (pubin)
+         (let ([expr (nanopass-case (Lwithpaths Public-Input) pubin
+                       [(pi-fields ,expr) expr]
+                       [(pi-accumulator ,expr) expr])])
+           (let ([witness* (abs->witnesses
+                             (add-path-point src "the public inputs of prepareVerification" ""
+                               (Expression expr p control-witness* disclosing-function-name?)))])
+             (unless (null? witness*)
+               (record-leak! src "prepareVerification" witness*)))))
+       pubin*)
      (Abs-atomic '())]
 
     [(serialize ,src ,len ,type ,[* abs])
