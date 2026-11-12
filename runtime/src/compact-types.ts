@@ -23,7 +23,6 @@ import {
   MAX_CURVE25519_BASE,
   MAX_CURVE25519_SCALAR,
 } from './constants.js';
-import { versionedAlignment, toVersionedValue } from './utils.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -680,8 +679,8 @@ export const CompactTypeOpaqueString: CompactType<string> = {
 };
 
 export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
-  const ocrtValue = toVersionedValue(rtType, value);
-  const alignment = versionedAlignment(rtType);
+  const ocrtValue = rtType.toValue(value);
+  const alignment = rtType.alignment();
 
   // 1. Accumulate Uint8Array pieces.
   const arrays = [];

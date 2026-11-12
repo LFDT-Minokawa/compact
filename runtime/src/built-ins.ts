@@ -44,8 +44,6 @@ import {
   secp256k1ToProjective,
   secp256r1FromProjective,
   secp256r1ToProjective,
-  toVersionedValue,
-  versionedAlignment,
 } from './utils.js';
 import { CompactError } from './error.js';
 
@@ -96,8 +94,7 @@ export function mulField(x: bigint, y: bigint): bigint {
  * checks.
  */
 export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
-  return ocrt.valueToBigInt(ocrt.transientHash(versionedAlignment(rtType),
-                                               toVersionedValue(rtType, value)));
+  return ocrt.valueToBigInt(ocrt.transientHash(rtType.alignment(), rtType.toValue(value)));
 }
 
 /**
@@ -112,9 +109,7 @@ export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
  * @throws If `opening` is out of range for field elements
  */
 export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bigint): bigint {
-  return ocrt.valueToBigInt(ocrt.transientCommit(versionedAlignment(rtType),
-                                                 toVersionedValue(rtType, value),
-                                                 ocrt.bigIntToValue(opening)));
+  return ocrt.valueToBigInt(ocrt.transientCommit(rtType.alignment(), rtType.toValue(value), ocrt.bigIntToValue(opening)));
 }
 
 /**
@@ -131,8 +126,7 @@ export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bi
  * @throws If `rtType` encodes a type containing Compact 'Opaque' types
  */
 export function persistentHash<A>(rtType: CompactType<A>, value: A): Uint8Array {
-  const wrapped =
-    ocrt.persistentHash(versionedAlignment(rtType), toVersionedValue(rtType, value))[0];
+  const wrapped = ocrt.persistentHash(rtType.alignment(), rtType.toValue(value))[0];
   const res = new Uint8Array(32);
   res.set(wrapped, 0);
   return res;
@@ -157,8 +151,7 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
   if (opening.length != 32) {
     throw new CompactError('Expected 32-byte string');
   }
-  const wrapped =
-    ocrt.persistentCommit(versionedAlignment(rtType), toVersionedValue(rtType, value), [opening])[0];
+  const wrapped = ocrt.persistentCommit(rtType.alignment(), rtType.toValue(value), [opening])[0];
   const res = new Uint8Array(32);
   res.set(wrapped, 0);
   return res;

@@ -61,24 +61,6 @@ export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
 
 /**
- * The alignment for a raw serialized value, used for hashing.  Gotten by
- * prepending a pair of version bytes.
- */
-export function versionedAlignment<A>(rtType: CompactType<A>): ocrt.Alignment {
-  return [{ tag: 'atom', value: { tag: 'bytes', length: 2 } }, ...rtType.alignment()];
-}
-
-/**
- * Convert a JS value to its versioned serialized form, used for hashing.
- * Gotten by using the ledger serialization and prepending a pair of version
- * bytes.
- */
-export function toVersionedValue<A>(rtType: CompactType<A>, value: A): ocrt.Value {
-  // NB: the ledger serialization drops trailing zeros.
-  return [new Uint8Array(), ...rtType.toValue(value)];
-}
-
-/**
  * Check whether a value is a valid `Secp256k1Point`: an object whose `x` and `y`
  * are bigints in the base field and whose `identity` is a boolean. A point that
  * is not the identity must also lie on the curve.

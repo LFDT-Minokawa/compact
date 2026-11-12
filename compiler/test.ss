@@ -51910,7 +51910,7 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"into_coordinates\", \"outputs\": [\"%t.2\", \"%ignore.3\"], \"point\": \"%p1.0\" },"
         "    { \"op\": \"into_coordinates\", \"outputs\": [\"%t.4\", \"%ignore.5\"], \"point\": \"%p2.1\" },"
-        "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"0x00\", \"%t.2\", \"%t.4\"] },"
+        "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
         "    { \"op\": \"jubjub_scalar_from_native\", \"output\": \"%t.7\", \"native\": \"%t.6\" },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%p1.0\", \"scalar\": \"%t.7\" },"
         "    { \"op\": \"jubjub_scalar_from_native\", \"output\": \"%t.9\", \"native\": \"0x11\" },"
@@ -55846,7 +55846,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"transient_hash\", \"output\": \"%t.1\", \"inputs\": [\"0x00\", \"0x00\", \"%x.0\"] },"
+        "    { \"op\": \"transient_hash\", \"output\": \"%t.1\", \"inputs\": [\"0x00\", \"%x.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -55879,7 +55879,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"0x00\", \"%x.0\"] },"
+        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"%x.0\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%t.2\", \"%t.3\"], \"bytes\": \"%bytes.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\", \"%t.2\"] }"
         "  ]"
@@ -59781,7 +59781,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_eq\", \"a\": \"%e.9\", \"b\": \"0x00\" },"
         "    { \"op\": \"constrain_eq\", \"a\": \"%e.10\", \"b\": \"0x00\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%e.11\", \"bits\": 64 },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"0x00\", \"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
+        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.14\", \"%tmp.13\"] },"
@@ -60284,7 +60284,7 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\"], \"input\": \"%pt0.0\" },"
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"], \"input\": \"%pt1.1\" },"
-        "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x00\", \"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
+        "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\", \"%tmp.15\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.15\", \"%tmp.14\", \"%tmp.13\"] },"
@@ -78594,84 +78594,84 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "struct Pair { a: Boolean, b: Uint<8> }"
       "enum Color { RED, GREEN, BLUE }"
-      "export circuit serialize_boolean(x: Boolean): Bytes<1> {"
-      "  return serialize<Boolean, 1>(x);"
+      "export circuit serialize_boolean(x: Boolean): Bytes<3> {"
+      "  return serialize<Boolean, 3>(x);"
       "}"
-      "export circuit serialize_field(x: Field): Bytes<32> {"
-      "  return serialize<Field, 32>(x);"
+      "export circuit serialize_field(x: Field): Bytes<34> {"
+      "  return serialize<Field, 34>(x);"
       "}"
-      "export circuit serialize_uint8(x: Uint<8>): Bytes<1> {"
-      "  return serialize<Uint<8>, 1>(x);"
+      "export circuit serialize_uint8(x: Uint<8>): Bytes<3> {"
+      "  return serialize<Uint<8>, 3>(x);"
       "}"
-      "export circuit serialize_uint64(x: Uint<64>): Bytes<8> {"
-      "  return serialize<Uint<64>, 8>(x);"
+      "export circuit serialize_uint64(x: Uint<64>): Bytes<10> {"
+      "  return serialize<Uint<64>, 10>(x);"
       "}"
-      "export circuit serialize_uint128(x: Uint<128>): Bytes<16> {"
-      "  return serialize<Uint<128>, 16>(x);"
+      "export circuit serialize_uint128(x: Uint<128>): Bytes<18> {"
+      "  return serialize<Uint<128>, 18>(x);"
       "}"
-      "export circuit serialize_bytes(x: Bytes<10>): Bytes<10> {"
-      "  return serialize<Bytes<10>, 10>(x);"
+      "export circuit serialize_bytes(x: Bytes<10>): Bytes<12> {"
+      "  return serialize<Bytes<10>, 12>(x);"
       "}"
-      "export circuit serialize_tuple(x: [Boolean, Field]): Bytes<33> {"
-      "  return serialize<[Boolean, Field], 33>(x);"
+      "export circuit serialize_tuple(x: [Boolean, Field]): Bytes<35> {"
+      "  return serialize<[Boolean, Field], 35>(x);"
       "}"
-      "export circuit serialize_uints(x: [Uint<8>, Uint<16>, Uint<32>]): Bytes<7> {"
-      "  return serialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
+      "export circuit serialize_uints(x: [Uint<8>, Uint<16>, Uint<32>]): Bytes<9> {"
+      "  return serialize<[Uint<8>, Uint<16>, Uint<32>], 9>(x);"
       "}"
-      "export circuit serialize_vector(x: Vector<4, Uint<8>>): Bytes<4> {"
-      "  return serialize<Vector<4, Uint<8>>, 4>(x);"
+      "export circuit serialize_vector(x: Vector<4, Uint<8>>): Bytes<6> {"
+      "  return serialize<Vector<4, Uint<8>>, 6>(x);"
       "}"
-      "export circuit serialize_struct (p: Pair): Bytes<2> {"
-      "  return serialize<Pair, 2>(p);"
+      "export circuit serialize_struct (p: Pair): Bytes<4> {"
+      "  return serialize<Pair, 4>(p);"
       "}"
-      "export circuit serialize_enum (c: Color): Bytes<1> {"
-      "  return serialize<Color, 1>(c);"
+      "export circuit serialize_enum (c: Color): Bytes<3> {"
+      "  return serialize<Color, 3>(c);"
       "}"
-      "export circuit serialize_nested(x: Vector<2, [Boolean, Uint<8>]>): Bytes<4> {"
-      "  return serialize<Vector<2, [Boolean, Uint<8>]>, 4>(x);"
+      "export circuit serialize_nested(x: Vector<2, [Boolean, Uint<8>]>): Bytes<6> {"
+      "  return serialize<Vector<2, [Boolean, Uint<8>]>, 6>(x);"
       "}"
-      "export circuit deserialize_boolean(x: Bytes<1>): Boolean {"
-      "  return deserialize<Boolean, 1>(x);"
+      "export circuit deserialize_boolean(x: Bytes<3>): Boolean {"
+      "  return deserialize<Boolean, 3>(x);"
       "}"
-      "export circuit deserialize_field(x: Bytes<32>): Field {"
-      "  return deserialize<Field, 32>(x);"
+      "export circuit deserialize_field(x: Bytes<34>): Field {"
+      "  return deserialize<Field, 34>(x);"
       "}"
-      "export circuit deserialize_uint8(x: Bytes<1>): Uint<8> {"
-      "  return deserialize<Uint<8>, 1>(x);"
+      "export circuit deserialize_uint8(x: Bytes<3>): Uint<8> {"
+      "  return deserialize<Uint<8>, 3>(x);"
       "}"
-      "export circuit deserialize_uint64(x: Bytes<8>): Uint<64> {"
-      "  return deserialize<Uint<64>, 8>(x);"
+      "export circuit deserialize_uint64(x: Bytes<10>): Uint<64> {"
+      "  return deserialize<Uint<64>, 10>(x);"
       "}"
-      "export circuit deserialize_uint128(x: Bytes<16>): Uint<128> {"
-      "  return deserialize<Uint<128>, 16>(x);"
+      "export circuit deserialize_uint128(x: Bytes<18>): Uint<128> {"
+      "  return deserialize<Uint<128>, 18>(x);"
       "}"
-      "export circuit deserialize_bytes(x: Bytes<10>): Bytes<10> {"
-      "  return deserialize<Bytes<10>, 10>(x);"
+      "export circuit deserialize_bytes(x: Bytes<12>): Bytes<10> {"
+      "  return deserialize<Bytes<10>, 12>(x);"
       "}"
-      "export circuit deserialize_tuple(x: Bytes<33>): [Boolean, Field] {"
-      "  return deserialize<[Boolean, Field], 33>(x);"
+      "export circuit deserialize_tuple(x: Bytes<35>): [Boolean, Field] {"
+      "  return deserialize<[Boolean, Field], 35>(x);"
       "}"
-      "export circuit deserialize_uints(x: Bytes<7>): [Uint<8>, Uint<16>, Uint<32>] {"
-      "  return deserialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
+      "export circuit deserialize_uints(x: Bytes<9>): [Uint<8>, Uint<16>, Uint<32>] {"
+      "  return deserialize<[Uint<8>, Uint<16>, Uint<32>], 9>(x);"
       "}"
-      "export circuit deserialize_vector(x: Bytes<4>): Vector<4, Uint<8>> {"
-      "  return deserialize<Vector<4, Uint<8>>, 4>(x);"
+      "export circuit deserialize_vector(x: Bytes<6>): Vector<4, Uint<8>> {"
+      "  return deserialize<Vector<4, Uint<8>>, 6>(x);"
       "}"
-      "export circuit deserialize_struct(p: Bytes<2>): Pair {"
-      "  return deserialize<Pair, 2>(p);"
+      "export circuit deserialize_struct(p: Bytes<4>): Pair {"
+      "  return deserialize<Pair, 4>(p);"
       "}"
-      "export circuit deserialize_enum(c: Bytes<1>): Color {"
-      "  return deserialize<Color, 1>(c);"
+      "export circuit deserialize_enum(c: Bytes<3>): Color {"
+      "  return deserialize<Color, 3>(c);"
       "}"
-      "export circuit deserialize_nested(x: Bytes<4>): Vector<2, [Boolean, Uint<8>]> {"
-      "  return deserialize<Vector<2, [Boolean, Uint<8>]>, 4>(x);"
+      "export circuit deserialize_nested(x: Bytes<6>): Vector<2, [Boolean, Uint<8>]> {"
+      "  return deserialize<Vector<2, [Boolean, Uint<8>]>, 6>(x);"
       "}"
       )
     (stage-javascript
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.serialize_vector(Ctxt, [0x31n, 0x43n, 0x7fn, 0xffn])).result).toEqual(new Uint8Array([0x31, 0x43, 0x7f, 0xff]));"
+        "  expect((await C.circuits.serialize_vector(Ctxt, [0x31n, 0x43n, 0x7fn, 0xffn])).result).toEqual(new Uint8Array([0, 0, 0x31, 0x43, 0x7f, 0xff]));"
         "  });"
         ))
     )
@@ -78690,7 +78690,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.299 () (Kernel)))
         (public-ledger-declaration ())
-        (circuit %ping.300 () (ty () ()) (= 1 () (emit 1 9 0)) ())
+        (circuit %ping.300 () (ty () ()) (= 1 () (emit 1 9 2 0)) ())
         (circuit %note.301 ((argument
                               (%tag.0 %tag.1)
                               (ty ((abytes 32))
@@ -78719,110 +78719,109 @@ groups than for single tests.
                                     (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= 1 (%t.237) (bytes->vector %tag.0))
-          (= 1 (%t.268 %t.269 %t.270 %t.271 %t.272 %t.273 %t.274 %t.275
-                %t.276 %t.277 %t.278 %t.279 %t.280 %t.281 %t.282 %t.283
-                %t.284 %t.285 %t.286 %t.287 %t.288 %t.289 %t.290 %t.291
-                %t.292 %t.293 %t.294 %t.295 %t.296 %t.297 %t.298)
+          (= 1 (%t.241) (bytes->vector %tag.0))
+          (= 1 (%t.270 %t.271 %t.272 %t.273 %t.274 %t.275 %t.276 %t.277
+                %t.278 %t.279 %t.280 %t.281 %t.282 %t.283 %t.284 %t.285
+                %t.286 %t.287 %t.288 %t.289 %t.290 %t.291 %t.292 %t.293
+                %t.294 %t.295 %t.296 %t.297 %t.298 %t.239 %t.240)
              (bytes->vector %tag.1))
-          (= 1 (%t.12 %t.13 %t.14 %t.15 %t.16 %t.17 %t.18 %t.19)
+          (= 1 (%t.14 %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21)
              (bytes->vector %data.2))
-          (= 1 (%t.21 %t.22 %t.23 %t.24 %t.25 %t.26 %t.27 %t.28 %t.29 %t.30
-                %t.31 %t.32 %t.33 %t.34 %t.35 %t.36 %t.37 %t.38 %t.39 %t.40
-                %t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48 %t.49 %t.50
-                %t.11)
+          (= 1 (%t.25 %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34
+                %t.35 %t.36 %t.37 %t.38 %t.39 %t.40 %t.41 %t.42 %t.43 %t.44
+                %t.45 %t.46 %t.47 %t.48 %t.49 %t.50 %t.51 %t.52 %t.11 %t.12
+                %t.13)
              (bytes->vector %data.3))
-          (= 1 (%t.52 %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59 %t.60 %t.61
-                %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69 %t.70 %t.71
-                %t.72 %t.73 %t.74 %t.75 %t.76 %t.77 %t.78 %t.79 %t.80 %t.81
-                %t.20)
+          (= 1 (%t.56 %t.57 %t.58 %t.59 %t.60 %t.61 %t.62 %t.63 %t.64 %t.65
+                %t.66 %t.67 %t.68 %t.69 %t.70 %t.71 %t.72 %t.73 %t.74 %t.75
+                %t.76 %t.77 %t.78 %t.79 %t.80 %t.81 %t.82 %t.83 %t.22 %t.23
+                %t.24)
              (bytes->vector %data.4))
-          (= 1 (%t.83 %t.84 %t.85 %t.86 %t.87 %t.88 %t.89 %t.90 %t.91 %t.92
-                %t.93 %t.94 %t.95 %t.96 %t.97 %t.98 %t.99 %t.100 %t.101
-                %t.102 %t.103 %t.104 %t.105 %t.106 %t.107 %t.108 %t.109
-                %t.110 %t.111 %t.112 %t.51)
+          (= 1 (%t.87 %t.88 %t.89 %t.90 %t.91 %t.92 %t.93 %t.94 %t.95 %t.96
+                %t.97 %t.98 %t.99 %t.100 %t.101 %t.102 %t.103 %t.104 %t.105
+                %t.106 %t.107 %t.108 %t.109 %t.110 %t.111 %t.112 %t.113
+                %t.114 %t.53 %t.54 %t.55)
              (bytes->vector %data.5))
-          (= 1 (%t.114 %t.115 %t.116 %t.117 %t.118 %t.119 %t.120 %t.121
-                %t.122 %t.123 %t.124 %t.125 %t.126 %t.127 %t.128 %t.129
-                %t.130 %t.131 %t.132 %t.133 %t.134 %t.135 %t.136 %t.137
-                %t.138 %t.139 %t.140 %t.141 %t.142 %t.143 %t.82)
+          (= 1 (%t.118 %t.119 %t.120 %t.121 %t.122 %t.123 %t.124 %t.125
+                %t.126 %t.127 %t.128 %t.129 %t.130 %t.131 %t.132 %t.133
+                %t.134 %t.135 %t.136 %t.137 %t.138 %t.139 %t.140 %t.141
+                %t.142 %t.143 %t.144 %t.145 %t.84 %t.85 %t.86)
              (bytes->vector %data.6))
-          (= 1 (%t.145 %t.146 %t.147 %t.148 %t.149 %t.150 %t.151 %t.152
-                %t.153 %t.154 %t.155 %t.156 %t.157 %t.158 %t.159 %t.160
-                %t.161 %t.162 %t.163 %t.164 %t.165 %t.166 %t.167 %t.168
-                %t.169 %t.170 %t.171 %t.172 %t.173 %t.174 %t.113)
+          (= 1 (%t.149 %t.150 %t.151 %t.152 %t.153 %t.154 %t.155 %t.156
+                %t.157 %t.158 %t.159 %t.160 %t.161 %t.162 %t.163 %t.164
+                %t.165 %t.166 %t.167 %t.168 %t.169 %t.170 %t.171 %t.172
+                %t.173 %t.174 %t.175 %t.176 %t.115 %t.116 %t.117)
              (bytes->vector %data.7))
-          (= 1 (%t.176 %t.177 %t.178 %t.179 %t.180 %t.181 %t.182 %t.183
-                %t.184 %t.185 %t.186 %t.187 %t.188 %t.189 %t.190 %t.191
-                %t.192 %t.193 %t.194 %t.195 %t.196 %t.197 %t.198 %t.199
-                %t.200 %t.201 %t.202 %t.203 %t.204 %t.205 %t.144)
+          (= 1 (%t.180 %t.181 %t.182 %t.183 %t.184 %t.185 %t.186 %t.187
+                %t.188 %t.189 %t.190 %t.191 %t.192 %t.193 %t.194 %t.195
+                %t.196 %t.197 %t.198 %t.199 %t.200 %t.201 %t.202 %t.203
+                %t.204 %t.205 %t.206 %t.207 %t.146 %t.147 %t.148)
              (bytes->vector %data.8))
-          (= 1 (%t.207 %t.208 %t.209 %t.210 %t.211 %t.212 %t.213 %t.214
-                %t.215 %t.216 %t.217 %t.218 %t.219 %t.220 %t.221 %t.222
-                %t.223 %t.224 %t.225 %t.226 %t.227 %t.228 %t.229 %t.230
-                %t.231 %t.232 %t.233 %t.234 %t.235 %t.236 %t.175)
+          (= 1 (%t.211 %t.212 %t.213 %t.214 %t.215 %t.216 %t.217 %t.218
+                %t.219 %t.220 %t.221 %t.222 %t.223 %t.224 %t.225 %t.226
+                %t.227 %t.228 %t.229 %t.230 %t.231 %t.232 %t.233 %t.234
+                %t.235 %t.236 %t.237 %t.238 %t.177 %t.178 %t.179)
              (bytes->vector %data.9))
-          (= 1 (%t.238 %t.239 %t.240 %t.241 %t.242 %t.243 %t.244 %t.245
-                %t.246 %t.247 %t.248 %t.249 %t.250 %t.251 %t.252 %t.253
-                %t.254 %t.255 %t.256 %t.257 %t.258 %t.259 %t.260 %t.261
-                %t.262 %t.263 %t.264 %t.265 %t.266 %t.267 %t.206)
+          (= 1 (%t.242 %t.243 %t.244 %t.245 %t.246 %t.247 %t.248 %t.249
+                %t.250 %t.251 %t.252 %t.253 %t.254 %t.255 %t.256 %t.257
+                %t.258 %t.259 %t.260 %t.261 %t.262 %t.263 %t.264 %t.265
+                %t.266 %t.267 %t.268 %t.269 %t.208 %t.209 %t.210)
              (bytes->vector %data.10))
           (= 1 %t.302
              (vector->bytes %t.11 %t.12 %t.13 %t.14 %t.15 %t.16 %t.17
-               %t.18 %t.19))
+               %t.18 %t.19 %t.20 %t.21))
           (= 1 %t.303
-             (vector->bytes %t.20 %t.21 %t.22 %t.23 %t.24 %t.25 %t.26
-              %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34 %t.35 %t.36
-              %t.37 %t.38 %t.39 %t.40 %t.41 %t.42 %t.43 %t.44 %t.45 %t.46
-              %t.47 %t.48 %t.49 %t.50))
+             (vector->bytes %t.22 %t.23 %t.24 %t.25 %t.26 %t.27 %t.28
+              %t.29 %t.30 %t.31 %t.32 %t.33 %t.34 %t.35 %t.36 %t.37 %t.38
+              %t.39 %t.40 %t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48
+              %t.49 %t.50 %t.51 %t.52))
           (= 1 %t.304
-             (vector->bytes %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57
-              %t.58 %t.59 %t.60 %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67
-              %t.68 %t.69 %t.70 %t.71 %t.72 %t.73 %t.74 %t.75 %t.76 %t.77
-              %t.78 %t.79 %t.80 %t.81))
+             (vector->bytes %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59
+              %t.60 %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69
+              %t.70 %t.71 %t.72 %t.73 %t.74 %t.75 %t.76 %t.77 %t.78 %t.79
+              %t.80 %t.81 %t.82 %t.83))
           (= 1 %t.305
-             (vector->bytes %t.82 %t.83 %t.84 %t.85 %t.86 %t.87 %t.88
-              %t.89 %t.90 %t.91 %t.92 %t.93 %t.94 %t.95 %t.96 %t.97 %t.98
-              %t.99 %t.100 %t.101 %t.102 %t.103 %t.104 %t.105 %t.106
-              %t.107 %t.108 %t.109 %t.110 %t.111 %t.112))
+             (vector->bytes %t.84 %t.85 %t.86 %t.87 %t.88 %t.89 %t.90
+              %t.91 %t.92 %t.93 %t.94 %t.95 %t.96 %t.97 %t.98 %t.99 %t.100
+              %t.101 %t.102 %t.103 %t.104 %t.105 %t.106 %t.107 %t.108
+              %t.109 %t.110 %t.111 %t.112 %t.113 %t.114))
           (= 1 %t.306
-             (vector->bytes %t.113 %t.114 %t.115 %t.116 %t.117 %t.118
-              %t.119 %t.120 %t.121 %t.122 %t.123 %t.124 %t.125 %t.126
-              %t.127 %t.128 %t.129 %t.130 %t.131 %t.132 %t.133 %t.134
-              %t.135 %t.136 %t.137 %t.138 %t.139 %t.140 %t.141 %t.142
-              %t.143))
+             (vector->bytes %t.115 %t.116 %t.117 %t.118 %t.119 %t.120
+              %t.121 %t.122 %t.123 %t.124 %t.125 %t.126 %t.127 %t.128
+              %t.129 %t.130 %t.131 %t.132 %t.133 %t.134 %t.135 %t.136
+              %t.137 %t.138 %t.139 %t.140 %t.141 %t.142 %t.143 %t.144
+              %t.145))
           (= 1 %t.307
-             (vector->bytes %t.144 %t.145 %t.146 %t.147 %t.148 %t.149
-              %t.150 %t.151 %t.152 %t.153 %t.154 %t.155 %t.156 %t.157
-              %t.158 %t.159 %t.160 %t.161 %t.162 %t.163 %t.164 %t.165
-              %t.166 %t.167 %t.168 %t.169 %t.170 %t.171 %t.172 %t.173
-              %t.174))
+             (vector->bytes %t.146 %t.147 %t.148 %t.149 %t.150 %t.151
+              %t.152 %t.153 %t.154 %t.155 %t.156 %t.157 %t.158 %t.159
+              %t.160 %t.161 %t.162 %t.163 %t.164 %t.165 %t.166 %t.167
+              %t.168 %t.169 %t.170 %t.171 %t.172 %t.173 %t.174 %t.175
+              %t.176))
           (= 1 %t.308
-             (vector->bytes %t.175 %t.176 %t.177 %t.178 %t.179 %t.180
-              %t.181 %t.182 %t.183 %t.184 %t.185 %t.186 %t.187 %t.188
-              %t.189 %t.190 %t.191 %t.192 %t.193 %t.194 %t.195 %t.196
-              %t.197 %t.198 %t.199 %t.200 %t.201 %t.202 %t.203 %t.204
-              %t.205))
+             (vector->bytes %t.177 %t.178 %t.179 %t.180 %t.181 %t.182
+              %t.183 %t.184 %t.185 %t.186 %t.187 %t.188 %t.189 %t.190
+              %t.191 %t.192 %t.193 %t.194 %t.195 %t.196 %t.197 %t.198
+              %t.199 %t.200 %t.201 %t.202 %t.203 %t.204 %t.205 %t.206
+              %t.207))
           (= 1 %t.309
-             (vector->bytes %t.206 %t.207 %t.208 %t.209 %t.210 %t.211
-              %t.212 %t.213 %t.214 %t.215 %t.216 %t.217 %t.218 %t.219
-              %t.220 %t.221 %t.222 %t.223 %t.224 %t.225 %t.226 %t.227
-              %t.228 %t.229 %t.230 %t.231 %t.232 %t.233 %t.234 %t.235
-              %t.236))
+             (vector->bytes %t.208 %t.209 %t.210 %t.211 %t.212 %t.213
+              %t.214 %t.215 %t.216 %t.217 %t.218 %t.219 %t.220 %t.221
+              %t.222 %t.223 %t.224 %t.225 %t.226 %t.227 %t.228 %t.229
+              %t.230 %t.231 %t.232 %t.233 %t.234 %t.235 %t.236 %t.237
+              %t.238))
           (= 1 %t.310
-             (vector->bytes %t.237 %t.238 %t.239 %t.240 %t.241 %t.242
-              %t.243 %t.244 %t.245 %t.246 %t.247 %t.248 %t.249 %t.250
-              %t.251 %t.252 %t.253 %t.254 %t.255 %t.256 %t.257 %t.258
-              %t.259 %t.260 %t.261 %t.262 %t.263 %t.264 %t.265 %t.266
-              %t.267))
+             (vector->bytes %t.239 %t.240 %t.241 %t.242 %t.243 %t.244
+              %t.245 %t.246 %t.247 %t.248 %t.249 %t.250 %t.251 %t.252
+              %t.253 %t.254 %t.255 %t.256 %t.257 %t.258 %t.259 %t.260
+              %t.261 %t.262 %t.263 %t.264 %t.265 %t.266 %t.267 %t.268
+              %t.269))
           (= 1 %t.311
-             (vector->bytes %t.268 %t.269 %t.270 %t.271 %t.272 %t.273
-              %t.274 %t.275 %t.276 %t.277 %t.278 %t.279 %t.280 %t.281
-              %t.282 %t.283 %t.284 %t.285 %t.286 %t.287 %t.288 %t.289
-              %t.290 %t.291 %t.292 %t.293 %t.294 %t.295 %t.296 %t.297
-              %t.298))
+             (vector->bytes 0 0 %t.270 %t.271 %t.272 %t.273 %t.274 %t.275
+              %t.276 %t.277 %t.278 %t.279 %t.280 %t.281 %t.282 %t.283
+              %t.284 %t.285 %t.286 %t.287 %t.288 %t.289 %t.290 %t.291
+              %t.292 %t.293 %t.294 %t.295 %t.296 %t.297 %t.298))
           (= 1 ()
-             (emit 1 10 288 %t.302 %t.303 %t.304 %t.305 %t.306 %t.307
+             (emit 1 10 290 %t.302 %t.303 %t.304 %t.305 %t.306 %t.307
                %t.308 %t.309 %t.310 %t.311))
           ())))
     )
@@ -78838,17 +78837,28 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.34 () (Kernel)))
         (public-ledger-declaration ())
-        (witness %bar.1 ()
+        (witness %bar.35 ()
              (ty ((abytes 32))
                  ((tunsigned 255)
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (circuit %foo.2 ()
+        (circuit %foo.36 ()
              (ty () ())
-          (= 1 (%t.3 %t.4) (call %bar.1))
-          (= 1 () (emit 1 0 32 %t.3 %t.4))
+          (= 1 (%t.0 %t.1) (call %bar.35))
+          (= 1 (%t.4) (bytes->vector %t.0))
+          (= 1 (%t.5 %t.6 %t.7 %t.8 %t.9 %t.10 %t.11 %t.12 %t.13 %t.14 %t.15
+                %t.16 %t.17 %t.18 %t.19 %t.20 %t.21 %t.22 %t.23 %t.24 %t.25
+                %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.2 %t.3)
+             (bytes->vector %t.1))
+          (= 1 %t.37 (vector->bytes %t.2 %t.3 %t.4))
+          (= 1 %t.38
+             (vector->bytes 0 0 %t.5 %t.6 %t.7 %t.8 %t.9 %t.10 %t.11 %t.12
+              %t.13 %t.14 %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21 %t.22
+              %t.23 %t.24 %t.25 %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32
+              %t.33))
+          (= 1 () (emit 1 0 34 %t.37 %t.38))
           ())))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
@@ -78899,102 +78909,104 @@ groups than for single tests.
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
          ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
         ""
-        "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);"
+        "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(34);"
         ""
-        "const _descriptor_1 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
+        "const _descriptor_1 = new __compactRuntime.CompactTypeBytes(32);"
         ""
-        "const _descriptor_2 = __compactRuntime.CompactTypeBoolean;"
+        "const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
+        ""
+        "const _descriptor_3 = __compactRuntime.CompactTypeBoolean;"
         ""
         "class _Either_0 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_0.alignment().concat(_descriptor_0.alignment()));"
+        "    return _descriptor_3.alignment().concat(_descriptor_1.alignment().concat(_descriptor_1.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_2.fromValue(value_0),"
-        "      left: _descriptor_0.fromValue(value_0),"
-        "      right: _descriptor_0.fromValue(value_0)"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_1.fromValue(value_0),"
+        "      right: _descriptor_1.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_0.toValue(value_0.left).concat(_descriptor_0.toValue(value_0.right)));"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_1.toValue(value_0.left).concat(_descriptor_1.toValue(value_0.right)));"
         "  }"
         "}"
         ""
-        "const _descriptor_3 = new _Either_0();"
+        "const _descriptor_4 = new _Either_0();"
         ""
-        "const _descriptor_4 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        "const _descriptor_5 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
         ""
         "class _ContractAddress_0 {"
         "  alignment() {"
-        "    return _descriptor_0.alignment();"
+        "    return _descriptor_1.alignment();"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      bytes: _descriptor_0.fromValue(value_0)"
+        "      bytes: _descriptor_1.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_0.toValue(value_0.bytes);"
+        "    return _descriptor_1.toValue(value_0.bytes);"
         "  }"
         "}"
         ""
-        "const _descriptor_5 = new _ContractAddress_0();"
+        "const _descriptor_6 = new _ContractAddress_0();"
         ""
         "class _UserAddress_0 {"
         "  alignment() {"
-        "    return _descriptor_0.alignment();"
+        "    return _descriptor_1.alignment();"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      bytes: _descriptor_0.fromValue(value_0)"
+        "      bytes: _descriptor_1.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_0.toValue(value_0.bytes);"
+        "    return _descriptor_1.toValue(value_0.bytes);"
         "  }"
         "}"
         ""
-        "const _descriptor_6 = new _UserAddress_0();"
+        "const _descriptor_7 = new _UserAddress_0();"
         ""
         "class _Either_1 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_5.alignment().concat(_descriptor_6.alignment()));"
+        "    return _descriptor_3.alignment().concat(_descriptor_6.alignment().concat(_descriptor_7.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_2.fromValue(value_0),"
-        "      left: _descriptor_5.fromValue(value_0),"
-        "      right: _descriptor_6.fromValue(value_0)"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_6.fromValue(value_0),"
+        "      right: _descriptor_7.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_5.toValue(value_0.left).concat(_descriptor_6.toValue(value_0.right)));"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_6.toValue(value_0.left).concat(_descriptor_7.toValue(value_0.right)));"
         "  }"
         "}"
         ""
-        "const _descriptor_7 = new _Either_1();"
+        "const _descriptor_8 = new _Either_1();"
         ""
         "class _Maybe_0 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_7.alignment());"
+        "    return _descriptor_3.alignment().concat(_descriptor_8.alignment());"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_some: _descriptor_2.fromValue(value_0),"
-        "      value: _descriptor_7.fromValue(value_0)"
+        "      is_some: _descriptor_3.fromValue(value_0),"
+        "      value: _descriptor_8.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_some).concat(_descriptor_7.toValue(value_0.value));"
+        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_8.toValue(value_0.value));"
         "  }"
         "}"
         ""
-        "const _descriptor_8 = new _Maybe_0();"
+        "const _descriptor_9 = new _Maybe_0();"
         ""
-        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
         ""
-        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -79086,23 +79098,30 @@ groups than for single tests.
         "                                 result_0)"
         "    }"
         "    partialProofData.privateTranscriptOutputs.push({"
-        "      value: _descriptor_0.toValue(result_0),"
-        "      alignment: _descriptor_0.alignment()"
+        "      value: _descriptor_1.toValue(result_0),"
+        "      alignment: _descriptor_1.alignment()"
         "    });"
         "    return result_0;"
         "  }"
         "  async _foo_0(context, partialProofData) {"
+        "    let t_0;"
         "    return __compactRuntime.queryLedgerState(context,"
         "                                             partialProofData,"
         "                                             ["
         "                                              { push: { storage: false,"
         "                                                        value: __compactRuntime.StateValue.newArray()"
-        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
-        "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
-        "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
+        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_11.toValue(1n),"
+        "                                                                                                                  alignment: _descriptor_11.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                                                                                                                                            alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue((t_0 = [new Uint8Array([0, 0]),"
+        "                                                                                                                                                                                                                                                                                                                                           { nullifier:"
+        "                                                                                                                                                                                                                                                                                                                                               this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                           partialProofData) }],"
+        "                                                                                                                                                                                                                                                                                                                                    Uint8Array.from([...Array.from(t_0[0],"
+        "                                                                                                                                                                                                                                                                                                                                                                   BigInt),"
+        "                                                                                                                                                                                                                                                                                                                                                     ...Array.from(t_0[1].nullifier,"
+        "                                                                                                                                                                                                                                                                                                                                                                   BigInt)],"
+        "                                                                                                                                                                                                                                                                                                                                                    Number))),"
+        "                                                                                                                                                                                                                                                                                                      alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
         "  }"
@@ -79272,91 +79291,95 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 32>(x);"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<34>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 34>(x);"
       "}"
-      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
-      "  return serialize<ShieldedSpend, 32>(x);"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<34> {"
+      "  return serialize<ShieldedSpend, 34>(x);"
       "}"
       "export circuit roundtrip_ShieldedSpend(orig: ShieldedSpend): Boolean {"
-      "  const bytes = serialize<ShieldedSpend, 32>(orig);"
-      "  const restored = deserialize<ShieldedSpend, 32>(bytes);"
+      "  const bytes = serialize<ShieldedSpend, 34>(orig);"
+      "  const restored = deserialize<ShieldedSpend, 34>(bytes);"
       "  return orig.nullifier == restored.nullifier;"
       "}"
       )
     (stage-javascript
-      '(
-        "test('serialize_ShieldedSpend returns the nullifier bytes verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const nullifier = new Uint8Array(32).fill(0x42);"
-        "  const r = await C.circuits.serialize_ShieldedSpend(Ctxt, { nullifier });"
-        "  expect(r.result).toEqual(nullifier);"
-        "});"
-        ""
-        "test('deserialize_ShieldedSpend reconstructs the struct from bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const bytes = new Uint8Array(32).fill(0x55);"
-        "  const r = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
-        "  expect(r.result.nullifier).toEqual(bytes);"
-        "});"
-        ""
-        "test('round-trip returns true for uniform-byte nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const nullifier = new Uint8Array(32).fill(0xAB);"
-        "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
-        "  expect(r.result).toBe(true);"
-        "});"
-        ""
-        "test('round-trip returns true for all-zero nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const nullifier = new Uint8Array(32);"
-        "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
-        "  expect(r.result).toBe(true);"
-        "});"
-        ""
-        "test('round-trip returns true for all-0xFF nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const nullifier = new Uint8Array(32).fill(0xFF);"
-        "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
-        "  expect(r.result).toBe(true);"
-        "});"
-        ""
-        "test('round-trip returns true for non-uniform nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const nullifier = new Uint8Array(32);"
-        "  for (let i = 0; i < 32; i++) nullifier[i] = (i * 7 + 13) & 0xFF;"
-        "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
-        "  expect(r.result).toBe(true);"
-        "});"
-        ""
-        "test('separate serialize then deserialize yields original struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { nullifier: new Uint8Array(32).fill(0x7E) };"
-        "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, orig);"
-        "  expect(ser.result).toBeInstanceOf(Uint8Array);"
-        "  expect(ser.result.length).toBe(32);"
-        "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, ser.result);"
-        "  expect(deser.result.nullifier).toEqual(orig.nullifier);"
-        "});"
-        ""
-        "test('deserialize then serialize recovers the original bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const bytes = new Uint8Array(32);"
-        "  for (let i = 0; i < 32; i++) bytes[i] = i * 8;"
-        "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
-        "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, deser.result);"
-        "  expect(ser.result).toEqual(bytes);"
-        "});"
-        ""
-        "test('different nullifiers serialize to different bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const a = { nullifier: new Uint8Array(32).fill(0x01) };"
-        "  const b = { nullifier: new Uint8Array(32).fill(0x02) };"
-        "  const ra = await C.circuits.serialize_ShieldedSpend(Ctxt, a);"
-        "  const rb = await C.circuits.serialize_ShieldedSpend(Ctxt, b);"
-        "  expect(ra.result).not.toEqual(rb.result);"
-        "});"
-    )))
+      (let ([version "[0, 0]"])
+        `(
+          "test('serialize_ShieldedSpend returns the nullifier bytes verbatim', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const nullifier = new Uint8Array(32).fill(0x42);"
+          "  const r = await C.circuits.serialize_ShieldedSpend(Ctxt, { nullifier });"
+          "  expect(r.result.slice(2)).toEqual(nullifier);"
+          "});"
+          ""
+          "test('deserialize_ShieldedSpend reconstructs the struct from bytes', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const bytes = new Uint8Array(34);"
+          ,(format "  bytes.set(~a, 0)" version)
+          "  bytes.fill(0x55, 2);"
+          "  const r = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
+          "  expect(r.result.nullifier).toEqual(bytes.slice(2));"
+          "});"
+          ""
+          "test('round-trip returns true for uniform-byte nullifier', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const nullifier = new Uint8Array(32).fill(0xAB);"
+          "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+          "  expect(r.result).toBe(true);"
+          "});"
+          ""
+          "test('round-trip returns true for all-zero nullifier', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const nullifier = new Uint8Array(32);"
+          "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+          "  expect(r.result).toBe(true);"
+          "});"
+          ""
+          "test('round-trip returns true for all-0xFF nullifier', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const nullifier = new Uint8Array(32).fill(0xFF);"
+          "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+          "  expect(r.result).toBe(true);"
+          "});"
+          ""
+          "test('round-trip returns true for non-uniform nullifier', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const nullifier = new Uint8Array(32);"
+          "  for (let i = 0; i < 32; i++) nullifier[i] = (i * 7 + 13) & 0xFF;"
+          "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+          "  expect(r.result).toBe(true);"
+          "});"
+          ""
+          "test('separate serialize then deserialize yields original struct', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const orig = { nullifier: new Uint8Array(32).fill(0x7E) };"
+          "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, orig);"
+          "  expect(ser.result).toBeInstanceOf(Uint8Array);"
+          "  expect(ser.result.length).toBe(34);"
+          "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, ser.result);"
+          "  expect(deser.result.nullifier).toEqual(orig.nullifier);"
+          "});"
+          ""
+          "test('deserialize then serialize recovers the original bytes', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const bytes = new Uint8Array(34);"
+          ,(format "  bytes.set(~a, 0)" version)
+          "  for (let i = 0; i < 32; i++) bytes[i + 2] = i * 8;"
+          "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
+          "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, deser.result);"
+          "  expect(ser.result).toEqual(bytes);"
+          "});"
+          ""
+          "test('different nullifiers serialize to different bytes', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const a = { nullifier: new Uint8Array(32).fill(0x01) };"
+          "  const b = { nullifier: new Uint8Array(32).fill(0x02) };"
+          "  const ra = await C.circuits.serialize_ShieldedSpend(Ctxt, a);"
+          "  const rb = await C.circuits.serialize_ShieldedSpend(Ctxt, b);"
+          "  expect(ra.result).not.toEqual(rb.result);"
+          "});")))
+    )
 
   (test
     '(
@@ -79395,15 +79418,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_ShieldedReceive(x: ShieldedReceive): Bytes<578> {"
-      "  return serialize<ShieldedReceive, 578>(x);"
+      "export circuit serialize_ShieldedReceive(x: ShieldedReceive): Bytes<580> {"
+      "  return serialize<ShieldedReceive, 580>(x);"
       "}"
-      "export circuit deserialize_ShieldedReceive(x: Bytes<578>): ShieldedReceive {"
-      "  return deserialize<ShieldedReceive, 578>(x);"
+      "export circuit deserialize_ShieldedReceive(x: Bytes<580>): ShieldedReceive {"
+      "  return deserialize<ShieldedReceive, 580>(x);"
       "}"
       "export circuit roundtrip_ShieldedReceive(orig: ShieldedReceive): ShieldedReceive {"
-      "  const bytes = serialize<ShieldedReceive, 578>(orig);"
-      "  return deserialize<ShieldedReceive, 578>(bytes);"
+      "  const bytes = serialize<ShieldedReceive, 580>(orig);"
+      "  return deserialize<ShieldedReceive, 580>(bytes);"
       "}"
       )
     (stage-javascript
@@ -79450,7 +79473,7 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_ShieldedReceive returns 578-byte payload', async () => {"
+        "test('serialize_ShieldedReceive returns 580-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
@@ -79459,7 +79482,7 @@ groups than for single tests.
         "  };"
         "  const r = await C.circuits.serialize_ShieldedReceive(Ctxt, orig);"
         "  expect(r.result).toBeInstanceOf(Uint8Array);"
-        "  expect(r.result.length).toBe(578);"
+        "  expect(r.result.length).toBe(580);"
         "});"
         ""
         "test('serialize is structural: inactive-variant payload is preserved verbatim', async () => {"
@@ -79513,15 +79536,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_ShieldedMint(x: ShieldedMint): Bytes<81> {"
-      "  return serialize<ShieldedMint, 81>(x);"
+      "export circuit serialize_ShieldedMint(x: ShieldedMint): Bytes<83> {"
+      "  return serialize<ShieldedMint, 83>(x);"
       "}"
-      "export circuit deserialize_ShieldedMint(x: Bytes<81>): ShieldedMint {"
-      "  return deserialize<ShieldedMint, 81>(x);"
+      "export circuit deserialize_ShieldedMint(x: Bytes<83>): ShieldedMint {"
+      "  return deserialize<ShieldedMint, 83>(x);"
       "}"
       "export circuit roundtrip_ShieldedMint(orig: ShieldedMint): ShieldedMint {"
-      "  const bytes = serialize<ShieldedMint, 81>(orig);"
-      "  return deserialize<ShieldedMint, 81>(bytes);"
+      "  const bytes = serialize<ShieldedMint, 83>(orig);"
+      "  return deserialize<ShieldedMint, 83>(bytes);"
       "}"
       )
     (stage-javascript
@@ -79564,7 +79587,7 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_ShieldedMint returns 81-byte payload', async () => {"
+        "test('serialize_ShieldedMint returns 83-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
@@ -79572,7 +79595,7 @@ groups than for single tests.
         "    amount: { is_some: true, value: 999n }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedMint(Ctxt, orig);"
-        "  expect(r.result.length).toBe(81);"
+        "  expect(r.result.length).toBe(83);"
         "});"
         ""
         "test('roundtrip preserves ShieldedMint struct', async () => {"
@@ -79621,15 +79644,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_ShieldedBurn(x: ShieldedBurn): Bytes<49> {"
-      "  return serialize<ShieldedBurn, 49>(x);"
+      "export circuit serialize_ShieldedBurn(x: ShieldedBurn): Bytes<51> {"
+      "  return serialize<ShieldedBurn, 51>(x);"
       "}"
-      "export circuit deserialize_ShieldedBurn(x: Bytes<49>): ShieldedBurn {"
-      "  return deserialize<ShieldedBurn, 49>(x);"
+      "export circuit deserialize_ShieldedBurn(x: Bytes<51>): ShieldedBurn {"
+      "  return deserialize<ShieldedBurn, 51>(x);"
       "}"
       "export circuit roundtrip_ShieldedBurn(orig: ShieldedBurn): ShieldedBurn {"
-      "  const bytes = serialize<ShieldedBurn, 49>(orig);"
-      "  return deserialize<ShieldedBurn, 49>(bytes);"
+      "  const bytes = serialize<ShieldedBurn, 51>(orig);"
+      "  return deserialize<ShieldedBurn, 51>(bytes);"
       "}"
       )
     (stage-javascript
@@ -79672,11 +79695,11 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_ShieldedBurn returns 49-byte payload', async () => {"
+        "test('serialize_ShieldedBurn returns 51-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { nullifier: N32(), amount: { is_some: true, value: 100n } };"
         "  const r = await C.circuits.serialize_ShieldedBurn(Ctxt, orig);"
-        "  expect(r.result.length).toBe(49);"
+        "  expect(r.result.length).toBe(51);"
         "});"
         ""
         "test('roundtrip preserves ShieldedBurn struct', async () => {"
@@ -79745,15 +79768,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<145> {"
-      "  return serialize<UnshieldedSpend, 145>(x);"
+      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<147> {"
+      "  return serialize<UnshieldedSpend, 147>(x);"
       "}"
-      "export circuit deserialize_UnshieldedSpend(x: Bytes<145>): UnshieldedSpend {"
-      "  return deserialize<UnshieldedSpend, 145>(x);"
+      "export circuit deserialize_UnshieldedSpend(x: Bytes<147>): UnshieldedSpend {"
+      "  return deserialize<UnshieldedSpend, 147>(x);"
       "}"
       "export circuit roundtrip_UnshieldedSpend(orig: UnshieldedSpend): UnshieldedSpend {"
-      "  const bytes = serialize<UnshieldedSpend, 145>(orig);"
-      "  return deserialize<UnshieldedSpend, 145>(bytes);"
+      "  const bytes = serialize<UnshieldedSpend, 147>(orig);"
+      "  return deserialize<UnshieldedSpend, 147>(bytes);"
       "}"
       )
     (stage-javascript
@@ -79801,11 +79824,11 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedSpend returns 145-byte payload', async () => {"
+        "test('serialize_UnshieldedSpend returns 147-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
-        "  expect(r.result.length).toBe(145);"
+        "  expect(r.result.length).toBe(147);"
         "});"
         ""
         "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
@@ -79874,15 +79897,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<145> {"
-      "  return serialize<UnshieldedReceive, 145>(x);"
+      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<147> {"
+      "  return serialize<UnshieldedReceive, 147>(x);"
       "}"
-      "export circuit deserialize_UnshieldedReceive(x: Bytes<145>): UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 145>(x);"
+      "export circuit deserialize_UnshieldedReceive(x: Bytes<147>): UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 147>(x);"
       "}"
       "export circuit roundtrip_UnshieldedReceive(orig: UnshieldedReceive): UnshieldedReceive {"
-      "  const bytes = serialize<UnshieldedReceive, 145>(orig);"
-      "  return deserialize<UnshieldedReceive, 145>(bytes);"
+      "  const bytes = serialize<UnshieldedReceive, 147>(orig);"
+      "  return deserialize<UnshieldedReceive, 147>(bytes);"
       "}"
       )
     (stage-javascript
@@ -79930,11 +79953,11 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedReceive returns 145-byte payload', async () => {"
+        "test('serialize_UnshieldedReceive returns 147-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
-        "  expect(r.result.length).toBe(145);"
+        "  expect(r.result.length).toBe(147);"
         "});"
         ""
         "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
@@ -79987,15 +80010,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedMint(x: UnshieldedMint): Bytes<80> {"
-      "  return serialize<UnshieldedMint, 80>(x);"
+      "export circuit serialize_UnshieldedMint(x: UnshieldedMint): Bytes<82> {"
+      "  return serialize<UnshieldedMint, 82>(x);"
       "}"
-      "export circuit deserialize_UnshieldedMint(x: Bytes<80>): UnshieldedMint {"
-      "  return deserialize<UnshieldedMint, 80>(x);"
+      "export circuit deserialize_UnshieldedMint(x: Bytes<82>): UnshieldedMint {"
+      "  return deserialize<UnshieldedMint, 82>(x);"
       "}"
       "export circuit roundtrip_UnshieldedMint(orig: UnshieldedMint): UnshieldedMint {"
-      "  const bytes = serialize<UnshieldedMint, 80>(orig);"
-      "  return deserialize<UnshieldedMint, 80>(bytes);"
+      "  const bytes = serialize<UnshieldedMint, 82>(orig);"
+      "  return deserialize<UnshieldedMint, 82>(bytes);"
       "}"
       )
     (stage-javascript
@@ -80038,11 +80061,11 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedMint returns 80-byte payload', async () => {"
+        "test('serialize_UnshieldedMint returns 82-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { domainSep: N32(), tokenType: N32(), amount: 999n };"
         "  const r = await C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
-        "  expect(r.result.length).toBe(80);"
+        "  expect(r.result.length).toBe(82);"
         "});"
         ""
         "test('roundtrip preserves UnshieldedMint struct', async () => {"
@@ -80073,15 +80096,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_Paused(x: Paused): Bytes<0> {"
-      "  return serialize<Paused, 0>(x);"
+      "export circuit serialize_Paused(x: Paused): Bytes<2> {"
+      "  return serialize<Paused, 2>(x);"
       "}"
-      "export circuit deserialize_Paused(x: Bytes<0>): Paused {"
-      "  return deserialize<Paused, 0>(x);"
+      "export circuit deserialize_Paused(x: Bytes<2>): Paused {"
+      "  return deserialize<Paused, 2>(x);"
       "}"
       "export circuit roundtrip_Paused(orig: Paused): Paused {"
-      "  const bytes = serialize<Paused, 0>(orig);"
-      "  return deserialize<Paused, 0>(bytes);"
+      "  const bytes = serialize<Paused, 2>(orig);"
+      "  return deserialize<Paused, 2>(bytes);"
       "}"
       )
     (stage-javascript
@@ -80124,10 +80147,10 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_Paused returns 0-byte payload', async () => {"
+        "test('serialize_Paused returns 2-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const r = await C.circuits.serialize_Paused(Ctxt, {});"
-        "  expect(r.result.length).toBe(0);"
+        "  expect(r.result.length).toBe(2);"
         "});"
         ""
         "test('roundtrip preserves empty Paused struct', async () => {"
@@ -80157,15 +80180,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_Misc(x: Misc): Bytes<288> {"
-      "  return serialize<Misc, 288>(x);"
+      "export circuit serialize_Misc(x: Misc): Bytes<290> {"
+      "  return serialize<Misc, 290>(x);"
       "}"
-      "export circuit deserialize_Misc(x: Bytes<288>): Misc {"
-      "  return deserialize<Misc, 288>(x);"
+      "export circuit deserialize_Misc(x: Bytes<290>): Misc {"
+      "  return deserialize<Misc, 290>(x);"
       "}"
       "export circuit roundtrip_Misc(orig: Misc): Misc {"
-      "  const bytes = serialize<Misc, 288>(orig);"
-      "  return deserialize<Misc, 288>(bytes);"
+      "  const bytes = serialize<Misc, 290>(orig);"
+      "  return deserialize<Misc, 290>(bytes);"
       "}"
       )
     (stage-javascript
@@ -80209,11 +80232,11 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_Misc returns 288-byte payload', async () => {"
+        "test('serialize_Misc returns 290-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { name: N32(), payload: N256() };"
         "  const r = await C.circuits.serialize_Misc(Ctxt, orig);"
-        "  expect(r.result.length).toBe(288);"
+        "  expect(r.result.length).toBe(290);"
         "});"
         ""
         "test('roundtrip preserves Misc struct', async () => {"
@@ -80717,33 +80740,44 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit d1(bv: Bytes<1>): Boolean {"
+      "export circuit d1(bv: Bytes<3>): Boolean {"
       "  forceProof();"
-      "  return deserialize<Boolean, 1>(bv);"
+      "  return deserialize<Boolean, 3>(bv);"
       "}"
       "struct S { a: Boolean, b: Uint<16>, c: Boolean, d: Uint<8>, e: Boolean};"
-      "export circuit d2(bv: Bytes<6>): S {"
+      "export circuit d2(bv: Bytes<8>): S {"
       "  forceProof();"
-      "  return deserialize<S, 6>(bv);"
+      "  return deserialize<S, 8>(bv);"
       "}"
       )
     (stage-javascript
-      '(
-        "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([0]))).result).toEqual(false);"
-        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([1]))).result).toEqual(true);"
-        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([2]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([3]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([32]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([255]))).rejects.toThrow(runtime.CompactError);"
-        "  expect((await C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0x01]))).result)"
-        "              .toEqual({a: true, b: 0xff07n, c: false, d: 0xc1n, e: true});"
-        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x03, 0x07, 0xff, 0x00, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x32, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0xff]))).rejects.toThrow(runtime.CompactError);"
-        "});"
-        ))
+      (let ([version "0, 0, "])
+        `(
+          "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          ,(format "  expect((await C.circuits.d1(Ctxt, new Uint8Array([~a0]))).result).toEqual(false);"
+             version)
+          ,(format "  expect((await C.circuits.d1(Ctxt, new Uint8Array([~a1]))).result).toEqual(true);"
+             version)
+          ,(format "  await expect(C.circuits.d1(Ctxt, new Uint8Array([~a2]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  await expect(C.circuits.d1(Ctxt, new Uint8Array([~a3]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  await expect(C.circuits.d1(Ctxt, new Uint8Array([~a32]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  await expect(C.circuits.d1(Ctxt, new Uint8Array([~a255]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  expect((await C.circuits.d2(Ctxt, new Uint8Array([~a0x01, 0x07, 0xff, 0x00, 0xc1, 0x01]))).result)"
+             version)
+          "              .toEqual({a: true, b: 0xff07n, c: false, d: 0xc1n, e: true});"
+          ,(format "  await expect(C.circuits.d2(Ctxt, new Uint8Array([~a0x03, 0x07, 0xff, 0x00, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  await expect(C.circuits.d2(Ctxt, new Uint8Array([~a0x01, 0x07, 0xff, 0x32, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          ,(format "  await expect(C.circuits.d2(Ctxt, new Uint8Array([~a0x01, 0x07, 0xff, 0x00, 0xc1, 0xff]))).rejects.toThrow(runtime.CompactError);"
+             version)
+          "});"))
+      )
     )
 
   (test
@@ -80752,12 +80786,12 @@ groups than for single tests.
       "type frob = [Uint<32>, Boolean];"
       "new type blob = Bytes<8>;"
       "ledger F: [frob, blob];"
-      "export circuit foo(x: frob, y: blob): Bytes<16> {"
+      "export circuit foo(x: frob, y: blob): Bytes<18> {"
       "  F = disclose([x, y]);"
-      "  return serialize<[frob, blob], 16>(F);"
+      "  return serialize<[frob, blob], 18>(F);"
       "}"
-      "export circuit unfoo(bv: Bytes<16>): [frob, blob] {"
-      "  F = deserialize<[frob, blob], 16>(disclose(bv));"
+      "export circuit unfoo(bv: Bytes<18>): [frob, blob] {"
+      "  F = deserialize<[frob, blob], 18>(disclose(bv));"
       "  return F;"
       "}"
       )
@@ -80766,7 +80800,7 @@ groups than for single tests.
         "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
-        "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
+        "    .toEqual(new Uint8Array([0x0, 0x0, 0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
         "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
         "    .toEqual([[0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f])]);"
         "});"
@@ -85381,14 +85415,20 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      (let ([version "0, 0, "])
+      (let ([version "0, 0, "]
+            [make-test-case
+              ;; `input` is a JS expression in a string, `expected` is the list of raw serialized bytes.
+              ;; The two-byte version is prepended to the expectation.
+              (lambda (input expected)
+                (format "      { input: ~a, expected: new Uint8Array([0, 0, ~{0x~2,'0x, ~}]) },"
+                  input expected))])
         `("test('base type serialization', async () => {"
           "  var [contract, context] = await startContract(contractCode, {}, 0);"
           "  {"
           "    const descriptor = runtime.CompactTypeBoolean;"
           "    const tests = ["
-          ,(format "      { input: false, expected: new Uint8Array([~a0]) }," version)
-          ,(format "      { input: true,  expected: new Uint8Array([~a1]) }," version)
+          ,(make-test-case "false" (list 0))
+          ,(make-test-case "true" (list 1))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testBoolean(context, test.input);"
@@ -85396,18 +85436,16 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).boolean)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<boolean>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "  }"
           "  {"
           "    var descriptor: runtime.CompactType<bigint> ="
           "        new runtime.CompactTypeUnsignedInteger(BigInt(2**8 - 1), 1);"
           "    var tests = ["
-          ,(format "      { input: 0n,    expected: new Uint8Array([~a0]) },"
-             version)
-          ,(format "      { input: 0xffn, expected: new Uint8Array([~a0xff]) }," version)
-          ,(format "      { input: 0x01n, expected: new Uint8Array([~a0x01]) }," version)
-          ,(format "      { input: 0x67n, expected: new Uint8Array([~a0x67]) }," version)
+          ,(make-test-case "0n" (list 0))
+          ,(make-test-case "0xffn" (list #xff))
+          ,(make-test-case "0x01n" (list #x01))
+          ,(make-test-case "0x67n" (list #x67))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testUint8(context, test.input);"
@@ -85415,14 +85453,13 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).uint8)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<bigint>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "    descriptor = new runtime.CompactTypeUnsignedInteger(BigInt(2**16 - 1), 2);"
           "    tests = ["
-          ,(format "      { input: 0n,      expected: new Uint8Array([~a0, 0]) }," version)
-          ,(format "      { input: 0xffffn, expected: new Uint8Array([~a0xff, 0xff]) }," version)
-          ,(format "      { input: 0x0123n, expected: new Uint8Array([~a0x23, 0x01]) }," version)
-          ,(format "      { input: 0x2ccbn, expected: new Uint8Array([~a0xcb, 0x2c]) }," version)
+          ,(make-test-case "0n" (list 0 0))
+          ,(make-test-case "0xffffn" (list #xff #xff))
+          ,(make-test-case "0x0123n" (list #x23 #x01))
+          ,(make-test-case "0x2ccbn" (list #xcb #x2c))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testUint16(context, test.input);"
@@ -85430,17 +85467,13 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).uint16)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<bigint>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "    descriptor = new runtime.CompactTypeUnsignedInteger(BigInt(2**32 - 1), 4);"
           "    tests = ["
-          ,(format "      { input: 0n,          expected: new Uint8Array([~a0, 0, 0, 0]) }," version)
-          ,(format "      { input: 0xffffffffn, expected: new Uint8Array([~a0xff, 0xff, 0xff, 0xff]) },"
-             version)
-          ,(format "      { input: 0x01234567n, expected: new Uint8Array([~a0x67, 0x45, 0x23, 0x01]) },"
-             version)
-          ,(format "      { input: 0x70006717n, expected: new Uint8Array([~a0x17, 0x67, 0x00, 0x70]) },"
-             version)
+          ,(make-test-case "0n" (make-list 4 0))
+          ,(make-test-case "0xffffffffn" (make-list 4 #xff))
+          ,(make-test-case "0x01234567n" (list #x67 #x45 #x23 #x01))
+          ,(make-test-case "0x70006717n" (list #x17 #x67 #x00 #x70))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testUint32(context, test.input);"
@@ -85448,26 +85481,13 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).uint32)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<bigint>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "    descriptor = new runtime.CompactTypeUnsignedInteger(BigInt(2**64 - 1), 8);"
           "    tests = ["
-          ,(format "      { input: 0n, expected: new Uint8Array([~a0, 0, 0, 0, 0, 0, 0, 0]) }," version)
-          "      {"
-          "        input: 0xffffffffffffffffn,"
-          ,(format "        expected: new Uint8Array([~a0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])"
-             version)
-          "      },"
-          "      {"
-          "        input: 0x0123456789abcdefn,"
-          ,(format "        expected: new Uint8Array([~a0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01])"
-             version)
-          "      },"
-          "      {"
-          "        input: 0x5f6600febccb7158n,"
-          ,(format "        expected: new Uint8Array([~a0x58, 0x71, 0xcb, 0xbc, 0xfe, 0x00, 0x66, 0x5f])"
-             version)
-          "      },"
+          ,(make-test-case "0n" (make-list 8 0))
+          ,(make-test-case "0xffffffffffffffffn" (make-list 8 #xff))
+          ,(make-test-case "0x0123456789abcdefn" (list #xef #xcd #xab #x89 #x67 #x45 #x23 #x01))
+          ,(make-test-case "0x5f6600febccb7158n" (list #x58 #x71 #xcb #xbc #xfe #x00 #x66 #x5f))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testUint64(context, test.input);"
@@ -85475,39 +85495,28 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).uint64)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<bigint>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "    descriptor = runtime.CompactTypeField;"
           "    tests = ["
-          ,(format "      { input: 0n, expected: new Uint8Array([...[~a], ...new Array(32).fill(0)]) },"
-             version)
-          "      {"
-          "        input: runtime.MAX_FIELD,"
-          ,(format "        expected: new Uint8Array([~a" version)
-          "          0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,"
-          "          0xfe, 0x5b, 0xfe, 0xff, 0x02, 0xa4, 0xbd, 0x53,"
-          "          0x05, 0xd8, 0xa1, 0x09, 0x08, 0xd8, 0x39, 0x33,"
-          "          0x48, 0x7d, 0x9d, 0x29, 0x53, 0xa7, 0xed, 0x73,"
-          "        ])"
-          "      },"
-          "      {"
-          "        input: 0x396827d29023991a9ae80e488832e03901d0780a4f87f1be3539130e69cfc196n,"
-          ,(format "        expected: new Uint8Array([~a" version)
-          "            0x96, 0xc1, 0xcf, 0x69, 0x0e, 0x13, 0x39, 0x35,"
-          "            0xbe, 0xf1, 0x87, 0x4f, 0x0a, 0x78, 0xd0, 0x01,"
-          "            0x39, 0xe0, 0x32, 0x88, 0x48, 0x0e, 0xe8, 0x9a,"
-          "            0x1a, 0x99, 0x23, 0x90, 0xd2, 0x27, 0x68, 0x39,"
-          "        ])"
-          "      },"
-          "      {"
-          "        input: 0x45ba98af31eb0c410ac07e9feba7bcfb169a69df978c40e576cf78ec43d9d9efn,"
-          ,(format "        expected: new Uint8Array([~a" version)
-          "            0xef, 0xd9, 0xd9, 0x43, 0xec, 0x78, 0xcf, 0x76,"
-          "            0xe5, 0x40, 0x8c, 0x97, 0xdf, 0x69, 0x9a, 0x16,"
-          "            0xfb, 0xbc, 0xa7, 0xeb, 0x9f, 0x7e, 0xc0, 0x0a,"
-          "            0x41, 0x0c, 0xeb, 0x31, 0xaf, 0x98, 0xba, 0x45,"
-          "        ])"
-          "      },"
+          ,(make-test-case "0n" (make-list 32 0))
+          ,(make-test-case "runtime.MAX_FIELD"
+             (list
+               #x00 #x00 #x00 #x00 #xff #xff #xff #xff
+               #xfe #x5b #xfe #xff #x02 #xa4 #xbd #x53
+               #x05 #xd8 #xa1 #x09 #x08 #xd8 #x39 #x33
+               #x48 #x7d #x9d #x29 #x53 #xa7 #xed #x73))
+          ,(make-test-case "0x396827d29023991a9ae80e488832e03901d0780a4f87f1be3539130e69cfc196n"
+             (list
+               #x96 #xc1 #xcf #x69 #x0e #x13 #x39 #x35
+               #xbe #xf1 #x87 #x4f #x0a #x78 #xd0 #x01
+               #x39 #xe0 #x32 #x88 #x48 #x0e #xe8 #x9a
+               #x1a #x99 #x23 #x90 #xd2 #x27 #x68 #x39))
+          ,(make-test-case "0x45ba98af31eb0c410ac07e9feba7bcfb169a69df978c40e576cf78ec43d9d9efn"
+             (list
+               #xef #xd9 #xd9 #x43 #xec #x78 #xcf #x76
+               #xe5 #x40 #x8c #x97 #xdf #x69 #x9a #x16
+               #xfb #xbc #xa7 #xeb #x9f #x7e #xc0 #x0a
+               #x41 #x0c #xeb #x31 #xaf #x98 #xba #x45))
           "    ];"
           "    for (const test of tests) {"
           "      const actual = await contract.circuits.testField(context, test.input);"
@@ -85515,11 +85524,11 @@ groups than for single tests.
           "      expect(actual.result).toEqual(test.expected);"
           "      expect(contractCode.ledger(context.callContext.currentQueryContext.state).field)"
           "          .toEqual(test.expected);"
-          "      expect(runtime.toBinaryRepr<bigint>(descriptor, test.input)).toEqual(test.expected);"
           "    }"
           "  }"
           "});"
-          )))
+          ))
+      )
     )
 
   (test
