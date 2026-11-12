@@ -203,7 +203,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.103"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.104"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
