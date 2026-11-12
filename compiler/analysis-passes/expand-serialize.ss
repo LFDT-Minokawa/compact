@@ -17,6 +17,8 @@
 
 (define-pass expand-serialize : Lnodisclose (ir) -> Lnoserialize ()
   (definitions
+    (define version #vu8(0 0))
+
     (define (format-field-type ftype)
       (strict-nanopass-case (Lnoserialize Field-Type) ftype
         [(field-native) "Field"]
@@ -242,7 +244,12 @@
              (source-errorf src "type ~a (opaque) is not serializable" (format-type type))]
             [,tvar-name (assert cannot-happen)]
             [(tunknown) (assert cannot-happen)])))
-      (go type expr '() '() '() 0 '()
+      ;; Serialize a pair of version bytes and then the raw serialized representation.
+      (let ([type^ (with-output-language (Lnoserialize Type)
+                     `(ttuple ,src (tbytes ,src 2) ,type))]
+            [expr^ (with-output-language (Lnoserialize Expression)
+                     `(tuple ,src (single ,src (quote ,src ,version)) (single ,src ,expr)))])
+        (go type^ expr^ '() '() '() 0 '()
           (lambda (rx* rt* re* n rta*)
             (when (and len? (> n len?))
               (source-errorf src "actual serialized size ~d exceeds specified length ~d for type ~a"
@@ -268,7 +275,7 @@
                                              (bytes->vector ,src ,pad
                                                (quote ,src ,(make-bytevector pad 0))))
                                           rta*)))))
-                             ...))))))))))
+                             ...)))))))))))
 
     ;; expr has type `Bytes<len>`, and the result has type `type`.  It is a static
     ;; error if the serialized form of `type` occupies more than `len` bytes.
@@ -372,11 +379,30 @@
                      (source-errorf src "type ~a (opaque) is not deserializable" (format-type type))]
                     [,tvar-name (assert cannot-happen)]
                     [(tunknown) (assert cannot-happen)]))))
-            (let-values ([(i expr) (go type 0)])
+            (let-values ([(i expr^) (go type 2)])
               (unless (<= i len)
                 (source-errorf src "actual serialized size ~d exceeds specified length ~d for type ~a"
                                i len (format-type type)))
-              expr)))))
+              (let* ([major (bytevector-u8-ref version 0)]
+                     [minor (bytevector-u8-ref version 1)]
+                     [message (format "deserialization version mismatch, expected ~d.~d" major minor)]
+                     [byte-type (with-output-language (Lnoserialize Type) `(tunsigned ,src 255))]
+                     [bytes-type (with-output-language (Lnoserialize Type) `(tbytes ,src ,len))])
+                (with-output-language (Lnoserialize Expression)
+                  `(seq ,src
+                     (assert ,src (== ,src ,byte-type
+                                    (bytes-ref ,src ,bytes-type ,expr (quote ,src 0))
+                                    (safe-cast ,src ,byte-type
+                                      ,(with-output-language (Lnoserialize Type) `(tunsigned ,src ,major))
+                                      (quote ,src ,major)))
+                       ,message)
+                     (assert ,src (== ,src ,byte-type
+                                    (bytes-ref ,src ,bytes-type ,expr (quote ,src 1))
+                                    (safe-cast ,src ,byte-type
+                                      ,(with-output-language (Lnoserialize Type) `(tunsigned ,src ,minor))
+                                      (quote ,src ,minor)))
+                       ,message)
+                     ,expr^))))))))
     )
   (Expression : Expression (ir) -> Expression ()
     [(emit ,src ,[type] ,[expr])
