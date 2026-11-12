@@ -13,8 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineCompileTest } from '@test/compact-test';
+// The secp256r1 signature check.
+//
+// The digest is passed in rather than hashed here, so this covers only the
+// curve maths. Hashing and checking together is ../sha256_kat.
+//
+// The digest goes in big-endian; the library flips it internally.
+//
+// Pure, so no keys are generated.
 
-// With the flag, keccak256 is available to provable circuits, so the source
-// that fails in ../impure_without_v3 compiles here.
-export default defineCompileTest(import.meta.url);
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export circuit verifyEcdsa(
+    msgHash: Bytes<32>,
+    sig: Secp256r1EcdsaSignature,
+    pk: Secp256r1Point
+): Boolean {
+    return disclose(secp256r1EcdsaVerify(msgHash, sig, pk));
+}
