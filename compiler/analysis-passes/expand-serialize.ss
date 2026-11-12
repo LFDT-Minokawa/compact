@@ -305,7 +305,7 @@
                        (+ i 1)
                        `(== ,src
                             (tunsigned ,src 1)
-                            (downcast-unsigned ,src 8 1 
+                            (downcast-unsigned ,src 255 1
                               (bytes-ref ,src ,bytes-type ,expr (quote ,src ,i)))
                             (quote ,src 1)))]
                     [(tfield ,src^ ,ftype)
