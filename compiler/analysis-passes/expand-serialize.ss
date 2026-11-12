@@ -85,13 +85,6 @@
          (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
         [,tvar-name (assert cannot-happen)]))
 
-    (define (versioned-args src type expr)
-      (values
-        (with-output-language (Lnoserialize Type)
-          `(ttuple ,src (tbytes ,src 2) ,type))
-        (with-output-language (Lnoserialize Expression)
-          `(tuple ,src (single ,src (quote ,src ,version)) (single ,src ,expr)))))
-
     (define (field-length-in-bytes ftype)
       (strict-nanopass-case (Lnoserialize Field-Type) ftype
         [(field-native) (1+ (field-bytes))]
@@ -252,7 +245,10 @@
             [,tvar-name (assert cannot-happen)]
             [(tunknown) (assert cannot-happen)])))
       ;; Serialize a pair of version bytes and then the raw serialized representation.
-      (let-values ([(type^ expr^) (versioned-args src type expr)])
+      (let ([type^ (with-output-language (Lnoserialize Type)
+                     `(ttuple ,src (tbytes ,src 2) ,type))]
+            [expr^ (with-output-language (Lnoserialize Expression)
+                     `(tuple ,src (single ,src (quote ,src ,version)) (single ,src ,expr)))])
         (go type^ expr^ '() '() '() 0 '()
           (lambda (rx* rt* re* n rta*)
             (when (and len? (> n len?))
