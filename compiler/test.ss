@@ -34851,12 +34851,12 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 512)))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.6 32)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.6 32)) 1)
               (bytes-slice %value.6 33 512))
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 32)))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.6 545)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.6 545)) 1)
               (bytes-slice %value.6 546 32))))
         (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
@@ -34947,7 +34947,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.5 64)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.5 64)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 65 16)))))
@@ -35028,7 +35028,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.5 32)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.5 32)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 33 16)))))
@@ -35132,7 +35132,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35255,7 +35255,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35446,7 +35446,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35736,7 +35736,7 @@ groups than for single tests.
           (new (tstruct Maybe
                  (is_some (tboolean))
                  (value (tbytes 32)))
-            (== (downcast-unsigned 8 1 (bytes-ref %value.2 0)) 1)
+            (== (downcast-unsigned 255 1 (bytes-ref %value.2 0)) 1)
             (bytes-slice %value.2 1 32)))
         (circuit %non_event_deserialize.3 ([%x.4 (tbytes 33)])
              (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
@@ -59895,6 +59895,45 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.15\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger flag: Boolean;"
+      "export circuit go(output: Bytes<1>): Boolean {"
+      "  return flag || deserialize<Boolean, 1>(output);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/go.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%output.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%output.0\", \"bits\": 8 },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x01\", \"%t.1\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.2\", \"%ignore.3\"], \"val\": \"%output.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.4\", \"%t.5\"], \"val\": \"%quo.2\", \"bits\": 8 },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%t.5\" },"
+        "    { \"op\": \"less_than\", \"output\": \"%t1.7\", \"a\": \"%t.6\", \"b\": \"0x02\", \"bits\": 8 },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t2.8\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t1.7\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t2.8\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.9\", \"val\": \"%t.6\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%t.9\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.11\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t.10\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.11\"] }"
         "  ]"
         "}"))
     )

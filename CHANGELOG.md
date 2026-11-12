@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.104, language 0.28.0, runtime 0.21.101]
+
+**This change was already released as 0.36.1.**
+
+### Fixed
+
+- Fix for [issue #616](https://github.com/LFDT-Minokawa/compact/issues/616).
+  This was an upstream bug in the ZKIR key-generation binary, it is fixed by
+  updating our ZKIR dependency version 3.2.1 which contains the fix.
+
+- Fix for [issue #856](https://github.com/LFDT-Minokawa/compact/issues/856).
+  A partial fix was made but it contained a bug that still triggered a typecheck
+  failure.
+
 ## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.101]
 
 ### Fixed
@@ -38,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `zkir-v3-natives.ss` and `zkir-v3-library.compact` and the mechanism to pull them 
+- `zkir-v3-natives.ss` and `zkir-v3-library.compact` and the mechanism to pull them
   within scope in `expand-modules-and-types` pass have been removed. They are now
   simply included in `midnight-natives.ss` and `standard-library.compact`. This
   changes the `sources` of generated sourcemap `contract/index.js.map` when a contract
