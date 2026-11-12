@@ -101,12 +101,20 @@
 ;; syntax:
 ;;   (declare-ledger-adt ADT-name (ADT-arg-name ...) description (initial-value init) clause ...)
 ;; clause:
-;;   (function class function-name ([input-name input-type] ...) result-type
+;;   (function class function is-allowed-in-constructor-name ([input-name input-type] ...) result-type
 ;;     description
-;;     (vm-op ...))
+;;     (vm-op ...)
+;;     flag ...)
 ;;   (when scheme-expression clause ...)
 ;; op:
 ;;   (op-name [op-arg-name op-arg-value] ...)
+;;
+;; flag is required and is one of:
+;;   is-forbidden-in-constructor    a constructor may not call the function, directly or indirectly
+;;                                  use it for operations that require the contract to be initialized first
+;;   is-allowed-in-constructor      a contract constructor may call the function.
+;;
+;;   (flag does not apply to js-only functions.)
 ;;
 ;; class is one of:
 ;;   read       information is extracted from the ledger
@@ -166,7 +174,7 @@
 (declare-ledger-adt Kernel ()
   "a special ADT defining various built-in operations and valid only as a top-level ADT type"
   (initial-value #f)
-  (function update claimZswapNullifier
+  (function update claimZswapNullifier is-forbidden-in-constructor
             ([nul Bytes32 (discloses "a link between a claim of nullifier and the coin with the nullifier given by")])
             Void
     "Requires the presence of a nullifier in the containing transaction and \
@@ -177,7 +185,7 @@
      (push [storage #f] [value (state-value 'null)])
      (ins [cached #t] [n 2])
      (swap [n 0])))
-  (function update claimZswapCoinSpend
+  (function update claimZswapCoinSpend is-forbidden-in-constructor
             ([note Bytes32 (discloses "a link between a coin spend and the coin with the commitment given by")])
             Void
     "Requires the presence of a commitment in the containing transaction and \
@@ -188,7 +196,7 @@
      (push [storage #f] [value (state-value 'null)])
      (ins [cached #t] [n 2])
      (swap [n 0])))
-  (function update claimZswapCoinReceive
+  (function update claimZswapCoinReceive is-forbidden-in-constructor
             ([note Bytes32 (discloses "a link between a coin receive and the coin with the commitment given by")])
             Void
     "Requires the presence of a commitment in the containing transaction and \
@@ -199,7 +207,7 @@
      (push [storage #f] [value (state-value 'null)])
      (ins [cached #t] [n 2])
      (swap [n 0])))
-  (function update claimContractCall
+  (function update claimContractCall is-forbidden-in-constructor
             ([addr Bytes32 (discloses "the address of a contract being called given by")]
              [entry_point Bytes32 (discloses "the hash of the contract's circuit being called given by")]
              [comm Field (discloses nothing)])
@@ -216,11 +224,11 @@
      (push [storage #f] [value (state-value 'null)])
      (ins [cached #t] [n 2])
      (swap [n 0])))
-  (function update checkpoint () Void
+  (function update checkpoint is-forbidden-in-constructor () Void
     "Marks all execution up to this point as being a single atomic unit, \
     allowing partial transaction failures to be split across it."
     ((ckpt)))
-  (function update mintShielded
+  (function update mintShielded is-forbidden-in-constructor
             ([domain_sep Bytes32 (discloses "the domain separator of the token being minted given by")]
              [amount Uint64 (discloses "the value of a token mint given by")])
             Void
@@ -260,12 +268,12 @@
     (swap [n 0])
     ;; [context, effects, state]
     ))
-  (function read self () ContractAddress
+  (function read self is-forbidden-in-constructor () ContractAddress
     "Returns the current contract's address.  ContractAddress is defined in CompactStandardLibrary."
     ((dup [n 2])
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
-  (function read caller () (Maybe PublicAddress)
+  (function read caller is-allowed-in-constructor () (Maybe PublicAddress)
     "Returns the caller of this circuit invocation: `left(addr)` when called by \
      contract `addr`; `right(addr)` when this is a top-level call whose intent's \
      unshielded inputs all belong to user `addr`; `none` otherwise, and always in \
@@ -316,7 +324,7 @@
      (popeq [cached #t] [result (void)])
      ;; [context, effects, state]
      ))
-  (function update mintUnshielded
+  (function update mintUnshielded is-forbidden-in-constructor
             ([domain_sep Bytes32 (discloses "the domain separator of the unshielded token being minted given by")]
              [amount Uint64 (discloses "the amount of the unshielded token being minted given by")])
             Void
@@ -356,7 +364,7 @@
     (swap [n 0])
     ;; [context, effects, state]
     ))
-  (function update claimUnshieldedCoinSpend
+  (function update claimUnshieldedCoinSpend is-forbidden-in-constructor
             ([token_type TokenType (discloses "the type of the unshielded token being transferred given by")]
              [address UnshieldedRecipient (discloses "the recipient of the unshielded token being transferred given by")]
              [amount Uint128 (discloses "the amount of the unshielded token being transferred given by")])
@@ -397,7 +405,7 @@
     (swap [n 0])
     ;; [context, effects, state]
     ))
-  (function update incUnshieldedOutputs
+  (function update incUnshieldedOutputs is-forbidden-in-constructor
             ([token_type TokenType (discloses "the type of the unshielded token being spent given by")]
              [amount Uint128 (discloses "the amount of the unshielded token being spent given by")])
             Void
@@ -436,7 +444,7 @@
     (swap [n 0])
     ;; [context, effects, state]
     ))
-  (function update incUnshieldedInputs
+  (function update incUnshieldedInputs is-forbidden-in-constructor
             ([token_type TokenType (discloses "the type of the unshielded token being received given by")]
              [amount Uint128 (discloses "the amount of the unshielded token being received given by")])
             Void
@@ -475,7 +483,7 @@
     (swap [n 0])
     ;; [context, effects, state]
     ))
-  (function read balance
+  (function read balance is-allowed-in-constructor
             ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")])
             Uint128
     "Returns the current contract's balance of the unshielded token of the given token type. The balance is not updated \
@@ -504,7 +512,7 @@
     ;; [context, effects, state, balance | 0]
     (popeq [cached #t] [result (void)])
     ))
-  (function read balanceLessThan
+  (function read balanceLessThan is-allowed-in-constructor
               ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")]
                [amount Uint128 (discloses "the upper bound of the balance of the unshielded token being checked")])
               Boolean
@@ -537,7 +545,7 @@
     (popeq [cached #t] [result (void)])
     ;; [context, effects, state]
     ))
-  (function read balanceGreaterThan
+  (function read balanceGreaterThan is-allowed-in-constructor
                 ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")]
                  [amount Uint128 (discloses "the lower bound of the balance of the unshielded token being checked")])
                 Boolean
@@ -570,7 +578,7 @@
     (popeq [cached #t] [result (void)])
     ;; [context, effects, state]
     ))
-  (function read blockTimeLessThan
+  (function read blockTimeLessThan is-allowed-in-constructor
                   ([time Uint64 (discloses "the lower bound of the time being checked")])
                   Boolean
       "Checks whether the current block time (measured in seconds since the Unix epoch) is less than the given amount."
@@ -584,7 +592,7 @@
       (lt)
       ;; [context, effects, state, tblock < time]
       (popeq [cached #t] [result (void)])))
-  (function read blockTimeGreaterThan
+  (function read blockTimeGreaterThan is-allowed-in-constructor
                   ([time Uint64 (discloses "the upper bound of the time being checked")])
                   Boolean
       "Checks whether the current block time (measured in seconds since the Unix epoch) is greater than the given amount."
@@ -602,19 +610,19 @@
 (declare-ledger-adt Cell ([Type value_type])
   "a single Cell containing a value of type value_type and is used implicitly when the ledger field type is an ordinary Compact type. Programmers cannot write Cell explicitly when declaring a ledger field."
   (initial-value (state-value 'cell (rt-null value_type)))
-  (function read read () value_type
+  (function read read is-allowed-in-constructor () value_type
     "Returns the current contents of this Cell."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (popeq [cached f-cached] [result (void)])))
-  (function write write ([value value_type]) Void
+  (function write write is-allowed-in-constructor ([value value_type]) Void
     "Overwrites the content of this Cell with the given value."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
      (push [storage #t] [value (state-value 'cell value)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Cell to the default value of its type."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -622,7 +630,8 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) writeCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+    (function (update-with-coin-check 0 1) writeCoin is-allowed-in-constructor
+      ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Writes a ShieldedCoinInfo to this Cell, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
@@ -645,31 +654,31 @@
 (declare-ledger-adt Counter ()
   "a simple counter"
   (initial-value (state-value 'cell (align 0 8)))
-  (function read read () Uint64
+  (function read read is-allowed-in-constructor () Uint64
     "Retrieves the current value of the counter."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (popeq [cached #t] [result (void)])))
-  (function read lessThan ([threshold Uint64]) Boolean
+  (function read lessThan is-allowed-in-constructor ([threshold Uint64]) Boolean
     "Returns if the counter is less than the given threshold value."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell threshold)])
      (lt)
      (popeq [cached #t] [result (void)])))
-  (function update increment ([amount Uint16]) Void
+  (function update increment is-allowed-in-constructor ([amount Uint16]) Void
     "Increments the counter by the given amount."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (addi [immediate (rt-value->int amount)])
      (ins [cached #t] [n (length f)])))
-  (function update decrement ([amount Uint16]) Void
+  (function update decrement is-allowed-in-constructor ([amount Uint16]) Void
     "Decrements the counter by a given amount. Decrementing below zero \
     results in a run-time error."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (subi [immediate (rt-value->int amount)])
      (ins [cached #t] [n (length f)])))
   ;; Also used to setup initial Counter
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Counter to its default value of 0."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -680,7 +689,7 @@
 (declare-ledger-adt Set ([Type value_type])
   "an unbounded set of values of type value_type"
   (initial-value (state-value 'map ()))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Set to the empty set."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -690,7 +699,7 @@
   (function js-only iter () "Iterator<${value_type}>"
     "Iterates over the entries in this Set."
     ("${this}.asMap().keys().map((elem) => ${value_type}.fromValue(elem.value))[Symbol.iterator]()"))
-  (function read isEmpty () Boolean
+  (function read isEmpty is-allowed-in-constructor () Boolean
     "Returns whether this Set is the empty set."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
@@ -698,34 +707,35 @@
      (push [storage #f] [value (state-value 'cell (align 0 8))])
      (eq)
      (popeq [cached #t] [result (void)])))
-  (function read size () Uint64
+  (function read size is-allowed-in-constructor () Uint64
     "Returns the number of unique entries in this Set."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (size)
      (popeq [cached #t] [result (void)])))
-  (function read member ([elem value_type]) Boolean
+  (function read member is-allowed-in-constructor ([elem value_type]) Boolean
     "Returns if an element is contained within this Set."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell elem)])
      (member)
      (popeq [cached #t] [result (void)])))
-  (function update insert ([elem value_type]) Void
+  (function update insert is-allowed-in-constructor ([elem value_type]) Void
     "Updates this Set to include a given element."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell elem)])
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (length f)])))
-  (function remove remove ([elem value_type]) Void
+  (function remove remove is-allowed-in-constructor ([elem value_type]) Void
     "Update this Set to not include a given element."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell elem)])
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) insertCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+    (function (update-with-coin-check 0 1) insertCoin is-allowed-in-constructor
+      ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Set, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
@@ -768,14 +778,14 @@
      "    ];"
      "  }"
      ")[Symbol.iterator]()"))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Map to the empty map."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
      (push [storage #t] [value (state-value 'map ())])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (function read isEmpty () Boolean
+  (function read isEmpty is-allowed-in-constructor () Boolean
     "Returns if this Map is the empty map."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
@@ -783,48 +793,49 @@
      (push [storage #f] [value (state-value 'cell (align 0 8))])
      (eq)
      (popeq [cached #t] [result (void)])))
-  (function read size () Uint64
+  (function read size is-allowed-in-constructor () Uint64
     "Returns the number of entries in this Map."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (size)
      (popeq [cached #t] [result (void)])))
-  (function read member ([key key_type]) Boolean
+  (function read member is-allowed-in-constructor ([key key_type]) Boolean
     "Returns if a key is contained within this Map."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell key)])
      (member)
      (popeq [cached #t] [result (void)])))
-  (function read lookup ([key key_type]) value_type
+  (function read lookup is-allowed-in-constructor ([key key_type]) value_type
     "Looks up the value of a key within this Map. The returned value may be \
     another ADT."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (idx [cached #f] [pushPath #f] [path (list key)])
      (popeq [cached #f] [result (void)])))
-  (function update insert ([key key_type] [value value_type]) Void
+  (function update insert is-allowed-in-constructor ([key key_type] [value value_type]) Void
     "Updates this Map to include a new value at a given key."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell key)])
      (push [storage #t] [value (state-value 'ADT value value_type)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (length f)])))
-  (function update insertDefault ([key key_type]) Void
+  (function update insertDefault is-allowed-in-constructor ([key key_type]) Void
     "Updates this Map to include the value type's default value at a given key."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell key)])
      (push [storage #t] [value (state-value 'ADT (rt-null value_type) value_type)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (length f)])))
-  (function remove remove ([key key_type]) Void
+  (function remove remove is-allowed-in-constructor ([key key_type]) Void
     "Updates this Map to not include a given key."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell key)])
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 1 2) insertCoin ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+    (function (update-with-coin-check 1 2) insertCoin is-allowed-in-constructor
+      ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
@@ -874,7 +885,7 @@
      "  };"
      "  return iter;"
      "})()"))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this List to the empty list."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -883,7 +894,7 @@
                                                     (state-value 'cell (align 0 8))))])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (function read isEmpty () Boolean
+  (function read isEmpty is-allowed-in-constructor () Boolean
     "Returns if this List is the empty list."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
@@ -892,13 +903,13 @@
      (push [storage #f] [value (state-value 'cell (align 1 1))])
      (eq)
      (popeq [cached #t] [result (void)])))
-  (function read length () Uint64
+  (function read length is-allowed-in-constructor () Uint64
     "Returns the number of elements contained in this List."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (idx [cached #f] [pushPath #f] [path (list (align 2 1))])
      (popeq [cached #t] [result (void)])))
-  (function read head () (Maybe value_type)
+  (function read head is-allowed-in-constructor () (Maybe value_type)
     "Retrieves the head of this List, returning a Maybe, ensuring this call \
     succeeds on the empty list. \
     Maybe is defined in CompactStandardLibrary (compact-runtime from Typescript)."
@@ -936,12 +947,12 @@
      ;; [context, effects, state, (1, head) | (0, null)]
      (popeq [cached #t] [result (void)])))
      ;; [context, effects, state]
-  (function remove popFront () Void
+  (function remove popFront is-allowed-in-constructor () Void
     "Removes the first element from the front of this list."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
      (ins [cached #t] [n (length f)])))
-  (function update pushFront ([value value_type]) Void
+  (function update pushFront is-allowed-in-constructor ([value value_type]) Void
     "Pushes a new element onto the front of this list."
      ;; [context, effects, state]
      ((idx [cached f-cached] [pushPath #t] [path f])
@@ -974,7 +985,8 @@
      ;; [context, effects, state]
 
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) pushFrontCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+    (function (update-with-coin-check 0 1) pushFrontCoin is-allowed-in-constructor
+      ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
@@ -1069,7 +1081,7 @@
      "      alignment: ${value_type}.alignment()"
      "    }"
      "  )?.value)"))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Merkle tree to the empty Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -1077,7 +1089,7 @@
                                                     (state-value 'cell (align 0 8))))])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (function read isFull () Boolean
+  (function read isFull is-allowed-in-constructor () Boolean
     "Returns if this Merkle tree is full and further items cannot be \
     directly inserted."
     ((dup [n 0])
@@ -1087,7 +1099,7 @@
      (lt)
      (neg)
      (popeq [cached #t] [result (void)])))
-  (function read checkRoot ([rt MerkleTreeDigest]) Boolean
+  (function read checkRoot is-allowed-in-constructor ([rt MerkleTreeDigest]) Boolean
     "Tests if the given Merkle tree root is the root for this Merkle tree. \
     MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript)."
     ((dup [n 0])
@@ -1097,7 +1109,7 @@
      (push [storage #f] [value (state-value 'cell rt)])
      (eq)
      (popeq [cached #t] [result (void)])))
-  (function update insert ([item value_type]) Void
+  (function update insert is-allowed-in-constructor ([item value_type]) Void
     "Inserts a new leaf at the first free index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1109,7 +1121,7 @@
      (idx [cached #f] [pushPath #t] [path (list (align 1 1))])
      (addi [immediate 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertIndex ([item value_type] [index Uint64]) Void
+  (function update insertIndex is-allowed-in-constructor ([item value_type] [index Uint64]) Void
     "Inserts a new leaf at a specific index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1129,7 +1141,7 @@
      (pop)
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (length f)])))
-  (function update insertHash ([hash Bytes32]) Void
+  (function update insertHash is-allowed-in-constructor ([hash Bytes32]) Void
     "Inserts a new leaf with a given hash at the first free index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1141,7 +1153,7 @@
      (idx [cached #f] [pushPath #t] [path (list (align 1 1))])
      (addi [immediate 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertHashIndex ([hash Bytes32] [index Uint64]) Void
+  (function update insertHashIndex is-allowed-in-constructor ([hash Bytes32] [index Uint64]) Void
     "Inserts a new leaf with a given hash at a specific index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1161,7 +1173,7 @@
      (pop)
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (length f)])))
-  (function update insertIndexDefault ([index Uint64]) Void
+  (function update insertIndexDefault is-allowed-in-constructor ([index Uint64]) Void
     "Inserts a default value leaf at a specific index in this Merkle tree. \
     This can be used to emulate a removal from the tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
@@ -1232,7 +1244,7 @@
     ("${this}.asArray()[2].asMap().keys().map("
      "  (elem) => ${rtlib}CompactTypeMerkleTreeDigest.fromValue(elem.value)"
      ")[Symbol.iterator]()"))
-  (function remove resetToDefault () Void
+  (function remove resetToDefault is-allowed-in-constructor () Void
     "Resets this Merkle tree to the empty Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
@@ -1247,7 +1259,7 @@
      (ins [cached #t] [n 2])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (function read isFull () Boolean
+  (function read isFull is-allowed-in-constructor () Boolean
     "Returns if this Merkle tree is full and further items cannot be \
     directly inserted."
     ((dup [n 0])
@@ -1257,7 +1269,7 @@
      (lt)
      (neg)
      (popeq [cached #t] [result (void)])))
-  (function read checkRoot ([rt MerkleTreeDigest]) Boolean
+  (function read checkRoot is-allowed-in-constructor ([rt MerkleTreeDigest]) Boolean
     "Tests if the given Merkle tree root is one of the past roots for this \
     Merkle tree. \
     MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript)."
@@ -1267,7 +1279,7 @@
      (push [storage #f] [value (state-value 'cell rt)])
      (member)
      (popeq [cached #t] [result (void)])))
-  (function update insert ([item value_type]) Void
+  (function update insert is-allowed-in-constructor ([item value_type]) Void
     "Inserts a new leaf at the first free index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1286,7 +1298,7 @@
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertIndex ([item value_type] [index Uint64]) Void
+  (function update insertIndex is-allowed-in-constructor ([item value_type] [index Uint64]) Void
     "Inserts a new leaf at a specific index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1312,7 +1324,7 @@
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertHash ([hash Bytes32]) Void
+  (function update insertHash is-allowed-in-constructor ([hash Bytes32]) Void
     "Inserts a new leaf with a given hash at the first free index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1331,7 +1343,7 @@
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertHashIndex ([hash Bytes32] [index Uint64]) Void
+  (function update insertHashIndex is-allowed-in-constructor ([hash Bytes32] [index Uint64]) Void
     "Inserts a new leaf with a given hash at a specific index in this Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (idx [cached #f] [pushPath #t] [path (list (align 0 1))])
@@ -1357,7 +1369,7 @@
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update insertIndexDefault ([index Uint64]) Void
+  (function update insertIndexDefault is-allowed-in-constructor ([index Uint64]) Void
     "Inserts a default value leaf at a specific index in this Merkle tree. \
     This can be used to emulate a removal from the tree."
     ((idx [cached f-cached] [pushPath #t] [path f])
@@ -1384,7 +1396,7 @@
      (push [storage #t] [value (state-value 'null)])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (add1 (length f))])))
-  (function update resetHistory () Void
+  (function update resetHistory is-allowed-in-constructor () Void
     "Resets the history for this Merkle tree, leaving only the current root \
     valid."
     ((idx [cached f-cached] [pushPath #t] [path f])

@@ -55,7 +55,7 @@
              (let find-adt-op ([adt-op* adt-op*])
                (assert (not (null? adt-op*)))
                (nanopass-case (Lnodca ADT-Op) (car adt-op*)
-                 [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
+                 [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,forbidden?-in-constructor)
                   (guard (eq? ledger-op^ ledger-op))
                   (if (null? accessor*)
                       (eq? op-class 'read)

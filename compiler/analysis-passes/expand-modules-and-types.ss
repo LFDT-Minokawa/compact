@@ -963,7 +963,7 @@
         (let ([adt-op* (fold-right
                          (lambda (adt-op adt-op*)
                            (nanopass-case (Lpreexpand ADT-Op) adt-op
-                             [(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,adt-op-cond* ...)
+                             [(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,forbidden?-in-constructor ,adt-op-cond* ...)
                               (if (andmap (let ([alist (map cons adt-formal* info*)])
                                             (lambda (adt-op-cond)
                                               (nanopass-case (Lpreexpand ADT-Op-Condition) adt-op-cond
@@ -982,7 +982,7 @@
                                           [type (Type type p)]
                                           [op-class (ADT-Op-Class op-class)])
                                       (with-output-language (Lexpanded ADT-Op)
-                                        `(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)))
+                                        `(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,forbidden?-in-constructor)))
                                     adt-op*)
                                   adt-op*)]))
                          '()

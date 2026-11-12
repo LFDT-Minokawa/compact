@@ -46,6 +46,11 @@
         (define (check-identifier x) (unless (identifier? x) (syntax-error x "not an identifier")))
         (define (non-negative-fixnum? x) (and (fixnum? x) (fx>= x 0)))
         (define (check-string x) (unless (string? (syntax->datum x)) (syntax-error x "not a string")))
+        (define (parse-constructor-flag x)
+          (case (syntax->datum x)
+            [(is-forbidden-in-constructor) #t]
+            [(is-allowed-in-constructor) #f]
+            [else (syntax-error x "expected is-forbidden-in-constructor or is-allowed-in-constructor")]))
         (define (check-class x)
           (syntax-case x ()
             [class-name
@@ -171,7 +176,7 @@
                                          ,result-type
                                          ,runtime-code))
                                    radt-rt-op*)))]
-                        [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-op ...))
+                        [(function class op-name flag ([input-name input-type . disclosure] ...) result-type doc-string (vm-op ...))
                          (begin
                            (check-class #'class)
                            (check-identifier #'op-name)
@@ -182,10 +187,12 @@
                                    (with-syntax ([(input-type ...) (map expand-type #'(input-type ...))]
                                                  [result-type (expand-type #'result-type)]
                                                  [(adt-op-cond ...) adt-op-cond*]
-                                                 [(discloses? ...) (map parse-disclosure #'(disclosure ...))])
+                                                 [(discloses? ...) (map parse-disclosure #'(disclosure ...))]
+                                                 [forbidden-in-constructor (parse-constructor-flag #'flag)])
                                      #'(op-name class ((input-name input-type discloses?) ...)
                                          result-type
                                          ,(make-vm-code #'(vm-op ...))
+                                         ,forbidden-in-constructor
                                          adt-op-cond ...))
                                    radt-op*)
                                  radt-rt-op*))]
@@ -298,7 +305,7 @@
                               (syntax-case clause (function js-only)
                                 [(when (expr ...) (function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...)))
                                  op*]
-                                [(when (expr ...) (function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...)))
+                                [(when (expr ...) (function class op-name flag ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...)))
                                  (if (eq? (datum class) 'read)
                                      (cons (datum op-name) op*)
                                      op*)]
@@ -430,7 +437,7 @@
                  (syntax-case clause (function js-only)
                    [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                     (emit-js-function (datum op-name) (datum (input-name ...)) #'(input-type ...) (datum result-type-string) (datum doc-string) cond-str)]
-                   [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
+                   [(function class op-name flag ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
                     (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) cond-str)]
                    [else (syntax-error clause)]))
                (syntax-case clause (when)
