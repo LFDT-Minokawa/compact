@@ -810,7 +810,7 @@
           (if (null? adt-op*)
               (fail)
               (nanopass-case (Ltypes ADT-Op) (car adt-op*)
-                [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code)
+                [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code ,forbidden?-in-constructor)
                  (if (eq? ledger-op elt-name)
                      (let ([ndeclared (length type^*)] [nactual (length type*)])
                        (unless (fx= nactual ndeclared)

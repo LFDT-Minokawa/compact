@@ -1553,10 +1553,14 @@ circuit or any circuit that is reachable from an exported circuit. We
 presently assume that no witnesses or external circuits can modify any
 sealed fields.
 
-### reject-constructor-emit (Lnodca -> Lnodca)
+### reject-constructor-forbidden-ops (Lnodca -> Lnodca)
 
-This pass raises an exception if the constructor tries to emit an event,
-either directly or indirectly.
+This pass throws an error if the constructor tries to call a forbidden operation,
+either directly or indirectly. These operations are
+
+- emitting events
+- natives flagged with `is-forbidden-in-constructor`
+- ledger operations flagged `is-forbidden-in-constructor`.
 
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
 
@@ -1581,7 +1585,17 @@ the implementation of the contract.
 
 ### determine-ledger-paths (Lnodca -> Lwithpaths0)
 
-TODO
+This pass assigns each public ledger field a path, a list of indices that
+locates the field within the public ledger state.  Fields are batched into
+segments of at most `maximum-ledger-segment-length` bindings, and when there
+are more segments than that limit they are batched again, recursively, so
+that the path of a field is its index within each enclosing segment.  Each
+public ledger binding in the output carries its path, and the kernel declaration
+gets the empty path.
+
+This pass also drops the `forbidden-in-constructor` flag from every ledger
+ADT operation.  The flag is needed only by `reject-constructor-forbidden-ops`,
+so it is carried through `Lnodca` and no further.
 
 ### propagate-ledger-paths (Lwithpaths0 -> LwithPaths)
 

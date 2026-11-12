@@ -41,7 +41,7 @@
 
     (define-syntax declare-native-entry
       (lambda (q)
-        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type)
+        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type is-forbidden-in-constructor)
           (define (convert-outer-type type)
             (define (convert-native-type type)
               (define (convert-native-targ targ)
@@ -86,16 +86,22 @@
                              [(witness) class]
                              [else (syntax-error class "invalid class")])
                         '#,(map parse-disclosure disclosure*)
-                        '#,(map maybe-type-param (append argument-type* (list result-type))))
+                        '#,(map maybe-type-param (append argument-type* (list result-type)))
+                        #,is-forbidden-in-constructor)
                      (#,@(map convert-type-param type-param*))
                      (#,@(map convert-native-argument argument-name* argument-type*))
                      #,(convert-outer-type result-type)))
                 ndecl*)))
+        (define (parse-constructor-flag flag)
+          (case (syntax->datum flag)
+            [(is-forbidden-in-constructor) #t]
+            [(is-allowed-in-constructor) #f]
+            [else (syntax-error flag "expected is-forbidden-in-constructor or is-allowed-in-constructor")]))
         (syntax-case q ()
-          [(_ class name [type-param ...] function ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
-          [(_ class name function ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
+          [(_ class name [type-param ...] function flag ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type (parse-constructor-flag #'flag))]
+          [(_ class name function flag ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type (parse-constructor-flag #'flag))])))
     (values
       (fluid-let ([ndecl* '()])
         (include "midnight-natives.ss")

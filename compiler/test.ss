@@ -31094,7 +31094,7 @@ groups than for single tests.
     )
 )
 
-(run-tests reject-constructor-emit
+(run-tests reject-constructor-effects
   (test
     '(
       "import CompactStandardLibrary;"
@@ -31104,14 +31104,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but ~a at ~a" ("emits event ShieldedSpend" "line 3 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("emit event ShieldedSpend" "line 3 char 3")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  foo ();"
+      "  foo();"
       "  return;"
       "}"
       "export circuit foo (): ShieldedSpend {"
@@ -31122,26 +31122,444 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "emits event ShieldedSpend" "line 8 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 8 char 3" (constructor foo "emit event ShieldedSpend"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  bar ();"
+      "  bar();"
+      "  return;"
+      "}"
+      "circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  emit(x);"
+      "  return x;"
+      "}"
+      "export circuit bar (): ShieldedSpend { return foo(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 8 char 3" (constructor bar foo "emit event ShieldedSpend"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar();"
       "  return;"
       "}"
       "export circuit bar (): ShieldedSpend { foo (); }"
       "circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  emit (x);"
+      "  emit(x);"
       "  return x;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimContractCall" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimContractCall" "line 6 char 9" (constructor foo kernel.claimContractCall))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  bar();"
+      "}"
+      "circuit bar (): [] {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimContractCall" "line 9 char 9" (constructor foo bar kernel.claimContractCall))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.checkpoint" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.checkpoint" "line 6 char 9" (constructor foo kernel.checkpoint))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinSpend" "<standard library>" (constructor mintShieldedToken kernel.claimZswapCoinSpend))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinSpend" "<standard library>" (constructor foo mintShieldedToken kernel.claimZswapCoinSpend))))
+    )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = receiveShielded(default<ShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinReceive" "<standard library>" (constructor receiveShielded kernel.claimZswapCoinReceive))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call createZswapOutput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call createZswapOutput" "line 6 char 3" (constructor foo createZswapOutput))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call createZswapInput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call createZswapInput" "line 6 char 3" (constructor foo createZswapInput))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedInputs" "<standard library>" (constructor receiveUnshielded kernel.incUnshieldedInputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedInputs" "<standard library>" (constructor foo receiveUnshielded kernel.incUnshieldedInputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.mintUnshielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.mintUnshielded" "line 6 char 9" (constructor foo kernel.mintUnshielded))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.mintShielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.mintShielded" "line 6 char 9" (constructor foo kernel.mintShielded))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.incUnshieldedOutputs" "line 4 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedOutputs" "line 7 char 9" (constructor foo kernel.incUnshieldedOutputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimZswapCoinReceive" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinReceive" "line 6 char 9" (constructor foo kernel.claimZswapCoinReceive))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimZswapNullifier" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapNullifier" "line 6 char 9" (constructor foo kernel.claimZswapNullifier))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.incUnshieldedOutputs" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), left<ContractAddress, UserAddress>(default<ContractAddress>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimUnshieldedCoinSpend" "line 6 char 9" (constructor foo kernel.claimUnshieldedCoinSpend))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.self" "line 3 char 19")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.self" "line 6 char 19" (constructor foo kernel.self))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar();"
+      "}"
+      "export circuit bar (): [] { foo(); }"
+      "circuit foo (): [] {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.self" "line 7 char 19" (constructor bar foo kernel.self))))
     )
   )
 

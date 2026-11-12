@@ -53,7 +53,7 @@
 
   (include "analysis-passes/check-sealed-fields.ss")
 
-  (include "analysis-passes/reject-constructor-emit.ss")
+  (include "analysis-passes/reject-constructor-forbidden-ops.ss")
 
   (include "analysis-passes/reject-constructor-cc-calls.ss")
 
@@ -72,27 +72,27 @@
   (include "analysis-passes/lower-emit.ss")
 
   (define-passes analysis-passes
-    (expand-modules-and-types        Lexpanded)
-    (infer-types                     Ltypes)
-    (remove-tundeclared              Lnotundeclared)
-    (combine-ledger-declarations     Loneledger)
-    (discard-unused-functions        Loneledger)
-    (reject-recursive-circuits       Loneledger)
-    (recognize-let                   Lnodca)
-    (check-sealed-fields             Lnodca)
-    (reject-constructor-emit         Lnodca)
-    (reject-constructor-cc-calls     Lnodca)
-    (identify-pure-circuits          Lnodca)
-    (determine-ledger-paths          Lwithpaths0)
-    (propagate-ledger-paths          Lwithpaths)
-    (track-witness-data              Lwithpaths)
-    (remove-disclose                 Lnodisclose)
-    (expand-serialize                Lnoserialize)
-    (lower-emit                      Lloweredemit))
+    (expand-modules-and-types         Lexpanded)
+    (infer-types                      Ltypes)
+    (remove-tundeclared               Lnotundeclared)
+    (combine-ledger-declarations      Loneledger)
+    (discard-unused-functions         Loneledger)
+    (reject-recursive-circuits        Loneledger)
+    (recognize-let                    Lnodca)
+    (check-sealed-fields              Lnodca)
+    (reject-constructor-forbidden-ops Lnodca)
+    (reject-constructor-cc-calls      Lnodca)
+    (identify-pure-circuits           Lnodca)
+    (determine-ledger-paths           Lwithpaths0)
+    (propagate-ledger-paths           Lwithpaths)
+    (track-witness-data               Lwithpaths)
+    (remove-disclose                  Lnodisclose)
+    (expand-serialize                 Lnoserialize)
+    (lower-emit                       Lloweredemit))
 
   (define-passes fixup-analysis-passes
-    (expand-modules-and-types        Lexpanded)
-    (infer-types                     Ltypes))
+    (expand-modules-and-types         Lexpanded)
+    (infer-types                      Ltypes))
 
-  (define-checker check-types/Lnodca Lnodca)
+  (define-checker check-types/Lnodca  Lnodca)
 )

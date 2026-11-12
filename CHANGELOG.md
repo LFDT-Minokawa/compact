@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.104, language 0.28.0, runtime 0.21.101]
+
+### Fixed
+
+- The compiler now complains if the constructor attempts to call an effect-producing
+  operation directly or indirectly. The minimum set of these operations is `emit`,
+  `minShielded`, `mintUnshielded`, `claimZswapCoinSpend`, `claimZswapCoinReceive`,
+  `claimZswapNullifier`, `claimUnshieldedCoinSpend`, `incUnshieldedInputs`,
+  `incUnshieldedOutputs`, `claimContractCall`, `checkpoint`, `kernel.self`,
+  `createZswapInput`, and `createZswapOutput`.
+
 ## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.101]
 
 ### Fixed
@@ -614,6 +625,8 @@ value to be either 0 or 1.
   `bundler`, which drops the deprecated `baseUrl` and resolves `vite`'s
   subpath imports without `skipLibCheck`, plus an explicit `rootDir`.
 
+=======
+>>>>>>> ef2d6babe9ecb8ddbed252308ffc977e8f0c90aa
 ## [Toolchain 0.34.100, language 0.26.0, runtime 0.19.100]
 
 ### Fixed
@@ -862,6 +875,10 @@ and Compact runtime versions in the range between 0.18.100 and 0.19.0.
   equivalent to `Uint<0..1>` by the rule and the fact that 2^0 equals 1.
   `Uint<0..1>` is allowed so there is no reason to prohibit `Uint<0>` even
   though it's not super useful.
+<<<<<<< HEAD
+=======
+>>>>>>> main
+>>>>>>> ef2d6babe9ecb8ddbed252308ffc977e8f0c90aa
 
 ## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
 
