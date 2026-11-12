@@ -124,8 +124,16 @@ fn test_compact_compile_invalid_param() {
 
 #[test]
 fn test_compact_compile_help_forwarded_no_compiler() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile", "--help"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+            "--help",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
@@ -136,8 +144,16 @@ fn test_compact_compile_help_forwarded_no_compiler() {
 
 #[test]
 fn test_compact_compile_help_short_forwarded_no_compiler() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile", "-h"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+            "-h",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
