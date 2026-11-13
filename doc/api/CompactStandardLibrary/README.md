@@ -102,7 +102,7 @@ Key parts of the API are:
   - [`secp256r1EcdsaVerify`](exports.md#secp256r1ecdsaverify)
   - [`Ed25519Signature`](exports.md#ed25519signature)
   - [`ed25519Verify`](exports.md#ed25519verify)
-- In-circuit proof verification:
+- In-circuit proof verification type and functions:
   - [`Accumulator`](exports.md#accumulator)
   - [`prepareVerification`](exports.md#prepareverification)
   - [`accumulate`](exports.md#accumulate)

@@ -1065,10 +1065,11 @@ already be used.
 
 A witness may return an accumulator: the accumulator an inner proof carries
 (see [`prepareVerification`](#prepareverification)).  Such an accumulator can
-only be used as an element of a tuple literal passed as `prepareVerification`'s
-public inputs, which binds it to the inner proof, either directly or through
-`const` bindings, the branches of an `if`, and anonymous circuits called on the
-spot.  It cannot be passed to
+only be used as `prepareVerification`'s public inputs, either as an element of a
+tuple literal written there or as the whole argument, which binds it to the
+inner proof.  It can get there directly, through `const` bindings and anonymous
+circuits called on the spot, or by being yielded from a branch of an `if`.  It
+cannot be passed to
 `accumulate`, `verifyAccumulator`, or another circuit, nor returned: on its own
 it proves nothing, since a prover can always supply one that passes.
 Otherwise an accumulator cannot be stored in a ledger field, passed to a
@@ -1109,9 +1110,10 @@ const acc = prepareVerification("inner.verifier", [x, y], innerProof());
 ```
 
 An inner proof that verified proofs of its own, such as a step of an IVC
-chain, carries an [`Accumulator`](#accumulator) in its instance.  When
-`publicInputs` is written as a tuple literal, an element of it may be that
-accumulator, typically returned by a witness that builds it in TypeScript with
+chain, carries an [`Accumulator`](#accumulator) in its instance.  That
+accumulator may be an element of a tuple literal written as `publicInputs`, or
+the whole of `publicInputs` when the instance holds nothing else, and is
+typically returned by a witness that builds it in TypeScript with
 `Accumulator.fromPublicInputs`.  Its encoding takes its place in the instance,
 binding it to the inner proof, and it is accumulated into the result, so that
 its check happens too:
@@ -1141,7 +1143,10 @@ Whether a `prepareVerification` runs can be observed, so calling it in a branch
 whose condition depends on witness data discloses that condition.  Its public
 inputs, including any accumulator among them, are treated as disclosed, so ones
 derived from witness data must be wrapped in `disclose`.  The proof itself is
-not disclosed.
+not treated as disclosed, but the accumulator `verifyAccumulator` exposes is
+derived from it: verifying the same inner proof on its own in two transactions
+exposes the same accumulator and makes them linkable, and combined with other
+accumulators it may still be linkable.  This rule may become stricter.
 
 For example, this circuit verifies two proofs of the same value against
 different keys:
