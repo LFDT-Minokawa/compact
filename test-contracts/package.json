@@ -16,6 +16,7 @@
         "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
     },
     "devDependencies": {
+        "@midnightntwrk/onchain-runtime-v4": "4.0.0-rc.3",
         "@noble/curves": "^2.2.0",
         "@noble/hashes": "^2.0.1",
         "@types/node": "^25.5.0",
