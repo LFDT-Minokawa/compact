@@ -31092,6 +31092,68 @@ groups than for single tests.
             (lookup (safe-cast (tunsigned 255) (tunsigned 7) 7))
             (lookup (safe-cast (tunsigned 255) (tunsigned 11) 11))))))
     )
+
+  ;; calls inside tuple and vector literals and map and fold arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit set(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { const t = [set(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f set "modifies sealed field s" "line 3 char 24")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit set(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { const v: Vector<2, Field> = [set(), 1 as Field]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f set "modifies sealed field s" "line 3 char 24")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "circuit id(x: Field): Field { return x; }"
+      "export circuit f(): [] { const r = map(id, mk()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "export circuit f(): Field { return fold((a: Field, x: Field): Field => a, 0 as Field, mk()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "export circuit f(): [] { for (const x of mk()) { } }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
 )
 
 (run-tests reject-constructor-emit
@@ -31142,6 +31204,30 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  ;; calls inside tuple literals and map arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit e(): Field { emit (ShieldedSpend { pad(32, 'a') }); return 1 as Field; }"
+      "constructor() { const t = [e(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 2 char 22")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit ev(): Vector<2, Field> { emit (ShieldedSpend { pad(32, 'a') }); return [1 as Field, 2 as Field]; }"
+      "circuit id(x: Field): Field { return x; }"
+      "constructor() { const r = map(id, ev()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (ev "emits event ShieldedSpend" "line 2 char 34")))
     )
   )
 
@@ -37179,6 +37265,30 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 6 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 6 char 43")))
      ))
+
+  ;; calls inside tuple literals and map arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit get(): Field; }"
+      "constructor(c: C) { const t = [disclose(c).get(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 3 char 43")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit getv(): Vector<2, Field>; }"
+      "circuit id(x: Field): Field { return x; }"
+      "constructor(c: C) { const r = map(id, disclose(c).getv()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit getv from external contract C" "line 4 char 50")))
+    )
 
   (test-group
     ((create-file "C1.compact"
