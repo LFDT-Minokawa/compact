@@ -3148,16 +3148,22 @@
         (source-errorf src "internal: contract-call type is not a tcontract")])]
     ;; Lower prepareVerification(vk, publicInputs, proof) to
     ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', [publicInput, ...], proof)
-    ;; which records the proof as the next inner proof the circuit consumes.  The key
-    ;; goes out as the hex of the same bytes the circuit's inner_vks holds.  An
-    ;; accumulator among the public inputs needs no check here: a witness's result is
-    ;; checked where the witness returns it.
+    ;; which checks the inner proof and records it as the next inner proof the circuit
+    ;; consumes.  The key goes out as the hex of the same bytes the circuit's inner_vks
+    ;; holds.  Each public input other than an accumulator goes out encoded by its
+    ;; type's descriptor, one atom per field of the instance, in the order the circuit
+    ;; lays them out.  An accumulator goes out as is: a witness's result is checked
+    ;; where the witness returns it.
     [(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
      (let* ([pi* (maplr (lambda (pubin)
-                          (Expr (nanopass-case (Ltypescript Public-Input) pubin
-                                  [(pi-fields ,expr) expr]
-                                  [(pi-accumulator ,expr) expr])
-                                (precedence add1 comma) outer-pure?))
+                          (nanopass-case (Ltypescript Public-Input) pubin
+                            [(pi-fields ,expr ,type)
+                             (make-Qconcat
+                               (format "~a.toValue(" (type->descriptor-name type))
+                               (Expr expr (precedence add1 comma) outer-pure?)
+                               ")")]
+                            [(pi-accumulator ,expr)
+                             (Expr expr (precedence add1 comma) outer-pure?)]))
                         pubin*)]
             [proof (Expr expr2 (precedence add1 comma) outer-pure?)])
        (parenthesize level (precedence call)

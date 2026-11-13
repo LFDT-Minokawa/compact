@@ -30,17 +30,14 @@
       url = "github:midnightntwrk/midnight-ledger/6f72b82f0a86e32622538bf2e036c43d5b6e64b8";
     };
     zkir-v3 = {
-      # zkir-v3 key-generation binary for v3 IR format
+      # zkir-v3: the key-generation binary for v3 IR format, and the zkir-wasm package
+      # the runtime checks inner proofs with and test-center runs v3 IR with
       # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof, no witness for a guarded-off inner_proof).
       url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
       # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
       # which has dropped x86_64-darwin; build it from 26.05 too.
       inputs.fenix.inputs.nixpkgs.follows = "nixpkgs-zkir";
-    };
-    zkir-v3-wasm = {
-      # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # iquerejeta/pass-zkir-v3
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -61,7 +58,6 @@
     self,
     onchain-runtime-v5,
     zkir-v3,
-    zkir-v3-wasm,
     nixpkgs,
     utils,
     inclusive,
@@ -174,6 +170,13 @@
                 tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
               };
+              # prepareVerification checks inner proofs with zkir's checkInnerProof
+              "@midnightntwrk/zkir-v3" = let
+                pkg = zkir-v3.packages.${system}.zkir-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
+              };
             };
           };
 
@@ -186,7 +189,7 @@
 
             nixDependenciesMap = {
               "@midnightntwrk/zkir-v3" = let
-                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
+                pkg = zkir-v3.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";

@@ -1059,8 +1059,12 @@ accumulator is used by:
   branches must use the same accumulators bound outside them.
 
 A witness may return an accumulator: the accumulator an inner proof carries
-(see [`prepareVerification`](#prepareverification)), which may appear as an
-element of a tuple literal passed as `prepareVerification`'s public inputs.
+(see [`prepareVerification`](#prepareverification)).  Such an accumulator can
+only be used as an element of a tuple literal passed as `prepareVerification`'s
+public inputs, which binds it to the inner proof, either directly or through
+`const` bindings and the branches of an `if`.  It cannot be passed to
+`accumulate`, `verifyAccumulator`, or another circuit, nor returned: on its own
+it proves nothing, since a prover can always supply one that passes.
 Otherwise an accumulator cannot be stored in a ledger field, passed to a
 witness, passed to or returned from an exported circuit, or placed in a tuple,
 vector, or structure.  It cannot
@@ -1112,6 +1116,17 @@ const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], iv
 A circuit that calls `prepareVerification`, directly or through another
 circuit, is impure.  In a branch that is not taken, `prepareVerification`
 consumes no proof and its accumulator is trivially valid.
+
+When the circuit runs, `prepareVerification` checks the proof against the key
+and the public inputs, final check included, and fails if the proof is
+malformed, was made for another key, or does not hold for those public inputs.
+So a bad inner proof is refused when the circuit is called, before anything is
+sent to a proof server.  The check is skipped when an accumulator among the
+public inputs was computed by the circuit rather than returned by a witness, as
+its value is not known until the circuit is proved; such a proof is still
+refused when the circuit is proved.  Likewise, a carried accumulator's own final
+check happens only when the circuit is proved: the check here confirms that the
+inner proof carries it, not that it holds.
 
 Whether a `prepareVerification` runs can be observed, so calling it in a branch
 whose condition depends on witness data discloses that condition.  Its public

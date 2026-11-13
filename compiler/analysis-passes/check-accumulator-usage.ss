@@ -27,6 +27,12 @@
 ;; vector, or struct, a ledger operation, or as the argument of a native or
 ;; witness that does not declare an Accumulator parameter.
 ;;
+;; An Accumulator returned by a witness must be bound to an inner proof: it can
+;; only be used among the public inputs of prepareVerification, directly or
+;; through const bindings, disclose, and if branches.  On its own it proves
+;; nothing, since a prover can always supply one that passes, so it cannot be
+;; passed to accumulate, verifyAccumulator, or another circuit, nor returned.
+;;
 ;; The check is path-sensitive.  The two branches of an if must use the same
 ;; Accumulators bound outside it, so the one a select drops is always one the
 ;; untaken branch produced, which its guard reduces to the trivial
@@ -54,6 +60,24 @@
 
     ;; maps circuit, native, and witness names to their signatures
     (define signature-ht (make-eq-hashtable))
+
+    ;; What an expression whose value is an Accumulator produces: the source
+    ;; object of the expression, and whether the Accumulator was returned by a
+    ;; witness.
+    (define-record-type produced
+      (nongenerative)
+      (fields src witness?))
+
+    ;; the ids of the variables bound to an Accumulator returned by a witness
+    (define witness-var-ht (make-eq-hashtable))
+    (define (bind-witness-origin! id p)
+      (when (produced-witness? p) (eq-hashtable-set! witness-var-ht id #t)))
+
+    (define (verify-not-witness! p what)
+      (when (and p (produced-witness? p))
+        (source-errorf (produced-src p)
+          "an Accumulator returned by a witness can only be used among the public inputs of prepareVerification, not ~a"
+          what)))
 
     (define (accumulator-type? type)
       (nanopass-case (Ltypes Type) type
@@ -121,7 +145,7 @@
 
     ;; Walks expr with environment env and returns two values: the environment
     ;; after expr, and either #f or, when expr's value is an Accumulator that its
-    ;; context must use, the source object of the expression producing it.
+    ;; context must use, a produced record describing it.
     (define (Expr expr env)
       (define (none env) (values env #f))
       (if (dead? env)
@@ -130,7 +154,8 @@
             [(quote ,src ,datum) (none env)]
             [(var-ref ,src ,var-name)
              (if (env-state env var-name)
-                 (values (use src env var-name) src)
+                 (values (use src env var-name)
+                         (make-produced src (eq-hashtable-ref witness-var-ht var-name #f)))
                  (none env))]
             [(ledger-ref ,src ,ledger-field-name) (none env)]
             [(default ,src ,type) (none env)]
@@ -139,10 +164,12 @@
              (let ([env (No-Accumulator expr0 env "the test of an if")])
                (if (dead? env)
                    (none env)
-                   (let-values ([(env1 src1) (Expr expr1 env)] [(env2 src2) (Expr expr2 env)])
+                   (let-values ([(env1 p1) (Expr expr1 env)] [(env2 p2) (Expr expr2 env)])
                      (values
                        (merge-branches src env env1 env2)
-                       (and (or src1 src2) src)))))]
+                       (and (or p1 p2)
+                            (make-produced src
+                              (or (and p1 (produced-witness? p1)) (and p2 (produced-witness? p2)))))))))]
             [(elt-ref ,src ,expr ,elt-name ,nat)
              (none (No-Accumulator expr env "the operand of a field reference"))]
             [(emit ,src ,type ,expr) (none (No-Accumulator expr env "an event"))]
@@ -186,15 +213,16 @@
             [(let* ,src ([,local* ,expr*] ...) ,expr)
              (let ([env (fold-left
                           (lambda (env local expr)
-                            (let-values ([(env acc-src) (Expr expr env)])
+                            (let-values ([(env p) (Expr expr env)])
                               (cond
                                 [(dead? env) env]
-                                [acc-src (env-extend env (arg-name local) 'live)]
+                                [p (bind-witness-origin! (arg-name local) p)
+                                   (env-extend env (arg-name local) 'live)]
                                 [else env])))
                           env local* expr*)])
-               (let-values ([(env acc-src) (Expr expr env)])
+               (let-values ([(env p) (Expr expr env)])
                  (verify-used! env (map arg-name (filter (lambda (local) (accumulator-type? (arg-type local))) local*)))
-                 (values env acc-src)))]
+                 (values env p)))]
             [(assert ,src ,expr ,mesg) (none (No-Accumulator expr env "the test of an assert"))]
             [(field->bytes ,src ,len ,ftype ,expr) (none (No-Accumulator expr env "the operand of a cast"))]
             [(cast-from-bytes ,src ,type ,len ,expr) (none (No-Accumulator expr env "the operand of a cast"))]
@@ -221,14 +249,15 @@
              (let* ([env (fold-left
                            (lambda (env pubin)
                              (nanopass-case (Ltypes Public-Input) pubin
-                               [(pi-fields ,expr) (No-Accumulator expr env "a public input of prepareVerification")]
-                               [(pi-accumulator ,expr) (let-values ([(env acc-src) (Expr expr env)]) env)]))
+                               [(pi-fields ,expr ,type) (No-Accumulator expr env "a public input of prepareVerification")]
+                               [(pi-accumulator ,expr) (let-values ([(env p) (Expr expr env)]) env)]))
                            env
                            pubin*)]
                     [env (No-Accumulator expr env "the proof of prepareVerification")])
-               (values env (and (not (dead? env)) src)))]
+               (values env (and (not (dead? env)) (make-produced src #f))))]
             [(return ,src ,expr)
-             (let-values ([(env acc-src) (Expr expr env)])
+             (let-values ([(env p) (Expr expr env)])
+               (verify-not-witness! p "returned")
                (unless (dead? env) (verify-none-live! src env))
                (none 'dead))]
             [else (internal-errorf 'check-accumulator-usage "unexpected expression ~s" expr)])))
@@ -244,9 +273,9 @@
 
     ;; Walks expr in a context that cannot use an Accumulator.
     (define (No-Accumulator expr env what)
-      (let-values ([(env acc-src) (Expr expr env)])
-        (when acc-src
-          (source-errorf acc-src "an Accumulator cannot be used as ~a" what))
+      (let-values ([(env p) (Expr expr env)])
+        (when p
+          (source-errorf (produced-src p) "an Accumulator cannot be used as ~a" what))
         env))
 
     (define (No-Accumulator* expr* env what)
@@ -254,9 +283,9 @@
 
     ;; Walks expr in a context that discards its value.
     (define (Discard env expr)
-      (let-values ([(env acc-src) (Expr expr env)])
-        (when acc-src
-          (source-errorf acc-src "this Accumulator is never used"))
+      (let-values ([(env p) (Expr expr env)])
+        (when p
+          (source-errorf (produced-src p) "this Accumulator is never used"))
         env))
 
     (define (Call src fun expr* env)
@@ -268,25 +297,39 @@
            (let loop ([expr* expr*] [i 0] [env env])
              (cond
                [(null? expr*)
-                (values env (and (not (dead? env)) (accumulator-type? (signature-return-type sig)) src))]
+                (values env
+                        (and (not (dead? env))
+                             (accumulator-type? (signature-return-type sig))
+                             (make-produced src (eq? (signature-kind sig) 'witness))))]
                [else
-                (let-values ([(env acc-src) (Expr (car expr*) env)])
-                  (when (and acc-src (not (accepts-accumulator? sig i)))
-                    (source-errorf acc-src "an Accumulator cannot be passed to ~a ~s"
+                (let-values ([(env p) (Expr (car expr*) env)])
+                  (when (and p (not (accepts-accumulator? sig i)))
+                    (source-errorf (produced-src p) "an Accumulator cannot be passed to ~a ~s"
                       (signature-kind sig) (id-sym function-name)))
+                  (verify-not-witness! p
+                    (if (eq? (signature-kind sig) 'native)
+                        ;; the n-ary accumulate is a nest of the internal binary one
+                        (let ([name (symbol->string (id-sym function-name))])
+                          (format "passed to ~a"
+                            (if (and (fx> (string-length name) 10) (string=? (substring name 0 10) "__compact_"))
+                                (substring name 10 (string-length name))
+                                name)))
+                        (format "passed to ~a ~s" (signature-kind sig) (id-sym function-name))))
                   (loop (cdr expr*) (fx+ i 1) env))])))]
         ;; an anonymous circuit called on the spot runs once, like a let*
         [(circuit ,src^ (,arg* ...) ,type ,expr)
          (let ([env (fold-left
                       (lambda (env arg expr)
-                        (let-values ([(env acc-src) (Expr expr env)])
-                          (if (and acc-src (not (dead? env)))
-                              (env-extend env (arg-name arg) 'live)
+                        (let-values ([(env p) (Expr expr env)])
+                          (if (and p (not (dead? env)))
+                              (begin
+                                (bind-witness-origin! (arg-name arg) p)
+                                (env-extend env (arg-name arg) 'live))
                               env)))
                       env arg* expr*)])
-           (let-values ([(env acc-src) (Expr expr env)])
+           (let-values ([(env p) (Expr expr env)])
              (verify-used! env (map arg-name (filter (lambda (arg) (accumulator-type? (arg-type arg))) arg*)))
-             (values env acc-src)))]))
+             (values env p)))]))
 
     ;; A circuit uses an Accumulator argument by binding it to its parameter,
     ;; which its own body must then use.  A native uses one only through a
@@ -315,9 +358,10 @@
     ;; Checks a circuit body whose parameters are arg* and whose return type is
     ;; type (#f for the constructor), starting from env.
     (define (verify-body! arg* type expr env)
-      (let-values ([(env acc-src) (Expr expr (bind-args env arg*))])
-        (when (and acc-src (not (and type (accumulator-type? type))))
-          (source-errorf acc-src "this Accumulator is never used"))
+      (let-values ([(env p) (Expr expr (bind-args env arg*))])
+        (when (and p (not (and type (accumulator-type? type))))
+          (source-errorf (produced-src p) "this Accumulator is never used"))
+        (verify-not-witness! p "returned")
         (verify-used! env (map arg-name (filter (lambda (arg) (accumulator-type? (arg-type arg))) arg*)))))
 
     (define (record-signature! pelt)

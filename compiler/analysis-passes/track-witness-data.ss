@@ -674,7 +674,7 @@
      (for-each
        (lambda (pubin)
          (let ([expr (nanopass-case (Lwithpaths Public-Input) pubin
-                       [(pi-fields ,expr) expr]
+                       [(pi-fields ,expr ,type) expr]
                        [(pi-accumulator ,expr) expr])])
            (let ([witness* (abs->witnesses
                              (add-path-point src "the public inputs of prepareVerification" ""

@@ -1864,7 +1864,7 @@
                               [else #f])
                             (with-output-language (Ltypes Public-Input) `(pi-accumulator ,expr1))]
                            [(field-representable? type1)
-                            (with-output-language (Ltypes Public-Input) `(pi-fields ,expr1))]
+                            (with-output-language (Ltypes Public-Input) `(pi-fields ,expr1 ,type1))]
                            [else
                             (source-errorf src "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a"
                                            (format-type type1))])))

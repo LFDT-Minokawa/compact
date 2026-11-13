@@ -643,7 +643,7 @@
        (CTV-unknown no-var-name))]
     [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnosafecast ir))])
   (Public-Input : Public-Input (ir) -> Public-Input ()
-    [(pi-fields ,[expr ctv]) `(pi-fields ,expr)]
+    [(pi-fields ,[expr ctv] ,[type]) `(pi-fields ,expr ,type)]
     [(pi-accumulator ,[expr ctv]) `(pi-accumulator ,expr)])
   (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument (maybe-ctv*)
     [(single ,src ,[expr ctv]) (values `(single ,src ,expr) (list ctv))]

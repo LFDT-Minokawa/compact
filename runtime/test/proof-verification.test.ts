@@ -13,8 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import * as compactRuntime from '../src/index.js';
+
+// These tests use placeholder proofs, so the inner-proof check is stubbed out; real proofs are
+// checked end to end.
+vi.mock('@midnightntwrk/zkir-v3', () => ({ checkInnerProof: () => {} }));
 
 const emptyProofData = (): compactRuntime.PartialProofData => ({
   input: { value: [], alignment: [] },
@@ -24,14 +28,15 @@ const emptyProofData = (): compactRuntime.PartialProofData => ({
 });
 
 const VK = '0x00';
+const field = (x: bigint): compactRuntime.Value => compactRuntime.CompactTypeField.toValue(x);
 
 describe('prepareVerification', () => {
   test('records each inner proof, in order', () => {
     const proofData = emptyProofData();
     const p = new Uint8Array([1, 2, 3]);
     const q = new Uint8Array([4, 5]);
-    compactRuntime.prepareVerification(proofData, VK, [1n], p);
-    compactRuntime.prepareVerification(proofData, VK, [2n, 3n], q);
+    compactRuntime.prepareVerification(proofData, VK, [field(1n)], p);
+    compactRuntime.prepareVerification(proofData, VK, [field(2n), field(3n)], q);
     expect(proofData.innerProofs).toEqual([p, q]);
   });
 
@@ -66,7 +71,7 @@ describe('carried accumulators', () => {
     const proofData = emptyProofData();
     const p = new Uint8Array([1]);
     const carried = compactRuntime.Accumulator.fromPublicInputs(ENCODING);
-    compactRuntime.verifyAccumulator(compactRuntime.prepareVerification(proofData, VK, [1n, carried], p));
+    compactRuntime.verifyAccumulator(compactRuntime.prepareVerification(proofData, VK, [field(1n), carried], p));
     expect(proofData.innerProofs).toEqual([p]);
   });
 

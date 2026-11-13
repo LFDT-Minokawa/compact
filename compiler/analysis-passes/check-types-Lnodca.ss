@@ -724,7 +724,7 @@
      (for-each
        (lambda (pubin)
          (nanopass-case (Lnodca Public-Input) pubin
-           [(pi-fields ,expr)
+           [(pi-fields ,expr ,type^)
             (let ([type (Care expr)])
               (unless (field-representable? type)
                 (source-errorf src "expected a public input of prepareVerification to hold only Field, Uint, and Boolean values, received ~a"

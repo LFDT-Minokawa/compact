@@ -305,7 +305,7 @@
                (k (with-output-language (Lcircuit Rhs)
                     `(prepare-verification ,src ,vk (,(reverse rpubin*) ...) ,triv)))))
            (nanopass-case (Lnovectorref Public-Input) (car pubin*)
-             [(pi-fields ,expr)
+             [(pi-fields ,expr ,type)
               (Triv expr test
                 (lambda (triv)
                   (loop (cdr pubin*)

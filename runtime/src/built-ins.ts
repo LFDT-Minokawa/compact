@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
+import * as zkir from '@midnightntwrk/zkir-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { sha512 as nobleSha512 } from '@noble/hashes/sha2.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
@@ -42,6 +43,7 @@ import {
 import {
   curve25519FromProjective,
   curve25519ToProjective,
+  fromHex,
   secp256k1FromProjective,
   secp256k1ToProjective,
   secp256r1FromProjective,
@@ -844,14 +846,60 @@ function checkAccumulator(value: unknown, what: string): void {
 }
 
 /**
+ * The instance an inner proof is checked against: each public input's fields, in order. An
+ * accumulator contributes its encoding; every other public input arrives encoded by its type's
+ * descriptor, one atom per field. Returns `undefined` if an accumulator among them was computed
+ * by the circuit, whose encoding is known only to the circuit.
+ */
+function innerProofInstance(publicInputs: readonly unknown[]): bigint[] | undefined {
+  const instance: bigint[] = [];
+  for (const publicInput of publicInputs) {
+    if (publicInput instanceof Accumulator) {
+      if (publicInput.publicInputs === undefined) return undefined;
+      instance.push(...publicInput.publicInputs);
+    } else {
+      for (const atom of publicInput as ocrt.Value) instance.push(ocrt.valueToBigInt([atom]));
+    }
+  }
+  return instance;
+}
+
+/**
+ * Describes why `checkInnerProof` refused an inner proof checked against `count` public inputs.
+ * The final pairing cannot tell a wrong public input from a key for another circuit or a false
+ * proof, since the key and the public inputs both feed the proof's transcript, so that failure
+ * names all three. zkir's own reason is kept, and one it does not recognise is reported as is.
+ */
+function innerProofFailure(e: unknown, count: number): string {
+  const reason = e instanceof Error ? e.message : String(e);
+  const inputs = `${count} public input${count === 1 ? '' : 's'}`;
+  if (reason.includes('does not hold')) {
+    return `the inner proof does not hold for this verifying key and these ${inputs}: the public inputs are wrong, the key is for another circuit, or the proof is false`;
+  }
+  if (reason.startsWith('reading inner verifying key')) {
+    return `the verifying key could not be read (${reason})`;
+  }
+  if (reason.startsWith('Transcript error') || reason.includes('Multi-opening proof was invalid')) {
+    return `the inner proof is malformed or was made for a different circuit (${reason})`;
+  }
+  return `the inner proof was refused when checked against ${inputs} (${reason})`;
+}
+
+/**
  * The Compact builtin `prepareVerification` function.
  *
- * Records `proof` as the next inner proof the circuit consumes. `vk` is the inner verifying key
- * the circuit commits to, as `0x`-prefixed hex, and `publicInputs` the inner proof's public
- * inputs, one element per element of the tuple the circuit passes (or the one value it passes
- * otherwise); neither is checked here. An accumulator among the public inputs comes from a
+ * Checks `proof` against `vk` and `publicInputs`, pairing included, and records it as the next
+ * inner proof the circuit consumes. `vk` is the inner verifying key the circuit commits to, as
+ * `0x`-prefixed hex. `publicInputs` are the inner proof's public inputs, one element per element
+ * of the tuple the circuit passes (or the one value it passes otherwise): an accumulator as is,
+ * and anything else encoded by its type's descriptor. An accumulator among them comes from a
  * witness, whose result is checked where it is returned, or from `prepareVerification` or
  * `accumulate`.
+ *
+ * A proof that is malformed, made for another key, or false for these public inputs is refused
+ * here, before anything reaches a proof server. The check is skipped if an accumulator among the
+ * public inputs was computed by the circuit, as its encoding is not known here; the proof server
+ * still refuses such a proof when it proves the circuit.
  */
 export function prepareVerification(
   partialProofData: PartialProofData,
@@ -861,6 +909,14 @@ export function prepareVerification(
 ): Accumulator {
   if (!(proof instanceof Uint8Array)) {
     throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
+  }
+  const instance = innerProofInstance(publicInputs);
+  if (instance !== undefined) {
+    try {
+      zkir.checkInnerProof(fromHex(vk.slice(2)), instance, proof);
+    } catch (e) {
+      throw new CompactError(`prepareVerification: ${innerProofFailure(e, instance.length)}`);
+    }
   }
   partialProofData.innerProofs.push(proof);
   return Accumulator.computed();

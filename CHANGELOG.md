@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reports one that is dropped or used twice.  An inner proof that carries an
   accumulator of its own, because it verified proofs itself, is verified by
   passing that accumulator, typically returned by a witness, as an element of
-  the public inputs.  The public inputs may be any value made of `Field`,
-  `Uint`, and `Boolean` values, such as a tuple, vector, or structure.
+  the public inputs.  An accumulator returned by a witness can only be used
+  that way.  The public inputs may be any value made of `Field`, `Uint`, and
+  `Boolean` values, such as a tuple, vector, or structure.
 
   **Proving a circuit that uses these features requires ZKIR and ledger
   releases that support in-circuit proof verification.**
@@ -30,7 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The JavaScript runtime records the inner proofs a circuit verifies in a new
   `innerProofs` field of `PartialProofData`, and has new functions
   `prepareVerification`, `accumulate`, and `verifyAccumulator` for the
-  generated code to call.
+  generated code to call.  `prepareVerification` checks each inner proof when
+  the circuit runs, with `checkInnerProof` from the runtime's new dependency
+  `@midnightntwrk/zkir-v3`, so a bad inner proof is refused before it reaches a
+  proof server.
 
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 

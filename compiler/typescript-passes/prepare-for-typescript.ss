@@ -346,6 +346,12 @@
      (let ([type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))])
        (register-descriptor! type)
        `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code))])
+  ;; The runtime encodes each public input with its type's descriptor to build the
+  ;; instance it checks the inner proof against.
+  (Public-Input : Public-Input (ir) -> Public-Input ()
+    [(pi-fields ,[expr] ,[type])
+     (register-descriptor! type)
+     `(pi-fields ,expr ,type)])
   (Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]
     [(,src ,[type] ,[expr])

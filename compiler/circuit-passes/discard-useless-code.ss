@@ -209,7 +209,7 @@
        (idset-union-all (cons idset idset*)))]
     [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
   (Public-Input-Value : Public-Input (ir) -> Public-Input (idset)
-    [(pi-fields ,[Value : expr idset]) (values `(pi-fields ,expr) idset)]
+    [(pi-fields ,[Value : expr idset] ,[type]) (values `(pi-fields ,expr ,type) idset)]
     [(pi-accumulator ,[Value : expr idset]) (values `(pi-accumulator ,expr) idset)])
   (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
     [(single ,src ,[Value : expr idset])

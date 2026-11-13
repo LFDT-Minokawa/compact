@@ -807,8 +807,9 @@
       (prepare-verification src vk (pubin* ...) expr) => (prepare-verification vk (pubin* ...) expr)
       )
     (Public-Input (pubin)
-      ;; a value whose type flattens to native fields, which it contributes in order
-      (pi-fields expr)                        => (pi-fields expr)
+      ;; a value whose type flattens to native fields, which it contributes in order;
+      ;; type is its type, which the TypeScript printer encodes it with
+      (pi-fields expr type)                   => (pi-fields expr type)
       ;; an Accumulator, which contributes its encoding and is accumulated into the
       ;; result, so that its pairing is checked too
       (pi-accumulator expr)                   => (pi-accumulator expr)
