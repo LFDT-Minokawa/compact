@@ -31,8 +31,8 @@
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof).
-      url = "github:midnightntwrk/midnight-zkir/3deaa1135f623cf80a0f788826eb4152fcf01e79"; # zkir-v3
+      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof, no witness for a guarded-off inner_proof).
+      url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
       # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
       # which has dropped x86_64-darwin; build it from 26.05 too.
@@ -40,7 +40,7 @@
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/3deaa1135f623cf80a0f788826eb4152fcf01e79"; # iquerejeta/pass-zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # iquerejeta/pass-zkir-v3
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
