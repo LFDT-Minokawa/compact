@@ -273,6 +273,36 @@ describe('crossContractCall failure classification', () => {
     ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
   });
 
+  test.each([
+    ['an uppercase entry address', 'AB'.repeat(32), 'ab'.repeat(32)],
+    ['an uppercase callee address', 'ab'.repeat(32), 'AB'.repeat(32)],
+    ['mixed-case spellings', 'aB'.repeat(32), 'Ab'.repeat(32)],
+  ])('re-entry is refused for %s', async (_, entryAddress, calleeAddress) => {
+    const self = 'ab'.repeat(32);
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: entryAddress,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(self), moduleProvider: { resolve: () => undefined } },
+    });
+    expect(Object.keys(context.queryContexts)).toEqual([self]);
+    await expect(
+      crossContractCall({
+        context,
+        interfaceName: 'Inner',
+        declaration: DECLARATION,
+        calleeCircuitId: CIRCUIT_ID,
+        calleeAddress,
+        partialProofData: emptyProofData(),
+        args: [1n],
+      }),
+    ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
+  });
+
   test('a resolution failure records nothing about the callee', async () => {
     // `ModuleResolutionError` is a catchable payload on purpose, so an application may catch one and
     // carry on. The deployed state is read before the checks; entering the callee happens after
