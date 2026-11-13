@@ -104,7 +104,7 @@
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
-              ;; never used for encoding: an Accumulator cannot reach the ledger, a witness, or an export
+              ;; a placeholder: an Accumulator is never hashed or put in the ledger
               [(taccumulator ,src) (cons `(anative "Accumulator") a*)]
               [(tpoint ,src ,ctype)
                (strict-nanopass-case (Lcircuit Curve-Type) ctype
@@ -500,9 +500,7 @@
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
        (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat2 ,nat1 ,triv))))]
-    ;; a public input of fields flattens to its fields, in order, and an
-    ;; accumulator public input stays a single value; the proof is a single
-    ;; opaque value
+    ;; a public input flattens to its fields in the order the TypeScript's descriptor encodes them
     [(prepare-verification ,src ,vk (,pubin* ...) ,[Single-Triv : triv])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)

@@ -30,7 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          make-verifying-key verifying-key? verifying-key-pathname verifying-key-resolved-pathname verifying-key-content
+          make-verifying-key verifying-key? verifying-key-pathname verifying-key-content
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
@@ -407,14 +407,11 @@
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
-  ;; An inner verifying key named by a prepareVerification call and read at
-  ;; compile time.  pathname is what the program wrote, and is what diagnostics
-  ;; name; resolved-pathname is the file found for it; content is its bytes.
-  (module (make-verifying-key verifying-key? verifying-key-pathname
-           verifying-key-resolved-pathname verifying-key-content)
+  ;; an inner verifying key: pathname as written, and its bytes
+  (module (make-verifying-key verifying-key? verifying-key-pathname verifying-key-content)
     (define-record-type verifying-key
       (nongenerative)
-      (fields pathname resolved-pathname content))
+      (fields pathname content))
     (record-writer (record-type-descriptor verifying-key)
       (lambda (x p wr)
         (fprintf p "#<verifying-key ~a>" (verifying-key-pathname x)))))
@@ -631,8 +628,7 @@
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
          (deserialize src len type expr)    => (deserialize len type expr)
-         ;; expr1* are the inner proof's public inputs, in order: the elements of a
-         ;; tuple literal, or else the one argument; expr2 is the proof itself
+         ;; expr1* are the public inputs (a tuple literal's elements, or the one argument), expr2 the proof
          (prepare-verification src vk (expr1* ...) expr2) => (prepare-verification vk (expr1* ...) expr2)))
     (Function (fun)
       (- (fref src function-name)
@@ -807,11 +803,9 @@
       (prepare-verification src vk (pubin* ...) expr) => (prepare-verification vk (pubin* ...) expr)
       )
     (Public-Input (pubin)
-      ;; a value whose type flattens to native fields, which it contributes in order;
-      ;; type is its type, which the TypeScript printer encodes it with
+      ;; a value of native fields, flattened in order; type is what the TypeScript encodes it with
       (pi-fields expr type)                   => (pi-fields expr type)
-      ;; an Accumulator, which contributes its encoding and is accumulated into the
-      ;; result, so that its pairing is checked too
+      ;; an Accumulator, encoded in place and accumulated into the result
       (pi-accumulator expr)                   => (pi-accumulator expr)
       )
     (Map-Argument (map-arg)
@@ -964,12 +958,13 @@
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
-         (hashtable (descriptor-table))))
+         (hashtable (descriptor-table vk-table))))
     (Program (p)
       (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src (contract-type* ...) ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
+    ;; vk-table maps the bytes of each verifying key the circuits name to its id
     (Type-Descriptors (tdescs)
-      (+ (type-descriptors descriptor-table (descriptor-id* type*) ...) =>
+      (+ (type-descriptors descriptor-table vk-table (descriptor-id* type*) ...) =>
            (type-descriptors #f (descriptor-id* type*) ...)))
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type expr))
@@ -1159,8 +1154,7 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
-      ;; pubin* are the inner proof's public inputs, in order, and triv the proof
-      ;; itself; the guard is the test of the enclosing statement
+      ;; pubin* are the inner proof's public inputs, triv the proof; the guard is the test
       (prepare-verification src vk (pubin* ...) triv) => (prepare-verification vk (pubin* ...) triv)
       )
     (Public-Input (pubin)

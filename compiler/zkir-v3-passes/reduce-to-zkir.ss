@@ -138,15 +138,10 @@
                 (cons (make-private-input test var-name primitive-type) instr*)))
             instr* var-name* primitive-type*)))
 
-    ;; accumulate is n-ary in ZKIR but binary in Compact, so a nested
-    ;; accumulate(accumulate(a, b), c) is emitted as one accumulate of a, b, and c.
-    ;; An accumulate is not emitted where it is called: its output is mapped here
-    ;; to its inputs, so that an accumulate taking that output absorbs them.  It
-    ;; is emitted when its output reaches anything else, which, because each
-    ;; Accumulator is used exactly once, happens once.
+    ;; accumulate is n-ary in ZKIR but binary in Compact, so one is recorded here instead of
+    ;; emitted, for an accumulate of its output to absorb, until its output is used otherwise
     (define pending-accumulate-ht)
-    ;; The number of fields in an Accumulator's public-input encoding: two
-    ;; points and two scalars (transient-crypto's accumulator_pi_len).
+    ;; fields in an Accumulator's public-input encoding (transient-crypto's accumulator_pi_len)
     (define accumulator-encoding-length 12)
     (define (accumulate-inputs triv)
       (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
@@ -818,20 +813,20 @@
                     '() var-name* arg-type*)]
                 [instr*
                   (fold-left (lambda (instr* stmt) (Statement stmt instr*))
-                    constraint* stmt*)]
-                [_ (unless (fx= (hashtable-size pending-accumulate-ht) 0)
-                     (internal-errorf 'reduce-to-zkir "an accumulate result is never used"))]
-                [body
-                  (if (null? triv*)
-                      instr*
-                      (cons
-                        (with-output-language (Lzkir Instruction)
-                          `(output ,triv* ...))
-                        instr*))])
-           `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
-              ((,var-name* ,(map type->string arg-type*)) ...)
-              (,(map type->string primitive-type*) ...)
-              ,(reverse body) ...))))])
+                    constraint* stmt*)])
+           (unless (fx= (hashtable-size pending-accumulate-ht) 0)
+             (internal-errorf 'reduce-to-zkir "an accumulate result is never used"))
+           (let ([body
+                   (if (null? triv*)
+                       instr*
+                       (cons
+                         (with-output-language (Lzkir Instruction)
+                           `(output ,triv* ...))
+                         instr*))])
+             `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
+                ((,var-name* ,(map type->string arg-type*)) ...)
+                (,(map type->string primitive-type*) ...)
+                ,(reverse body) ...)))))])
 
   (Statement : Statement (ir instr*) -> * (instr*)
     [(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...))
@@ -1012,12 +1007,9 @@
             env
             vm-code
             instr*))])]
-    ;; prepare_verification takes the statement's test as its guard, and the
-    ;; inner_proof binding the proof witness must have the same guard; the proof
-    ;; triv is TypeScript's copy and has no use in the circuit
-    ;; The public inputs are laid out in order.  An accumulator among them
-    ;; contributes its encoding, which binds it to the inner proof, and is
-    ;; accumulated into the result, so that its pairing is checked too.
+    ;; prepare_verification and its inner_proof take the statement's test as guard; the
+    ;; proof triv is TypeScript's and has no use in the circuit.  An accumulator among
+    ;; the public inputs is encoded in place and accumulated into the result.
     [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,pubin* ...))
      (let ([proof (make-temp-id src 'proof)])
        (with-output-language (Lzkir Instruction)

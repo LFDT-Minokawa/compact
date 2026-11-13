@@ -298,23 +298,23 @@
                  `(contract-call ,src ,elt-name (,triv ,type) ,triv* ...)))))))]
     ;; the guard is the test of the statement k builds
     [(prepare-verification ,src ,vk (,pubin* ...) ,expr)
-     (let loop ([pubin* pubin*] [rpubin* '()])
-       (if (null? pubin*)
-           (Triv expr test
-             (lambda (triv)
-               (k (with-output-language (Lcircuit Rhs)
-                    `(prepare-verification ,src ,vk (,(reverse rpubin*) ...) ,triv)))))
-           (nanopass-case (Lnovectorref Public-Input) (car pubin*)
-             [(pi-fields ,expr ,type)
-              (Triv expr test
-                (lambda (triv)
-                  (loop (cdr pubin*)
-                        (cons (with-output-language (Lcircuit Public-Input) `(pi-fields ,triv)) rpubin*))))]
-             [(pi-accumulator ,expr)
-              (Triv expr test
-                (lambda (triv)
-                  (loop (cdr pubin*)
-                        (cons (with-output-language (Lcircuit Public-Input) `(pi-accumulator ,triv)) rpubin*))))])))]
+     (Triv* (map (lambda (pubin)
+                   (nanopass-case (Lnovectorref Public-Input) pubin
+                     [(pi-fields ,expr ,type) expr]
+                     [(pi-accumulator ,expr) expr]))
+                 pubin*)
+       test
+       (lambda (triv*)
+         (Triv expr test
+           (lambda (triv)
+             (k (with-output-language (Lcircuit Rhs)
+                  `(prepare-verification ,src ,vk
+                     (,(map (lambda (pubin pi-triv)
+                              (nanopass-case (Lnovectorref Public-Input) pubin
+                                [(pi-fields ,expr ,type) (with-output-language (Lcircuit Public-Input) `(pi-fields ,pi-triv))]
+                                [(pi-accumulator ,expr) (with-output-language (Lcircuit Public-Input) `(pi-accumulator ,pi-triv))]))
+                            pubin* triv*) ...)
+                     ,triv)))))))]
     [else (internal-errorf 'Rhs "unexpected ir ~s" ir)])
   (Type : Type (ir) -> Type ())
   )

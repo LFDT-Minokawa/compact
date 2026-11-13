@@ -564,7 +564,7 @@
              [(pi-accumulator ,triv)
               (let ([primitive-type (Triv triv)])
                 (unless (T primitive-type [(taccumulator) #t])
-                  (source-errorf src "expected Accumulator for an accumulator public input of prepareVerification, received ~a"
+                  (source-errorf src "expected Accumulator for the public input of prepareVerification, received ~a"
                     (format-primitive-type primitive-type))))]))
          pubin*))
      (with-output-language (Lflattened Primitive-Type) `(taccumulator))]

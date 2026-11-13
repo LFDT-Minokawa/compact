@@ -95,6 +95,7 @@
                 elt-name
                 (name-of-contract type))))])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
+  (Public-Input : Public-Input (ir function-name) -> Public-Input ())
   (Function : Function (ir function-name) -> Function ()
     [(fref ,src ,function-name)
      (process-function-name! function-name)

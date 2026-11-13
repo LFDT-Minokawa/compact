@@ -680,14 +680,20 @@
       (source-errorf src "cannot export ~a (~s) from the top level"
                      (describe-info info)
                      name))
-    ;; prepareVerification(vk, publicInputs, proof) names its inner verifying
-    ;; key with a string literal, which is resolved along the compact path and
-    ;; read here, because the key is fixed circuit data: the circuit embeds it
-    ;; and commits to its hash.  The public inputs are a value whose fields form
-    ;; the inner proof's instance, in order.  When they are written as a tuple
-    ;; literal, its elements are kept apart, so that an element may be an
-    ;; Accumulator the inner proof carries, which no tuple may hold; flattening
-    ;; the elements one after another gives the same fields as the whole tuple.
+    ;; expands a call of a native keyword such as accumulate, or returns #f for any
+    ;; other function
+    (define (native-keyword-call src src^ function-name targ* expr* p)
+      (Info-case (lookup p src^ function-name)
+        [(Info-native-keyword handler p^)
+         (handler src p p^ (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
+        [else #f]))
+    ;; keys are a few kilobytes
+    (define max-verifying-key-size (expt 2 20))
+    ;; prepareVerification's key is a string literal naming a regular .verifier file,
+    ;; resolved from the file holding the call, then along the compact path; its bytes
+    ;; are embedded in the circuit.  The elements of a tuple-literal publicInputs are
+    ;; kept apart so that one may be a carried Accumulator.  p^ is unused, but every
+    ;; native-keyword handler takes it.
     (define (expand-prepare-verification src p p^ info* expr*)
       (unless (null? info*)
         (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
@@ -702,14 +708,26 @@
                              [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
                              [else #f])
                            (source-errorf src "prepareVerification expects its first argument to be a string literal naming a verifying key file"))]
-             [resolved-pathname (find-source-pathname "" pathname
-                                  (lambda (pathname)
-                                    (source-errorf src "failed to locate verifying key file ~s" pathname)))]
-             [content (guard (c [else (error-accessing-file c "reading verifying key file")])
-                        (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
-                          (if (eof-object? x) (bytevector) x)))])
+             [resolved-pathname
+              (begin
+                (unless (string=? (path-extension pathname) "verifier")
+                  (source-errorf src "expected the verifying key file name ~s to end in .verifier" pathname))
+                ;; relative to the file holding the call, not the one being compiled
+                (parameterize ([relative-path (path-parent (source-file-descriptor-path (source-object-sfd src)))])
+                  (find-source-pathname "" pathname
+                    (lambda (pathname)
+                      (source-errorf src "failed to locate verifying key file ~s" pathname)))))]
+             [content (begin
+                        (unless (file-regular? resolved-pathname #f)
+                          (source-errorf src "verifying key file ~s must be a regular file, not a directory or symbolic link" pathname))
+                        (guard (c [else (error-accessing-file c "reading verifying key file")])
+                          (let ([x (call-with-port (open-file-input-port resolved-pathname)
+                                     (lambda (ip) (get-bytevector-n ip (fx+ max-verifying-key-size 1))))])
+                            (if (eof-object? x) (bytevector) x))))])
         (when (fx= (bytevector-length content) 0)
           (source-errorf src "verifying key file ~s is empty" pathname))
+        (when (fx> (bytevector-length content) max-verifying-key-size)
+          (source-errorf src "verifying key file ~s is larger than ~d bytes" pathname max-verifying-key-size))
         (let ([pi-expr* (nanopass-case (Lpreexpand Expression) pi-expr
                           [(tuple ,src^ ,tuple-arg* ...)
                            (map (lambda (tuple-arg)
@@ -720,14 +738,11 @@
                           [else (list pi-expr)])])
           (with-output-language (Lexpanded Expression)
             `(prepare-verification ,src
-               ,(make-verifying-key pathname resolved-pathname content)
+               ,(make-verifying-key pathname content)
                (,(maplr (lambda (expr) (Expression expr p)) pi-expr*) ...)
                ,(Expression proof-expr p))))))
-    ;; accumulate(a, b, c, ...) takes any number (at least two) of Accumulators and
-    ;; expands to nested calls of the binary native __compact_accumulate, which the
-    ;; ZKIR backend flattens back into one n-ary accumulate.  The native is private
-    ;; to the standard library, so it is resolved in p^, the environment where
-    ;; accumulate is defined, and its calls are renamed accumulate for diagnostics.
+    ;; accumulate(a, b, c, ...) expands to nested calls of the private binary native
+    ;; __compact_accumulate, resolved in p^, which the ZKIR backend flattens again.
     (define (expand-accumulate src p p^ info* expr*)
       (unless (null? info*)
         (source-errorf src "accumulate expects no generic arguments, received ~d" (length info*)))
@@ -1354,15 +1369,8 @@
          `(elt-ref ,src ,(Expression expr p) ,elt-name^))]
     [(call ,src ,fun ,expr* ...)
      (or (nanopass-case (Lpreexpand Function) fun
-           [(fref ,src^ ,function-name)
-            (Info-case (lookup p src^ function-name)
-              [(Info-native-keyword handler p^) (handler src p p^ '() expr*)]
-              [else #f])]
-           [(fref ,src^ ,function-name (,targ* ...))
-            (Info-case (lookup p src^ function-name)
-              [(Info-native-keyword handler p^)
-               (handler src p p^ (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
-              [else #f])]
+           [(fref ,src^ ,function-name) (native-keyword-call src src^ function-name '() expr* p)]
+           [(fref ,src^ ,function-name (,targ* ...)) (native-keyword-call src src^ function-name targ* expr* p)]
            [else #f])
          ; force fun to be processed before expr* to get better error messages
          (let ([fun (Function fun p)])

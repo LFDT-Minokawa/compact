@@ -14961,6 +14961,167 @@ groups than for single tests.
              (tpoint (curve-jubjub))
           %x.2)))
     )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three arguments, received ~d" (4)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification<2>(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(k: Bytes<17>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(k, [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"no-such.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "failed to locate verifying key file ~s" ("no-such.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"empty.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s is empty" ("empty.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.txt\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "expected the verifying key file name ~s to end in .verifier" ("testfile.txt")))
+    ))
+
+  (test-group
+    ((create-file "keydir.verifier/placeholder"
+       '(
+         "not a key"
+         )))
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"keydir.verifier\", [1 as Field], p); }"
+         "export circuit main(): [] { }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("keydir.verifier")))
+     ))
+
+  ;; a key file must not be a symbolic link, though a directory on its path may be
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"symlink.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("symlink.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/symlinked-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds)))
+
+  ;; a key path is resolved relative to the file holding the call: the empty
+  ;; libkey.verifier beside testfile.compact must not be the one lib/L uses
+  (test-group
+    ((create-file "lib/libkey.verifier"
+       '(
+         "library key"
+         )))
+    ((create-file "libkey.verifier"
+       '()))
+    ((create-file "lib/L.compact"
+       '(
+         "module L {"
+         "  import CompactStandardLibrary;"
+         "  export circuit check(p: Opaque<'Uint8Array'>): Accumulator {"
+         "    return prepareVerification(\"libkey.verifier\", [1 as Field], p);"
+         "  }"
+         "}"
+         )))
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "import \"lib/L\";"
+         "witness p(): Opaque<'Uint8Array'>;"
+         "export circuit main(): [] { verifyAccumulator(check(p())); }"
+         ))
+     (succeeds))
+     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 51" "accumulate expects at least two arguments, received ~d" (1)))
+    )
 )
 
 (run-tests infer-types
@@ -18496,7 +18657,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 18" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of exported circuit g" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 18" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of exported circuit g" "Accumulator")))
     )
 
   (test
@@ -18506,7 +18667,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("return value of exported circuit g" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("return value of exported circuit g" "Accumulator")))
     )
 
   (test
@@ -18517,7 +18678,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 11" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of witness w" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 11" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of witness w" "Accumulator")))
     )
 
   (test
@@ -18536,7 +18697,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field x" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("ledger field x" "Accumulator")))
     )
 
   (test
@@ -18547,7 +18708,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field m" "Map<Field, Accumulator>")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("ledger field m" "Map<Field, Accumulator>")))
     )
 
   (test
@@ -18558,7 +18719,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 13" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of the ledger constructor" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 13" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of the ledger constructor" "Accumulator")))
     )
 
   (test
@@ -18569,7 +18730,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 24" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of contract circuit f" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 24" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of contract circuit f" "Accumulator")))
     )
 
   (test
@@ -18581,7 +18742,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'a'" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("struct field 'a'" "Accumulator")))
     )
 
   (test
@@ -18592,7 +18753,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("vector element" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 14" "~a cannot be or contain an Accumulator, but has type ~a" ("vector element" "Accumulator")))
     )
 
   (test
@@ -18603,7 +18764,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("tuple element 1" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 14" "~a cannot be or contain an Accumulator, but has type ~a" ("tuple element 1" "Accumulator")))
     )
 
   (test
@@ -18625,7 +18786,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'value'" "Accumulator")))
+      irritants: '("<standard library>" "~a cannot be or contain an Accumulator, but has type ~a" ("struct field 'value'" "Accumulator")))
     )
 
   (test
@@ -18636,7 +18797,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
     )
 
   (test
@@ -18647,7 +18808,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
     )
 
   (test
@@ -18666,7 +18827,10 @@ groups than for single tests.
       "circuit f(b: Boolean, a: Accumulator): Accumulator { return b ? id(a) : a; }"
       "export circuit main(): [] { }"
       )
-    (succeeds))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 68" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 61")))
+    )
 
   (test
     '(
@@ -18675,7 +18839,10 @@ groups than for single tests.
       "circuit f(b: Boolean, a: Accumulator): Accumulator { if (b) { return a; } return id(a); }"
       "export circuit main(): [] { }"
       )
-    (succeeds))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 70" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 54")))
+    )
 
   (test
     '(
@@ -18722,7 +18889,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 79" "Accumulator ~s is used on some paths through this if but not on others" (a1)))
+      irritants: '("testfile.compact line 3 char 83" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a1 "line 3 char 79")))
     )
 
   (test
@@ -18734,7 +18901,98 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 39" "Accumulator ~s is never used on the path through the return at ~a" (c "line 3 char 79")))
+      irritants: '("testfile.compact line 3 char 86" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 70")))
+    )
+
+  ;; a return inside an anonymous circuit called on the spot returns from it
+  ;; alone, so the checks go on after the call
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(): Accumulator;"
+      "circuit f(): [] { ((): [] => { return; })(); verifyAccumulator(disclose(w())); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 73" "an Accumulator returned by a witness can only be used among the public inputs of prepareVerification, not ~a" ("passed to verifyAccumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { const b = ((y: Accumulator): Accumulator => { return y; })(a); verifyAccumulator(b); verifyAccumulator(b); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 136" "Accumulator ~s is used more than once" (b)))
+    )
+
+  ;; and an Accumulator bound outside it need not be used before it returns
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { ((): [] => { return; })(); verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(((x: Accumulator): Accumulator => ((y: Accumulator): Accumulator => { return y; })(x))(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  ;; a branch cannot use an Accumulator bound outside its if, even in one
+  ;; branch where the use would be sound
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { verifyAccumulator(a); } }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 2 char 45")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): Accumulator { return ((x: Accumulator): Accumulator => { if (c) { return x; } return x; })(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 113" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (x "line 2 char 97")))
+    )
+
+  ;; the code after an early return becomes the if's other branch
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { return; } verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 82" "Accumulator ~s is bound before the if at ~a, which can return early, so the code after that if cannot use it" (a "line 2 char 45")))
+    )
+
+  ;; when both branches return, an Accumulator bound before the if must be used
+  ;; before it
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { return; } else { return; } }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "Accumulator ~s is never used before the if at ~a, both of whose branches return" (a "line 2 char 45")))
     )
 
   (test
@@ -18830,30 +19088,6 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", p); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three arguments, received ~d" (4)))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
       "struct S { x: Field, b: Bytes<32> }"
       "circuit f(s: S, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", s, p); }"
       "export circuit main(): [] { }"
@@ -18861,54 +19095,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 64" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("struct S<x: Field, b: Bytes<32>>")))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification<2>(\"testfile.verifier\", [1 as Field], p); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(k: Bytes<17>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(k, [1 as Field], p); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"no-such.verifier\", [1 as Field], p); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "failed to locate verifying key file ~s" ("no-such.verifier")))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"empty.verifier\", [1 as Field], p); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s is empty" ("empty.verifier")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -18983,17 +19169,6 @@ groups than for single tests.
       "export circuit main(): [] { }"
       )
     (succeeds))
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a)); }"
-      "export circuit main(): [] { }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 51" "accumulate expects at least two arguments, received ~d" (1)))
-    )
 
   (test
     '(
@@ -31699,6 +31874,21 @@ groups than for single tests.
             (lookup (safe-cast (tunsigned 255) (tunsigned 7) 7))
             (lookup (safe-cast (tunsigned 255) (tunsigned 11) 11))))))
     )
+
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export sealed ledger s: Field;"
+      "circuit bump(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [bump()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f bump "modifies sealed field s" "line 4 char 25")))
+    ))
 )
 
 (run-tests reject-constructor-emit
@@ -31750,6 +31940,47 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
+
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit e(): Field { emit (ShieldedSpend { pad(32, 'a') }); return 1 as Field; }"
+      "constructor() { verifyAccumulator(prepareVerification(\"testfile.verifier\", [e()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 3 char 22")))
+    ))
+  )
+
+(run-tests reject-constructor-verify
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "constructor() { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot verify a proof but ~a at ~a" ("verifies a proof against \"testfile.verifier\"" "line 3 char 35")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p())); }"
+      "constructor() { check(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot verify a proof but calls (directly or indirectly) ~a, which ~a at ~a" (check "verifies a proof against \"testfile.verifier\"" "line 3 char 41")))
+    ))
   )
 
 (run-tests identify-pure-circuits
@@ -37901,6 +38132,20 @@ groups than for single tests.
        irritants: '("testfile.compact line 6 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 6 char 43")))
      ))
 
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "contract C { circuit get(): Field; }"
+      "constructor(c: C) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(c).get()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 4 char 92")))
+    ))
+
   (test-group
     ((create-file "C1.compact"
        '(
@@ -40116,6 +40361,66 @@ groups than for single tests.
         "}"))
     )
 
+  ;; a circuit whose only effect is verifying a proof, here through a called
+  ;; circuit, needs a proof of its own; a witness may return an Accumulator
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "witness w(): Accumulator;"
+      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(w())], p())); }"
+      "export circuit only_verify(): [] { check(); }"
+      )
+    ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+    ; lines to avoid hard-coding specific version strings into the test
+    (output-file "compiler/testdir/compiler/contract-info.json"
+      `(
+        "{"
+        ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+        ,(format "  \"language-version\": \"~a\"," language-version-string)
+        ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+        "  \"circuits\": ["
+        "    {"
+        "      \"name\": \"only_verify\","
+        "      \"pure\": false,"
+        "      \"proof\": true,"
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result-type\": {"
+        "        \"type-name\": \"Tuple\","
+        "        \"types\": ["
+        "        ]"
+        "      }"
+        "    }"
+        "  ],"
+        "  \"witnesses\": ["
+        "    {"
+        "      \"name\": \"p\","
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result type\": {"
+        "        \"type-name\": \"Opaque\","
+        "        \"tsType\": \"Uint8Array\""
+        "      }"
+        "    },"
+        "    {"
+        "      \"name\": \"w\","
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result type\": {"
+        "        \"type-name\": \"Accumulator\""
+        "      }"
+        "    }"
+        "  ],"
+        "  \"contracts\": ["
+        "  ],"
+        "  \"ledger\": ["
+        "  ]"
+        "}"))
+    ))
+
   (test-group
     ((create-file "C.compact"
        '(
@@ -42141,6 +42446,36 @@ groups than for single tests.
                 (public-ledger %field1.1 (0 ((tfield (field-native)) %tmp.9)) lookup
                   %tmp.8)))))))
     )
+
+  ;; inlining a circuit, unrolling a loop, or inlining a map body renames the
+  ;; variables in prepareVerification's public inputs too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit g(y: Uint<8>, q: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [disclose(y)], q); }"
+      "export circuit f(): [] { verifyAccumulator(g(3, p())); }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export circuit f(): [] { for (const i of 0..2) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [i], p())); } }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export circuit f(v: Vector<2, Field>): [] { const r = map((x: Field): [] => { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], p())); return []; }, v); }"
+      )
+    (succeeds)))
 )
 
 (run-tests discard-useless-code
@@ -61063,75 +61398,6 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "witness innerProof(): Opaque<'Uint8Array'>;"
-      "witness carried(): Accumulator;"
-      "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
-      "}"
-      )
-    (stage-javascript
-      `(
-        "test('a witness supplies the accumulator an inner proof carries', async () => {"
-        "  const p = new Uint8Array([1]);"
-        "  const encoding = Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));"
-        "  const [C, Ctxt] = await startContract(contractCode, {"
-        "    innerProof(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [wc.privateState, p]; },"
-        "    carried(wc: runtime.WitnessContext<{}, number>): [number, runtime.Accumulator] {"
-        "      return [wc.privateState, runtime.Accumulator.fromPublicInputs(encoding)];"
-        "    },"
-        "  }, 0);"
-        "  // provableCircuits skips the harness's ZKIR proof check, as above"
-        "  Ctxt.callContext.circuitId = 'main';"
-        "  const r = await C.provableCircuits.main(Ctxt);"
-        "  const data = r.context.callProofDataTrace.at(-1);"
-        "  expect(data?.innerProofs).toEqual([p]);"
-        "  // the carried accumulator's encoding, which the circuit reads, then the proof:"
-        "  // the public inputs come before the proof"
-        "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
-        "  expect(data?.privateTranscriptOutputs[0]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
-        "});"
-        ))
-    ))
-
- (with-compact-path '("test-center/fixtures/inner-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
-      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
-      "}"
-      "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
-      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
-      "  verifyAccumulator(accumulate(a, b, c));"
-      "}"
-      )
-    (stage-javascript
-      `(
-        "test('prepareVerification records the inner proofs a circuit verifies', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  // provableCircuits skips the harness's ZKIR proof check, which needs a zkir that"
-        "  // knows prepare_verification; it also leaves setting the circuit id to the caller"
-        "  const p = new Uint8Array([1]);"
-        "  const q = new Uint8Array([2]);"
-        "  const r = new Uint8Array([3]);"
-        "  Ctxt.callContext.circuitId = 'guarded';"
-        "  const on = await C.provableCircuits.guarded(Ctxt, true, p);"
-        "  expect(on.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p]);"
-        "  const off = await C.provableCircuits.guarded(Ctxt, false, p);"
-        "  expect(off.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([]);"
-        "  Ctxt.callContext.circuitId = 'three';"
-        "  const all = await C.provableCircuits.three(Ctxt, p, q, r);"
-        "  expect(all.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p, q, r]);"
-        "});"
-        ))
-    ))
-
   ; change: " --> ' for message of assert
   (test
     '(
@@ -62383,6 +62649,77 @@ groups than for single tests.
         "});"
         )))
 
+  ;; prepareVerification's runtime calls, with placeholder proofs: provableCircuits skips the
+  ;; harness's ZKIR proof check, and test-center stubs the runtime's inner-proof check
+  ;; (stub-inner-proof-check.ts), so neither check is exercised here
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('a witness supplies the accumulator an inner proof carries', async () => {"
+        "  const p = new Uint8Array([1]);"
+        "  const encoding = Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));"
+        "  const [C, Ctxt] = await startContract(contractCode, {"
+        "    innerProof(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [wc.privateState, p]; },"
+        "    carried(wc: runtime.WitnessContext<{}, number>): [number, runtime.Accumulator] {"
+        "      return [wc.privateState, runtime.Accumulator.fromPublicInputs(encoding)];"
+        "    },"
+        "  }, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check (the proofs are placeholders)"
+        "  Ctxt.callContext.circuitId = 'main';"
+        "  const r = await C.provableCircuits.main(Ctxt);"
+        "  const data = r.context.callProofDataTrace.at(-1);"
+        "  expect(data?.innerProofs).toEqual([p]);"
+        "  // the carried accumulator's encoding, which the circuit reads, then the proof:"
+        "  // the public inputs come before the proof"
+        "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
+        "  expect(data?.privateTranscriptOutputs[0]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
+        "});"
+        ))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(a, b, c));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('prepareVerification records the inner proofs a circuit verifies', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check (the proofs are placeholders)"
+        "  // and leaves setting the circuit id to the caller"
+        "  const p = new Uint8Array([1]);"
+        "  const q = new Uint8Array([2]);"
+        "  const r = new Uint8Array([3]);"
+        "  Ctxt.callContext.circuitId = 'guarded';"
+        "  const on = await C.provableCircuits.guarded(Ctxt, true, p);"
+        "  expect(on.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p]);"
+        "  const off = await C.provableCircuits.guarded(Ctxt, false, p);"
+        "  expect(off.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([]);"
+        "  Ctxt.callContext.circuitId = 'three';"
+        "  const all = await C.provableCircuits.three(Ctxt, p, q, r);"
+        "  expect(all.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p, q, r]);"
+        "});"
+        ))
+    ))
   )
 
 (run-tests save-manifest

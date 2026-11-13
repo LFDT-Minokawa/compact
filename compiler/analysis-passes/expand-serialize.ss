@@ -192,7 +192,7 @@
                        (with-output-language (Lnoserialize Expression)
                          `(field->bytes ,src ,len ,ftype ,expr))))
                    rta*)))]
-            [(taccumulator ,src^) (source-errorf src "serialization is not supported for type ~a" (format-type type))]
+            [(taccumulator ,src^) (internal-errorf 'expand-serialize "unexpected Accumulator; check-accumulator-usage rejects serialize of one")]
             [(tpoint ,src^ ,ctype)
              (source-errorf src "serialization is not yet supported for curve type ~a" (format-type type))]
             [(tunsigned ,src^ ,nat)
@@ -316,7 +316,7 @@
                          (+ i len)
                          `(cast-from-bytes ,src (tfield ,src ,ftype) ,len
                             (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len))))]
-                    [(taccumulator ,src^) (source-errorf src "deserialization is not supported for type ~a" (format-type type))]
+                    [(taccumulator ,src^) (internal-errorf 'expand-serialize "unexpected Accumulator; check-accumulator-usage rejects deserialize of one")]
                     [(tpoint ,src^ ,ctype)
                      (source-errorf src "deserialization is not yet supported for curve type ~a" (format-type type))]
                     [(tunsigned ,src^ ,nat)

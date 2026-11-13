@@ -208,7 +208,12 @@
           [else (register-descriptor! type)]))
       (define (get-descriptors)
         (let ([ldescriptor* (reverse rdescriptor*)])
-          (values (map car ldescriptor*) (map cdr ldescriptor*))))))
+          (values (map car ldescriptor*) (map cdr ldescriptor*)))))
+    ;; each distinct verifying key gets one id, so the TypeScript emits it once
+    (define vk-table (make-hashtable equal-hash equal?))
+    (define (register-vk! vk)
+      (let ([a (hashtable-cell vk-table (verifying-key-content vk) #f)])
+        (unless (cdr a) (set-cdr! a (make-temp-id program-src 'vk))))))
   (Program : Program (ir) -> Program ()
     [(program ,src (,[contract-type*] ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (fluid-let ([program-src src])
@@ -232,7 +237,7 @@
              `(tunsigned ,src ,(- (expt 2 128) 1))))
          (let-values ([(descriptor-id* type*) (get-descriptors)])
            `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...)
-              (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
+              (type-descriptors ,descriptor-table ,vk-table (,descriptor-id* ,type*) ...)
               ,pelt* ...))))])
   (Program-Element : Program-Element (ir) -> Program-Element ()
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[type])
@@ -342,12 +347,14 @@
         (maybe-register-descriptor! type)
         `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
     [(return ,src ,expr) (Expr expr)]
+    [(prepare-verification ,src ,vk (,[pubin*] ...) ,[expr])
+     (register-vk! vk)
+     `(prepare-verification ,src ,vk (,pubin* ...) ,expr)]
     [(emit ,src ,event-version ,event-tag ,len ,[expr] ,vm-code)
      (let ([type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))])
        (register-descriptor! type)
        `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code))])
-  ;; The runtime encodes each public input with its type's descriptor to build the
-  ;; instance it checks the inner proof against.
+  ;; the runtime builds the inner proof's instance from each public input's descriptor
   (Public-Input : Public-Input (ir) -> Public-Input ()
     [(pi-fields ,[expr] ,[type])
      (register-descriptor! type)

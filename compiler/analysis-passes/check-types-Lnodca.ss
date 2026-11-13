@@ -712,6 +712,7 @@
                       (format-type type)))
      (with-output-language (Lnodca Type) `(ttuple ,src))]
     [(prepare-verification ,src ,vk (,pubin* ...) ,[Care : expr2 -> * type2])
+     ;; keep in step with field-representable? in infer-types.ss and check-types-Linlined.ss
      (define (field-representable? type)
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tfield ,src1 (field-native)) #t]
@@ -728,13 +729,17 @@
             (let ([type (Care expr)])
               (unless (field-representable? type)
                 (source-errorf src "expected a public input of prepareVerification to hold only Field, Uint, and Boolean values, received ~a"
-                               (format-type type))))]
+                               (format-type type)))
+              ;; type^ is what the TypeScript encodes the instance with
+              (unless (same-type? type type^)
+                (source-errorf src "expected a public input of prepareVerification to have type ~a, received ~a"
+                               (format-type type^) (format-type type))))]
            [(pi-accumulator ,expr)
             (let ([type (Care expr)])
               (unless (nanopass-case (Lnodca Type) (de-alias type)
                         [(taccumulator ,src1) #t]
                         [else #f])
-                (source-errorf src "expected an accumulator public input of prepareVerification to have type Accumulator, received ~a"
+                (source-errorf src "expected the public input of prepareVerification to have type Accumulator, received ~a"
                                (format-type type))))]))
        pubin*)
      (unless (nanopass-case (Lnodca Type) (de-alias type2)

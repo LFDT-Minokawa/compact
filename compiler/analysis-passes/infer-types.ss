@@ -351,7 +351,7 @@
           (T type [(taccumulator ,src) #t]))))
     (define (verify-no-accumulator! src type fmt . arg*)
       (when (contains-accumulator? type)
-        (source-errorf src "~a cannot contain an Accumulator, but has type ~a"
+        (source-errorf src "~a cannot be or contain an Accumulator, but has type ~a"
                        (apply format fmt arg*)
                        (format-type type))))
     (define (verify-no-accumulator-args! what arg*)
@@ -1843,6 +1843,7 @@
      ;; each element of the public inputs is either an Accumulator the inner proof
      ;; carries or a value whose type flattens to native fields, one for each
      ;; Field, Uint, or Boolean it holds
+     ;; keep in step with field-representable? in check-types-Lnodca.ss and check-types-Linlined.ss
      (define (field-representable? type)
        (nanopass-case (Ltypes Type) (de-alias type #t)
          [(tfield ,src^ ,ftype)

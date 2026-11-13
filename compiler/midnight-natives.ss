@@ -39,7 +39,7 @@
   (TypeRef Accumulator))
 (declare-native-entry circuit verifyAccumulator
   "__compactRuntime.verifyAccumulator"
-  ([acc (TypeRef Accumulator) (discloses nothing)])
+  ([acc (TypeRef Accumulator) (discloses "an Accumulator derived from")])
   Void)
 
 ;; ==== Transient (Poseidon) hashing

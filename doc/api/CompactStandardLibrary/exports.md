@@ -1049,20 +1049,26 @@ verified until the accumulator reaches
 [`verifyAccumulator`](#verifyaccumulator), which exposes it so that the check
 happens when the transaction's own proof is verified.
 
-Each accumulator must be used exactly once on every path through a circuit.  An
-accumulator is used by:
+Each accumulator must be used exactly once.  An accumulator is used by:
 * binding it with `const`,
 * passing it to a circuit, to [`accumulate`](#accumulate), or to
   [`verifyAccumulator`](#verifyaccumulator),
 * returning it from a circuit that is not exported, or
-* yielding it from a branch of a conditional expression (`? :`).  The two
-  branches must use the same accumulators bound outside them.
+* yielding it from a branch of an `if` or a conditional expression (`? :`).
+
+A circuit computes both branches of an `if`, so a branch cannot use an
+accumulator bound outside the `if`; it can only use, or yield, accumulators it
+produces itself.  The code after a `return` inside an `if` counts as the other
+branch, so it cannot use them either: use such an accumulator before the `if`.
+When both branches of an `if` return, every accumulator bound before it must
+already be used.
 
 A witness may return an accumulator: the accumulator an inner proof carries
 (see [`prepareVerification`](#prepareverification)).  Such an accumulator can
 only be used as an element of a tuple literal passed as `prepareVerification`'s
 public inputs, which binds it to the inner proof, either directly or through
-`const` bindings and the branches of an `if`.  It cannot be passed to
+`const` bindings, the branches of an `if`, and anonymous circuits called on the
+spot.  It cannot be passed to
 `accumulate`, `verifyAccumulator`, or another circuit, nor returned: on its own
 it proves nothing, since a prover can always supply one that passes.
 Otherwise an accumulator cannot be stored in a ledger field, passed to a
@@ -1085,9 +1091,10 @@ verified only once that accumulator reaches
 It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
 `Accumulator`:
 
-* `vk` must be a string literal naming the inner proof's verifying key file.
-  The compiler finds the file along the compact path, as it finds imported
-  modules, reads it at compile time, and embeds the key in the circuit.
+* `vk` must be a string literal naming the inner proof's verifying key file,
+  whose name ends in `.verifier`.  The compiler looks for a relative name first
+  in the directory of the file containing the call, then along the compact path,
+  reads the file at compile time, and embeds the key in the circuit.
 * `publicInputs` are the inner proof's public inputs: any value made only of
   `Field`, `Uint`, and `Boolean` values, such as a tuple `[x, y]`, a
   `Vector<n, Field>`, or a structure.  Each `Field`, `Uint`, and `Boolean` is
@@ -1115,7 +1122,9 @@ const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], iv
 
 A circuit that calls `prepareVerification`, directly or through another
 circuit, is impure.  In a branch that is not taken, `prepareVerification`
-consumes no proof and its accumulator is trivially valid.
+consumes no proof and its accumulator is trivially valid.  A constructor cannot
+call it, directly or through another circuit: a constructor is not proved on
+chain, so the verification would never take effect.
 
 When the circuit runs, `prepareVerification` checks the proof against the key
 and the public inputs, final check included, and fails if the proof is

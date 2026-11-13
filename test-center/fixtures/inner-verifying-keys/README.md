@@ -8,3 +8,6 @@ through `--compact-path`.
   the compiler tests do not run `zkir`. Keeping it short keeps the expected ZKIR in the tests
   readable.
 - `empty.verifier` is empty, which `prepareVerification` rejects.
+- `symlink.verifier` is a symbolic link to `testfile.verifier`, which `prepareVerification`
+  rejects: a key file must not be a symbolic link. `../symlinked-verifying-keys` is a symbolic
+  link to this directory, through which keys are still found.

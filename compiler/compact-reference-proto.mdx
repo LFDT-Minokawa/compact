@@ -2310,6 +2310,7 @@ to be related.
 That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
 or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
 Otherwise, it is a static error.
+Neither operand of equals or not equals may be an `Accumulator`; that too is a static error.
 
 Less than, greater than, less than or equals, and greater than or equals require
 the types of *e<sub>1</sub>* and *e<sub>2</sub>* to be unsigned integer types.
@@ -2356,8 +2357,6 @@ has a specific structure type, so does the other.
   an additive identity point is equal only to another additive identity point;
   otherwise, the values are equal if their coordinates are equal.
   Other relational comparisons are not supported for these types.
-- **`Accumulator`**: accumulators cannot be compared; it is a static error to use
-  one as an operand of any relational operator.
 
 Otherwise the values are not equal.
 

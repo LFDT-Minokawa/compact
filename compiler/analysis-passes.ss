@@ -59,6 +59,8 @@
 
   (include "analysis-passes/reject-constructor-cc-calls.ss")
 
+  (include "analysis-passes/reject-constructor-verify.ss")
+
   (include "analysis-passes/identify-pure-circuits.ss")
 
   (include "analysis-passes/determine-ledger-paths.ss")
@@ -84,6 +86,7 @@
     (check-sealed-fields             Lnodca)
     (reject-constructor-emit         Lnodca)
     (reject-constructor-cc-calls     Lnodca)
+    (reject-constructor-verify       Lnodca)
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)

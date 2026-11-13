@@ -44,6 +44,7 @@
                       [(type*) (map arg->type local*)])
            `(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,(Expression expr p)))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
+      (Public-Input : Public-Input (ir p) -> Public-Input ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
     (define-record-type circuit
       (nongenerative)

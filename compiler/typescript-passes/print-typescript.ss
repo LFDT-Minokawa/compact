@@ -109,6 +109,10 @@
         (let ([a (eq-hashtable-cell unique-id-names id #f)])
           (or (cdr a)
               (internal-errorf 'format-id-reference "format-internal-binding has not yet been called on ~s" id)))))
+    ;; maps the bytes of each verifying key to the id of the constant holding it
+    (define vk-table #f)
+    (define (vk-hex bytes)
+      (apply string-append "0x" (map (lambda (b) (format "~(~2,'0x~)" b)) (bytevector->u8-list bytes))))
     (define (format-function-reference src function-name)
       (format "this.~a" (format-id-reference function-name)))
     (define (arg->id arg)
@@ -1038,7 +1042,14 @@
                      n (max 1 (byte-length n))))]
                 [(tunknown) (assert cannot-happen)]
                 [else (assert cannot-happen)]))))
-        (for-each print-descriptor descriptor-id* type*))
+        (for-each print-descriptor descriptor-id* type*)
+        (for-each
+          (lambda (a)
+            (printf "const ~a = ~a;\n\n"
+              (format-internal-binding unique-global-name (cdr a))
+              (format-javascript-string (vk-hex (car a)))))
+          (sort (lambda (a b) (< (id-uniq (cdr a)) (id-uniq (cdr b))))
+                (vector->list (hashtable-cells vk-table)))))
 
       (module (print-contract-class)
         (define (ledger-initializers src state pl-array q*)
@@ -2324,11 +2335,11 @@
         [else #f]))
     )
   (Program : Program (ir) -> Program ()
-    [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
+    [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ ,vk-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
      (let* ([xpelt* (maplr (lambda (x) (Program-Element x (map cons export-name* name*))) pelt*)]
             [uname* (maplr xpelt->uname xpelt*)])
        (print-contract.d.ts src xpelt* uname*)
-       (fluid-let ([descriptor-table descriptor-table^])
+       (fluid-let ([descriptor-table descriptor-table^] [vk-table vk-table^])
          (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)))
      ir])
   (Program-Element : Program-Element (ir export-alist) -> * (xpelt)
@@ -3146,14 +3157,9 @@
               0 "})")))]
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])]
-    ;; Lower prepareVerification(vk, publicInputs, proof) to
-    ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', [publicInput, ...], proof)
-    ;; which checks the inner proof and records it as the next inner proof the circuit
-    ;; consumes.  The key goes out as the hex of the same bytes the circuit's inner_vks
-    ;; holds.  Each public input other than an accumulator goes out encoded by its
-    ;; type's descriptor, one atom per field of the instance, in the order the circuit
-    ;; lays them out.  An accumulator goes out as is: a witness's result is checked
-    ;; where the witness returns it.
+    ;; prepareVerification(vk, publicInputs, proof) becomes
+    ;;   __compactRuntime.prepareVerification(partialProofData, _vk_N, [publicInput, ...], proof)
+    ;; with each public input but an accumulator encoded by its type's descriptor.
     [(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
      (let* ([pi* (maplr (lambda (pubin)
                           (nanopass-case (Ltypescript Public-Input) pubin
@@ -3172,10 +3178,7 @@
            "("
            (apply (make-Qsep ",")
               "partialProofData"
-              (format-javascript-string
-                (apply string-append "0x"
-                  (map (lambda (b) (format "~(~2,'0x~)" b))
-                       (bytevector->u8-list (verifying-key-content vk)))))
+              (format-id-reference (hashtable-ref vk-table (verifying-key-content vk) #f))
               (make-Qconcat "[" (apply (make-Qsep ",") pi*) "]")
               (list proof))
            ")")))])

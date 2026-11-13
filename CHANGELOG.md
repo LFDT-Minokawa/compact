@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@midnightntwrk/zkir-v3`, so a bad inner proof is refused before it reaches a
   proof server.
 
+### Changed
+
+- The standard library now exports `Accumulator`, `prepareVerification`,
+  `accumulate`, and `verifyAccumulator`.  A contract that imports
+  `CompactStandardLibrary` and also defines one of these names at its top level
+  no longer compiles; rename its own definition.
+
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 
 ### Fixed

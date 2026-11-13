@@ -26,9 +26,8 @@
         [else (assert cannot-happen)]))
     (define (alignment->vector alignment*)
       (list->vector (map alignment-atom->alist alignment*)))
-    ;; The inner verifying keys a circuit's prepare_verification instructions name,
-    ;; in first-use order.  zkir rejects a duplicated or unused entry, so each key
-    ;; appears once, and the table is collected per circuit as its instructions print.
+    ;; the keys a circuit's prepare_verification instructions name, once each in first-use
+    ;; order since zkir rejects duplicates, collected as the circuit's instructions print
     (define inner-vk*)
     (define (inner-vk-hash vk)
       (let ([content (verifying-key-content vk)])
@@ -112,17 +111,6 @@
   (Instruction : Instruction (ir) -> * (json)
     [(accumulate ,[* outp] ,[* inp*] ...)
      `((op . "accumulate") (inputs . ,(list->vector inp*)) (output . ,outp))]
-    [(inner_proof ,[* outp] ,[* inp])
-     `((op . "inner_proof") (guard . ,inp) (output . ,outp))]
-    [(prepare_verification ,[* outp] ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
-     `((op . "prepare_verification")
-       (guard . ,inp0)
-       (vk_hash . ,(inner-vk-hash vk))
-       (instance . ,(list->vector inp*))
-       (proof . ,inp1)
-       (output . ,outp))]
-    [(verify_accumulator ,[* inp])
-     `((op . "verify_accumulator") (input . ,inp))]
     [(add ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(assert ,[* inp])
@@ -160,6 +148,8 @@
      `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
     [(impact ,[* inp] ,[* inp*] ...)
      `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
+    [(inner_proof ,[* outp] ,[* inp])
+     `((op . "inner_proof") (guard . ,inp) (output . ,outp))]
     [(into_coordinates ,outp0 ,outp1 ,[* inp])
      (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
        `((op . "into_coordinates") (outputs . ,(vector outp0 outp1)) (point . ,inp)))]
@@ -185,6 +175,13 @@
     [(persistent_hash ,[* outp] (,alignment* ...) ,[* inp*] ...)
      `((op . "persistent_hash") (output . ,outp)
        (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
+    [(prepare_verification ,[* outp] ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
+     `((op . "prepare_verification")
+       (guard . ,inp0)
+       (vk_hash . ,(inner-vk-hash vk))
+       (instance . ,(list->vector inp*))
+       (proof . ,inp1)
+       (output . ,outp))]
     [(private_input ,zkir-type ,[* outp])
      ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
      ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
@@ -212,7 +209,9 @@
     [(to_bytes ,[* outp] ,[* inp])
      `((op . "to_bytes") (output . ,outp) (input . ,inp))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
-     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))])
+     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))]
+    [(verify_accumulator ,[* inp])
+     `((op . "verify_accumulator") (input . ,inp))])
   (Input : Input (ir) -> * (json)
     (,fr (zkir-field-rep->string fr))
     (,var-name (var->string var-name)))
