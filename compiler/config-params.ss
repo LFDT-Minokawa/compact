@@ -38,4 +38,6 @@
   (export-parameter trace-passes #f)
 
   (export-parameter trace-search #f)
+
+  (export-parameter write-analyzed-ir #f)
 )
