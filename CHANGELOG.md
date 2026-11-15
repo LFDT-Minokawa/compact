@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- The compiler's check that exported circuits cannot modify `sealed` ledger
+  fields now looks inside tuple and vector literals and the arguments of `map`
+  and `fold`, including `for` loops over a computed vector.  Fixes issue
+  [#932](https://github.com/LFDT-Minokawa/compact/issues/932).
+
 ## [Toolchain 0.36.105, language 0.28.0, runtime 0.21.102]
 
 ### Fixed
