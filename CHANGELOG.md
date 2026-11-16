@@ -12,29 +12,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Circuits can verify other proofs.  The standard library has a new type
   `Accumulator` and new circuits `prepareVerification`, `accumulate`, and
   `verifyAccumulator`.  `prepareVerification(vk, publicInputs, proof)`
-  partially verifies an inner proof against a verifying key that the compiler
-  reads from a file at compile time, and returns an `Accumulator` holding the
-  proof's deferred final check.  `accumulate` combines any number of
-  accumulators into one, and `verifyAccumulator` exposes an accumulator so that
-  it is checked when the transaction's own proof is verified.  Each accumulator
-  must be used exactly once on every path through a circuit, and the compiler
-  reports one that is dropped or used twice.  An inner proof that carries an
-  accumulator of its own, because it verified proofs itself, is verified by
-  passing that accumulator, typically returned by a witness, as an element of
-  the public inputs.  An accumulator returned by a witness can only be used
-  that way.  The public inputs may be any value made of `Field`, `Uint`, and
-  `Boolean` values, such as a tuple, vector, or structure.
+  partially verifies an inner proof against a verifying key read from a file
+  at compile time and returns an `Accumulator` holding its final check;
+  `accumulate` combines accumulators, and `verifyAccumulator` exposes one to be
+  checked with the transaction's own proof.  An inner proof that carries an
+  accumulator is verified by passing that accumulator, from a witness, in its
+  public inputs.  The standard library documentation gives the full rules;
+  among them:
+  - each accumulator is used exactly once, and a branch of an `if`, or the code
+    after a `return` inside one, cannot use one bound outside it;
+  - the key file is a regular `.verifier` file of at most 1 MiB, resolved
+    first from the directory of the file containing the call;
+  - a constructor cannot call `prepareVerification`;
+  - public inputs derived from witness data must be wrapped in `disclose`, and
+    calling `prepareVerification` under a witness-dependent condition
+    discloses that condition.
 
-  **Proving a circuit that uses these features requires ZKIR and ledger
-  releases that support in-circuit proof verification.**
+  **Circuits compiled with this version, whether or not they verify proofs,
+  need ZKIR and ledger releases, and a proof server built on them, that
+  support in-circuit proof verification.**
 
-- The JavaScript runtime records the inner proofs a circuit verifies in a new
-  `innerProofs` field of `PartialProofData`, and has new functions
-  `prepareVerification`, `accumulate`, and `verifyAccumulator` for the
-  generated code to call.  `prepareVerification` checks each inner proof when
-  the circuit runs, with `checkInnerProof` from the runtime's new dependency
-  `@midnightntwrk/zkir-v3`, so a bad inner proof is refused before it reaches a
-  proof server.
+- The runtime has new functions `prepareVerification`, `accumulate`, and
+  `verifyAccumulator`, records the inner proofs a circuit verifies in a new
+  `innerProofs` field of `PartialProofData`, and checks each one when the
+  circuit runs, with its new dependency `@midnightntwrk/zkir-v3`.  Pass
+  `innerProofs` as the last argument of `proofDataIntoSerializedPreimage`: the
+  parameter is optional, so leaving it out type-checks but proving fails.
 
 ### Changed
 
@@ -42,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `accumulate`, and `verifyAccumulator`.  A contract that imports
   `CompactStandardLibrary` and also defines one of these names at its top level
   no longer compiles; rename its own definition.
+
+- The runtime pulls in `@midnightntwrk/onchain-runtime-v5`, so the ledger
+  types it re-exports, such as `StateValue` and `ContractState`, must be built
+  with v5 rather than v4.
 
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 

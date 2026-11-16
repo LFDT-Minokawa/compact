@@ -1122,6 +1122,11 @@ its check happens too:
 const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], ivcProof());
 ```
 
+The accumulator's position in `publicInputs` must match the inner circuit's
+instance.  A proof of a Compact circuit that calls `verifyAccumulator` carries it
+first, ahead of the circuit's other public inputs; the example above assumes an
+inner circuit that carries it last.
+
 A circuit that calls `prepareVerification`, directly or through another
 circuit, is impure.  In a branch that is not taken, `prepareVerification`
 consumes no proof and its accumulator is trivially valid.  A constructor cannot
