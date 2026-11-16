@@ -279,10 +279,6 @@ Deserialization allows non-canonical representations for, e.g., field values.
 This makes them agree with the `Bytes` casts.
 If we want to break this, then we have potentially less efficient deserialization in circuit.]
 
-### Signatures
-
-Propose dropping the size parameter from `serialize` and `deserialize`.
-
 ### Runtime Support
 
 Propose adding `serialize` and `deserialize` methods to descriptors.
@@ -328,11 +324,11 @@ The types occurring in `T` are `T` itself and, recursively, the types of its ele
 For version 1.0, every type with a raw serialized representation has version 1.0.
 
 **Writing version bytes.**
-`serialize<T>` writes the version of `T` as its version bytes,
+`serialize<T, N>` writes the version of `T` as its version bytes,
 whatever the minor version of the compiler that produced it.
 
 **Reading version bytes.**
-`deserialize<T>` fails unless its argument's version bytes are exactly the version of `T`.
+`deserialize<T, N>` fails unless its argument's version bytes are exactly the version of `T`.
 It then deserializes the raw serialized representation that follows.
 
 These rules have the following consequences:
@@ -364,48 +360,48 @@ These are the types that contain no contract types and no opaque types.
 
 Throughout this section, `T` is a serializable type,
 `N` is the size of its raw serialized representation,
-and so its serialized size is `N + 2`.
-For a serialized value `b` of type `Bytes<N + 2>`,
+and so its serialized size is `N+2`.
+For a serialized value `b` of type `Bytes<N+2>`,
 `slice<N>(b, 2)` is its raw serialized representation without the version bytes.
 
 All of these invariants hold both for JavaScript execution and in circuit.
-Moreover, JavaScript execution and circuit execution of `serialize<T>` and `deserialize<T>` agree:
+Moreover, JavaScript execution and circuit execution of `serialize<T, N+2>` and `deserialize<T, N+2>` agree:
 they produce the same results for the same arguments,
-and `deserialize<T>` fails in one exactly when it fails in the other.
+and `deserialize<T, N+2>` fails in one exactly when it fails in the other.
 
 #### Round tripping
 
 For all values `x` of type `T`:
 
 ```
-deserialize<T>(serialize<T>(x)) == x
+deserialize<T, N+2>(serialize<T, N+2>(x)) == x
 ```
 
-`deserialize<T>(b)` fails if the version bytes of `b` are not the version of `T`,
+`deserialize<T, N+2>(b)` fails if the version bytes of `b` are not the version of `T`,
 or if its raw serialized representation is rejected by the rules for `T`.
-Otherwise we say that `b` is **accepted** by `deserialize<T>`.
+Otherwise we say that `b` is **accepted** by `deserialize<T, N+2>`.
 
 An accepted serialized value `b` is **canonical** for `T` if:
 
 ```
-serialize<T>(deserialize<T>(b)) == b
+serialize<T, N+2>(deserialize<T, N+2>(b)) == b
 ```
 
-Every serialized value produced by `serialize<T>` is canonical.
+Every serialized value produced by `serialize<T, N+2>` is canonical.
 Some accepted serialized values are not:
 the rules for some atomic types accept more than one raw serialized representation of the same value,
 for example a `Field` whose encoded integer is at least the field order.
 The rules for each atomic type say whether it has non-canonical representations.
 A serialized value of a compound type is canonical if and only if the raw serialized representations of all of its parts are canonical.
 
-For a value `x` of type `T`, `serialize<T>(x)` is the unique canonical serialized value `b` with `deserialize<T>(b) == x`.
+For a value `x` of type `T`, `serialize<T, N+2>(x)` is the unique canonical serialized value `b` with `deserialize<T, N+2>(b) == x`.
 
 #### Serialization and hashing
 
 For all values `x` of type `T`:
 
 ```
-persistentHash<T>(x) == persistentHash<Bytes<N>>(slice<N>(serialize<T>(x), 2))
+persistentHash<T>(x) == persistentHash<Bytes<N>>(slice<N>(serialize<T, N+2>(x), 2))
 ```
 
 and for all byte vectors `v` of type `Bytes<N>`,
@@ -428,14 +424,14 @@ The same invariants hold for `keccak256` and `sha512`,
 which hash the raw serialized representation with Keccak-256 and SHA-512 respectively:
 
 ```
-keccak256<T>(x) == keccak256<Bytes<N>>(slice<N>(serialize<T>(x), 2))
-sha512<T>(x)    == sha512<Bytes<N>>(slice<N>(serialize<T>(x), 2))
+keccak256<T>(x) == keccak256<Bytes<N>>(slice<N>(serialize<T, N+2>(x), 2))
+sha512<T>(x)    == sha512<Bytes<N>>(slice<N>(serialize<T, N+2>(x), 2))
 ```
 
 They also hold for `persistentCommit`, for every opening `rand` of type `Bytes<32>`:
 
 ```
-persistentCommit<T>(x, rand) == persistentCommit<Bytes<N>>(slice<N>(serialize<T>(x), 2), rand)
+persistentCommit<T>(x, rand) == persistentCommit<Bytes<N>>(slice<N>(serialize<T, N+2>(x), 2), rand)
 ```
 
 As for `persistentHash`, these functions are defined in terms of the raw serialized representations of major version 1,
@@ -443,20 +439,20 @@ and do not depend on `T` except through the raw serialized representation of the
 
 #### Deserialization and hashing
 
-For all serialized values `b` accepted by `deserialize<T>`:
+For all serialized values `b` accepted by `deserialize<T, N+2>`:
 
 ```
-persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(serialize<T>(deserialize<T>(b)), 2))
+persistentHash<T>(deserialize<T, N+2>(b)) == persistentHash<Bytes<N>>(slice<N>(serialize<T, N+2>(deserialize<T, N+2>(b)), 2))
 ```
 
-This follows from the previous hashing invariant where `x` is `deserialize<T>(b)`.
+This follows from the previous hashing invariant where `x` is `deserialize<T, N+2>(b)`.
 If `b` is canonical for `T`, then also:
 
 ```
-persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(b, 2))
+persistentHash<T>(deserialize<T, N+2>(b)) == persistentHash<Bytes<N>>(slice<N>(b, 2))
 ```
 
-This follows from replacing `serialize<T>(deserialize<T>(b))` with `b` on the right-hand side,
+This follows from replacing `serialize<T, N+2>(deserialize<T, N+2>(b))` with `b` on the right-hand side,
 because `b` is canonical.
 If `b` is not canonical, this second equation does not hold in general.
 
@@ -472,7 +468,7 @@ The same holds for `persistentCommit` (with the same opening on both sides), `ke
 These invariants do not apply to `transientHash`.
 `transientHash` is defined on the field representation of a value's ledger serialization,
 not on its raw serialized representation,
-and `transientHash<T>(x)` is in general not equal to the transient hash of `serialize<T>(x)` or of its raw serialized representation.
+and `transientHash<T>(x)` is in general not equal to the transient hash of `serialize<T, N+2>(x)` or of its raw serialized representation.
 
 ### Raw serialized representations
 
