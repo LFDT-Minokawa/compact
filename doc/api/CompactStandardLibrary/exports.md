@@ -67,7 +67,7 @@ point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrver
 ```compact
 struct JubjubSchnorrSignature {
   announcement: JubjubPoint;
-  response: Field;
+  response: JubjubScalar;
 }
 ```
 
@@ -956,6 +956,12 @@ as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsi
 and a verification key (a [`JubjubPoint`](#jubjubpoint) on the embedded curve).
 Asserts that the verification key is not the identity (default) JubjubPoint, which is not permitted because it would make verification independent of the message.
 Returns true if the signature is valid; false otherwise.
+
+The `response` of a signature is a `JubjubScalar`, so each valid signature has
+exactly one accepted value.
+A contract that accepts a signed authorization only once should nevertheless
+include a nonce in the signed message and record that nonce, since a signer
+can sign the same message again with a different announcement.
 
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.

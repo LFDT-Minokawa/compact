@@ -18534,7 +18534,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (jubjubSchnorrVerify #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: JubjubPoint, response: Field>, Bytes<32>)\n      declared argument types for function at <standard library>:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: JubjubPoint, response: Field>, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (jubjubSchnorrVerify #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: JubjubPoint, response: JubjubScalar>, Bytes<32>)\n      declared argument types for function at <standard library>:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: JubjubPoint, response: JubjubScalar>, JubjubPoint)" #f)))
     )
 
   (test

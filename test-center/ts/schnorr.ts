@@ -45,6 +45,22 @@ test('Tampered signature fails in-circuit verification', async () => {
   expect((await c.circuits.verifySchnorrN3(Ctxt, msg, badSig, pk)).result).toBe(false);
 });
 
+test('Response at or above the scalar order is not a signature', async () => {
+  const sk = runtime.jubjubSampleScalar();
+  const pk = runtime.jubjubSchnorrVerifyingKey(sk);
+  const msg = sampleMsg();
+
+  const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
+
+  // Every `response + k * order` below the native field modulus reduces to the same scalar.
+  for (let k = 1n; k < 8n; k++) {
+    const aliasSig = { ...sig, response: sig.response + k * runtime.JUBJUB_SCALAR_MODULUS };
+    const [c, Ctxt] = await startContract(contractCode, {}, 0);
+    await expect(c.circuits.verifySchnorrN3(Ctxt, msg, aliasSig, pk)).rejects.toThrow(runtime.CompactError);
+    await expect(c.circuits.verifySchnorrN3(Ctxt, msg, aliasSig, pk)).rejects.toThrow('struct JubjubSchnorrSignature<announcement: JubjubPoint, response: JubjubScalar>');
+  }
+});
+
 test('Cannot use identity point as a verification key', async () => {
   const sk = runtime.jubjubSampleScalar();
   const identity = {x: 0n, y: 1n};
