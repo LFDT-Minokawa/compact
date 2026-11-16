@@ -373,7 +373,7 @@ Moreover, JavaScript execution and circuit execution of `serialize<T>` and `dese
 they produce the same results for the same arguments,
 and `deserialize<T>` fails in one exactly when it fails in the other.
 
-#### Round trip
+#### Round tripping
 
 For all values `x` of type `T`:
 
@@ -449,14 +449,17 @@ For all serialized values `b` accepted by `deserialize<T>`:
 persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(serialize<T>(deserialize<T>(b)), 2))
 ```
 
-This follows from the previous invariant.
+This follows from the previous hashing invariant where `x` is `deserialize<T>(b)`.
 If `b` is canonical for `T`, then also:
 
 ```
 persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(b, 2))
 ```
 
+This follows from replacing `serialize<T>(deserialize<T>(b))` with `b` on the right-hand side,
+because `b` is canonical.
 If `b` is not canonical, this second equation does not hold in general.
+
 A program that deserializes a value from bytes it did not produce itself,
 and that hashes or compares those bytes,
 should hash or compare the deserialized value (or its re-serialization) rather than the bytes it received,
