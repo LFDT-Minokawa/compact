@@ -23,6 +23,15 @@
   };
 
   inputs = {
+    # fenix dropped x86_64-darwin in e659899 (2026-09-28); pin to a rev before that.
+    # This is the revision of the last good x86_64-darwin build on our CI.  There
+    # are newer revisions than this before 2026-09-28 but they are not known good.
+    # This freezes zkir-v3's Rust toolchain at whatever stable version that fenix
+    # revision pulled in.
+    fenix-zkir = {
+      url = "github:nix-community/fenix/c957e2d0e505ad7be04c7f2f2f3d7885fb9e242c";
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
+    };
     onchain-runtime-v5 = {
       # dependency for Compact runtime release; the midnight-ledger commit the pinned
       # zkir (iquerejeta/pass-zkir-v3) builds against (merge of #791), whose
@@ -32,12 +41,11 @@
     zkir-v3 = {
       # zkir-v3: the key-generation binary for v3 IR format, and the zkir-wasm package
       # the runtime checks inner proofs with and test-center runs v3 IR with
-      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof, no witness for a guarded-off inner_proof).
+      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof, no witness for a
+      # guarded-off inner_proof), which includes zkir-3.2.1 and so the #616 fix.
       url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
-      # zkir builds with fenix's Rust toolchain, and fenix brings its own nixpkgs-unstable,
-      # which has dropped x86_64-darwin; build it from 26.05 too.
-      inputs.fenix.inputs.nixpkgs.follows = "nixpkgs-zkir";
+      inputs.fenix.follows = "fenix-zkir";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -209,7 +217,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.103"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.107"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

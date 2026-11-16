@@ -15,5 +15,5 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// Pure, but the key type and the hash both need the flag.
+// Pure, so no keys are generated.
 export default defineCompileTest(import.meta.url);

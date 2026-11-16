@@ -195,8 +195,7 @@ export const CompactTypeCurve25519Point: CompactType<Curve25519Point> = {
   // One base containing the x cordinate
   // One base containing the y cordinate
   alignment(): ocrt.Alignment {
-    return CompactTypeCurve25519Base.alignment()
-      .concat(CompactTypeCurve25519Base.alignment());
+    return CompactTypeCurve25519Base.alignment().concat(CompactTypeCurve25519Base.alignment());
   },
   fromValue(value: ocrt.Value): Curve25519Point {
     if (value.length < 4) {
@@ -208,8 +207,7 @@ export const CompactTypeCurve25519Point: CompactType<Curve25519Point> = {
     return { x: x, y: y };
   },
   toValue(value: Curve25519Point): ocrt.Value {
-    return CompactTypeCurve25519Base.toValue(value.x)
-      .concat(CompactTypeCurve25519Base.toValue(value.y));
+    return CompactTypeCurve25519Base.toValue(value.x).concat(CompactTypeCurve25519Base.toValue(value.y));
   },
 };
 
@@ -400,9 +398,7 @@ export const CompactTypeAccumulator: CompactType<Accumulator> = {
     if (value.length < ACCUMULATOR_PUBLIC_INPUTS) {
       throw new CompactError('expected Accumulator');
     }
-    return Accumulator.fromPublicInputs(
-      value.splice(0, ACCUMULATOR_PUBLIC_INPUTS).map((field) => ocrt.valueToBigInt([field])),
-    );
+    return Accumulator.fromPublicInputs(value.splice(0, ACCUMULATOR_PUBLIC_INPUTS).map((field) => ocrt.valueToBigInt([field])));
   },
   toValue(value: Accumulator): ocrt.Value {
     if (value.publicInputs === undefined) {
@@ -443,9 +439,9 @@ class ForeignField8_24 implements CompactType<bigint> {
     if (low192 >= 1n << 192n) {
       throw new CompactError(`expected ${this.name}`);
     }
-    let res = high64 << 192n | low192;
+    let res = (high64 << 192n) | low192;
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == this.max) ? 0n : res + 1n;
+    res = res == this.max ? 0n : res + 1n;
     if (res > this.max) {
       throw new CompactError(`expected ${this.name}`);
     }
@@ -457,46 +453,40 @@ class ForeignField8_24 implements CompactType<bigint> {
       throw new CompactError(`expected ${this.name}`);
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? this.max : value - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
-      .concat(ocrt.bigIntToValue(value >> 192n));
+    value = value == 0n ? this.max : value - 1n;
+    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n)).concat(ocrt.bigIntToValue(value >> 192n));
   }
 }
 
 /**
  * Runtime type of the standard library's `Secp256k1Base` type
  */
-export const CompactTypeSecp256k1Base: CompactType<bigint> =
-  new ForeignField8_24(MAX_SECP256K1_BASE, 'Secp256k1Base');
+export const CompactTypeSecp256k1Base: CompactType<bigint> = new ForeignField8_24(MAX_SECP256K1_BASE, 'Secp256k1Base');
 
 /**
  * Runtime type of the standard library's `Secp256k1Scalar` type
  */
-export const CompactTypeSecp256k1Scalar: CompactType<bigint> =
-  new ForeignField8_24(MAX_SECP256K1_SCALAR, 'Secp256k1Scalar');
+export const CompactTypeSecp256k1Scalar: CompactType<bigint> = new ForeignField8_24(MAX_SECP256K1_SCALAR, 'Secp256k1Scalar');
 
 /**
  * Runtime type of the standard library's `Secp256r1Base` type
  */
-export const CompactTypeSecp256r1Base: CompactType<bigint> =
-  new ForeignField8_24(MAX_SECP256R1_BASE, 'Secp256r1Base');
+export const CompactTypeSecp256r1Base: CompactType<bigint> = new ForeignField8_24(MAX_SECP256R1_BASE, 'Secp256r1Base');
 
 /**
  * Runtime type of the standard library's `Secp256r1Scalar` type
  */
-export const CompactTypeSecp256r1Scalar: CompactType<bigint> =
-  new ForeignField8_24(MAX_SECP256R1_SCALAR, 'Secp256r1Scalar');
+export const CompactTypeSecp256r1Scalar: CompactType<bigint> = new ForeignField8_24(MAX_SECP256R1_SCALAR, 'Secp256r1Scalar');
 
 /**
  * Runtime type of the standard library's `Curve25519Base` type
  */
-export const CompactTypeCurve25519Base: CompactType<bigint> =
-  new ForeignField8_24(MAX_CURVE25519_BASE, 'Curve25519Base');
+export const CompactTypeCurve25519Base: CompactType<bigint> = new ForeignField8_24(MAX_CURVE25519_BASE, 'Curve25519Base');
 
 // The Curve25519Scalar field is encoded as 5 51-bit limbs, packed into the low
 // 4 limbs (204 bits) and the high limb (51 bits).  This implementation is like
 // ForeignField8_24 with different size parameters.
-export const CompactTypeCurve25519Scalar : CompactType<bigint> = {
+export const CompactTypeCurve25519Scalar: CompactType<bigint> = {
   alignment(): ocrt.Alignment {
     // One native field containing the low-order 204 bits.
     // One native field containing the high-order 51 bits.
@@ -516,9 +506,9 @@ export const CompactTypeCurve25519Scalar : CompactType<bigint> = {
     if (low204 >= 1n << 204n) {
       throw new CompactError('expected Curve25519Scalar');
     }
-    let res = high51 << 204n | low204;
+    let res = (high51 << 204n) | low204;
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_CURVE25519_SCALAR) ? 0n : res + 1n;
+    res = res == MAX_CURVE25519_SCALAR ? 0n : res + 1n;
     if (res > MAX_CURVE25519_SCALAR) {
       throw new CompactError('expected Curve25519');
     }
@@ -530,11 +520,10 @@ export const CompactTypeCurve25519Scalar : CompactType<bigint> = {
       throw new CompactError('expected Curve25519Scalar');
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_CURVE25519_SCALAR : value - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 204n) - 1n))
-      .concat(ocrt.bigIntToValue(value >> 204n));
+    value = value == 0n ? MAX_CURVE25519_SCALAR : value - 1n;
+    return ocrt.bigIntToValue(value & ((1n << 204n) - 1n)).concat(ocrt.bigIntToValue(value >> 204n));
   },
-}
+};
 
 /**
  * Runtime type of an enum with a given number of entries
@@ -770,8 +759,8 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
-        // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
-        // the unhashed payload).  There's no correct way to encode them here.
+      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+      // the unhashed payload).  There's no correct way to encode them here.
       case 'compress':
         throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
       case 'field': {

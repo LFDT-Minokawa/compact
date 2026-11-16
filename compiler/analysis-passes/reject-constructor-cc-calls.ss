@@ -95,6 +95,8 @@
                 elt-name
                 (name-of-contract type))))])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
+  (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
+  (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
   (Public-Input : Public-Input (ir function-name) -> Public-Input ())
   (Function : Function (ir function-name) -> Function ()
     [(fref ,src ,function-name)

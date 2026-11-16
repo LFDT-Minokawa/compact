@@ -181,9 +181,7 @@ describe('ModuleResolutionError shape', () => {
 
 describe('ModuleResolutionError.is', () => {
   test('recognizes its own instances', () => {
-    expect(ModuleResolutionError.is(new ModuleResolutionError(CONTEXT, { kind: 'OperationAbsent' }))).toEqual(
-      true,
-    );
+    expect(ModuleResolutionError.is(new ModuleResolutionError(CONTEXT, { kind: 'OperationAbsent' }))).toEqual(true);
   });
 
   test('does not recognize other errors or non-objects', () => {
