@@ -1842,13 +1842,16 @@ The return type of the constructor is always `[]`.
 Any attempt to return another type of value using `return` *expr*`;` where the
 type of *expr* is something other than `[]`, is a static error.
 
-The constructor cannot call, directly or indirectly, any operations that requires
-the contract to have already been initialized.
-Any attempt to do so is a static error.  The minimal set of these operations is
-`emit`, `minShielded`, `mintUnshielded`, `claimZswapCoinSpend`, `claimZswapCoinReceive`,
-`claimZswapNullifier`, `claimUnshieldedCoinSpend`, `incUnshieldedInputs`,
-`incUnshieldedOutputs`, `claimContractCall`, `checkpoint`, `kernel.self`,
-`createZswapInput`, and `createZswapOutput`.
+The constructor cannot call, directly or indirectly, any operation that requires
+contract's state to be initialized first. These operations are
+
+- emitting an event
+- calling a circuit from another contract
+- some ledger ADT operations (see [ledger data type documentation](ledger-adt)
+  for operations marked as `It cannot be called in a contract's constructor.`)
+- some native witnesses defined in Compact's standard library (see
+  [Compact standard library](compact-standard-library) for operations marked as
+  `It cannot be called in a contract's constructor.`).
 
 ## Circuit definitions
 

@@ -403,7 +403,7 @@
                          input-type*)
                        (expand-formatting (syntax->datum result-type-string))))
                    (paragraph (expand-formatting (syntax->datum doc-string)))))
-               (define (emit-function op-name input-name* input-type* result-type doc-string cond-str)
+               (define (emit-function op-name input-name* input-type* result-type doc-string constructor-ok? cond-str)
                  (paragraph "### ~a" op-name)
                  (code-block "compact"
                    (printf "~a(~{~a~^, ~}): ~a" op-name
@@ -414,7 +414,9 @@
                        input-name*
                        input-type*)
                      (format-compact-type result-type)))
-                 (paragraph (expand-formatting (syntax->datum doc-string)))
+                 (paragraph "~a~:[ It cannot be called in a contract's constructor.~;~]"
+                   (expand-formatting (syntax->datum doc-string))
+                   constructor-ok?)
                  (when cond-str
                    (paragraph "**~a**" cond-str))
                  (when (memq op-name read-op*)
@@ -439,7 +441,10 @@
                    [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                     (emit-js-function (datum op-name) (datum (input-name ...)) #'(input-type ...) (datum result-type-string) (datum doc-string) cond-str)]
                    [(function class op-name flag ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
-                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) cond-str)]
+                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string)
+                      (syntax-case #'flag (allowed-in-constructor)
+                        [(allowed-in-constructor b) (datum b)])
+                      cond-str)]
                    [else (syntax-error clause)]))
                (syntax-case clause (when)
                  [(when () clause) (function-clause #'clause #f)]
