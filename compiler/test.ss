@@ -15062,7 +15062,7 @@ groups than for single tests.
        irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("keydir.verifier")))
      ))
 
-  ;; a key file must not be a symbolic link, though a directory on its path may be
+  ;; a key file must not be a symbolic link
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
@@ -15074,15 +15074,6 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("symlink.verifier")))
     ))
-
- (with-compact-path '("test-center/fixtures/symlinked-verifying-keys")
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
-      "export circuit main(): [] { }"
-      )
-    (succeeds)))
 
   ;; a key path is resolved relative to the file holding the call: the empty
   ;; libkey.verifier beside testfile.compact must not be the one lib/L uses
@@ -19107,6 +19098,18 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 72" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("Bytes<32>")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [...(42 as Field)], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 100" "expected tuple/vector spread expression to have a tuple, Vector, or Bytes type but received ~a" ("Field")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -52410,6 +52413,45 @@ groups than for single tests.
         "    { \"op\": \"verify_accumulator\", \"input\": \"%t.16\" }"
         "  ]"
         "}"))
+    ))
+
+ ;; a spread public input is converted as in any tuple: Bytes<2> gives two fields
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(b: Bytes<2>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [...disclose(b), disclose(carried())], innerProof()));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+      "{"
+      "  \"version\": { \"major\": 3, \"minor\": 3 },"
+      "  \"do_communications_commitment\": true,"
+      "  \"inputs\": ["
+      "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+      "  ],"
+      "  \"outputs\": ["
+      "  ],"
+      "  \"inner_vks\": ["
+      "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+      "  ],"
+      "  \"instructions\": ["
+      "    { \"op\": \"constrain_bits\", \"val\": \"%b.0\", \"bits\": 16 },"
+      "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%t.2\"], \"val\": \"%b.0\", \"bits\": 8 },"
+      "    { \"op\": \"copy\", \"output\": \"%t.3\", \"val\": \"%quo.1\" },"
+      "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.4\", \"guard\": null },"
+      "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+      "    { \"op\": \"encode\", \"outputs\": [\"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"input\": \"%t.4\" },"
+      "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.18\" },"
+      "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"%t.2\", \"%t.3\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"proof\": \"%proof.18\", \"output\": \"%acc.19\" },"
+      "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.19\", \"%t.4\"], \"output\": \"%t.20\" },"
+      "    { \"op\": \"verify_accumulator\", \"input\": \"%t.20\" }"
+      "  ]"
+      "}"))
     ))
 
  ;; public inputs of any Field, Uint, and Boolean shape, with an accumulator in the

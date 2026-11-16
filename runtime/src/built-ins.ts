@@ -917,8 +917,9 @@ export async function prepareVerification(
   if (!(proof instanceof Uint8Array)) {
     throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
   }
-  // a copy, so the bytes recorded for the proof server are the ones checked
-  const recorded = proof.slice();
+  // a copy, so the bytes recorded for the proof server are the ones checked; a Buffer's
+  // slice() would share its memory
+  const recorded = Uint8Array.from(proof);
   const instance = innerProofInstance(publicInputs);
   if (instance !== undefined) {
     const zkir = await loadZkir();

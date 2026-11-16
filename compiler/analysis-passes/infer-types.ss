@@ -343,8 +343,9 @@
          (let ([type (Type ?type)])
            (verify-non-adt-type! ?src type ?fmt ?arg ...)
            type)]))
-    ;; An Accumulator lives only in a circuit's registers: it has no ledger,
-    ;; witness, or ABI representation, and it cannot sit inside an aggregate.
+    ;; An Accumulator lives only in a circuit's registers: it has no ledger or ABI
+    ;; representation, a witness may return one but not take one, and it cannot sit
+    ;; inside an aggregate.
     (define (contains-accumulator? type)
       (type-contains? type
         (lambda (type)

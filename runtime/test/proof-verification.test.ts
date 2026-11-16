@@ -51,7 +51,11 @@ describe('prepareVerification', () => {
     const p = new Uint8Array([1, 2, 3]);
     await compactRuntime.prepareVerification(proofData, VK, [field(1n)], p);
     p[0] = 9;
-    expect(proofData.innerProofs).toEqual([new Uint8Array([1, 2, 3])]);
+    // a Buffer's slice() would share its memory
+    const b = Buffer.from([4, 5, 6]);
+    await compactRuntime.prepareVerification(proofData, VK, [field(1n)], b);
+    b[0] = 9;
+    expect(proofData.innerProofs).toEqual([new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6])]);
   });
 
   test('rejects a proof that is not a Uint8Array', async () => {

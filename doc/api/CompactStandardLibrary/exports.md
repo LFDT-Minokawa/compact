@@ -1095,7 +1095,8 @@ It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
 * `vk` must be a string literal naming the inner proof's verifying key file,
   whose name ends in `.verifier`.  The compiler looks for a relative name first
   in the directory of the file containing the call, then along the compact path,
-  reads the file at compile time, and embeds the key in the circuit.
+  reads the file at compile time, and embeds the key in the circuit.  The file
+  must be a non-empty regular file, not a symbolic link, of at most 1 MiB.
 * `publicInputs` are the inner proof's public inputs: any value made only of
   `Field`, `Uint`, and `Boolean` values, such as a tuple `[x, y]`, a
   `Vector<n, Field>`, or a structure.  Each `Field`, `Uint`, and `Boolean` is
@@ -1126,6 +1127,12 @@ The accumulator's position in `publicInputs` must match the inner circuit's
 instance.  A proof of a Compact circuit that calls `verifyAccumulator` carries it
 first, ahead of the circuit's other public inputs; the example above assumes an
 inner circuit that carries it last.
+
+Pass a carried accumulator as an `Accumulator`, never as its fields.  The
+same values passed as `Field`s still match the inner proof's instance, so the
+proof verifies, but the accumulator is never accumulated and its check never
+happens.  The compiler cannot catch this, since a verifying key does not
+record whether its proof carries an accumulator.
 
 A circuit that calls `prepareVerification`, directly or through another
 circuit, is impure.  In a branch that is not taken, `prepareVerification`

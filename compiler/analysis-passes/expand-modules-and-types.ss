@@ -733,7 +733,10 @@
                            (map (lambda (tuple-arg)
                                   (nanopass-case (Lpreexpand Tuple-Argument) tuple-arg
                                     [(single ,src^ ,expr) expr]
-                                    [(spread ,src^ ,expr) expr]))
+                                    ;; [...e] on its own, so it is converted and checked as in any tuple
+                                    [(spread ,src^ ,expr)
+                                     (with-output-language (Lpreexpand Expression)
+                                       `(tuple ,src^ (spread ,src^ ,expr)))]))
                                 tuple-arg*)]
                           [else (list pi-expr)])])
           (with-output-language (Lexpanded Expression)
