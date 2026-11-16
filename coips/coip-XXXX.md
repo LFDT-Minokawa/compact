@@ -180,6 +180,19 @@ The format is designed to be efficient in circuit.
 It agrees with Compact `Bytes` casts where they are available.
 The format is versioned, with major and minor versions.
 
+[Say something about canonical and non-canonical representations.
+Deserialization allows non-canonical representations for, e.g., field values.
+This makes them agree with the `Bytes` casts.
+If we want to break this, then we have potentially less efficient deserialization in circuit.]
+
+### Signatures
+
+Propose dropping the size parameter from `serialize` and `deserialize`.
+
+### Runtime Support
+
+Propose adding `serialize` and `deserialize` methods to descriptors.
+
 ### Version bytes
 
 The result of a call to `serialize` is a byte vector that starts with a pair of **major** and **minor** version bytes, followed by the raw serialized representation of the Compact object.
@@ -219,6 +232,8 @@ It is desirable to minimize the disruption of minor version changes,
 such as providing support for deserializing older versions or a migration path.
 However, this CoIP does not propose or mandate any specific approach.
 
+[Text about major version and minimum reader (minor) version needs to go here.]
+
 ### Raw serialized representations
 
 The raw serialized representation is specified by the type-directed rules below.
@@ -235,50 +250,43 @@ Raw deserialization followed by raw serialization of a byte vector `Bytes<N>` is
 the identity on `Bytes<N>`, however if `Bytes<N>` was produced by serialization then
 this **is** the identity on `Bytes<N>`.
 
-#### Boolean
+#### Atomic Types
 
-The raw serialization is a single-element byte vector.
+**Boolean:** The raw serializated representation is `Bytes<1>`, a single-element byte vector.
 `true` is serialized as `[1]` and `false` is serialized as `[0]`.
 Raw deserialization fails on any other byte vector than the canonical ones `[0x0]` and `[0x1]`.
 
-The ledger serialization has `{ tag: 'bytes', length: 1 }`,
-and the serialization is the same except that the trailing zero is dropped as required by the ledger
-(so `false` is serialized as an empty `Uint8Array`).
-Ledger deserialization fails on any other `Uint8Array` than the canonical ones `[]` and `[0x1]`.
+The ledger serialization has `{ tag: 'bytes', length: 1 }`.
 
-There is currently no in-language cast from `Boolean` to `Bytes<1>`.
-There are transitive casts through `Field` and `Uint` types,
-for instance if `b:Boolean` then `b as Uint<1> as Bytes<1>` will work.
-It is also possible to simply write `Bytes [b ? 1 : 0]`.
-Likewise, there are transitive casts from `Bytes<1>` to `Boolean`,
-for instance if `b:Bytes<1>` then `b as Uint<1> as Boolean` will work.
-It is also possible to simply write `assert(b[0] <= 1, "deserialization failure"), b[0] == 1`.
+There is currently no in-language casts between `Boolean` and `Bytes<1>` in either direction.
+The raw serialization rule is captured by the Compact code `Bytes [b ? 1 : 0]`;
+and the raw deserialization rule is captured by the Compact code
+`(assert(b[0] <= 1, "deserialization failure"), b[0] == 1)`.
 
-#### Uint<0..N>
-
-The raw serialization is a byte vector `Bytes<M>`,
+**Uint<0..N>:** The raw serialized representation is a byte vector `Bytes<M>`,
 where `M` is the maximum of 1 and the number of bytes required to represent the maximum value `N-1`
 (so `M` is at least 1).
-The byte vector contains the little-endian encoding of the `Uint`'s value.
+The byte vector contains the little-endian encoding of the unsigned integer's value.
 Raw deserialization fails if the little endian encoding represents an
 unsigned integer greater than or equal to `N`.
 
-The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above,
-and the serialization is the little endian encoding of the value with trailing zeros dropped.
-Ledger deserialization fails on a `Uint8Array` that represents an unsigned integer
-greater than or equal to `N`.
+The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above.
 
-There is a cast from `Uint<0..N>` to `Bytes<M>` that produces the raw serialized representation.
-There is also a cast from `Bytes<M>` to `Uint<0..N>` that fails if the byte vector represents
-the little-endian encoding of an unsigned integer greater than or equal to `N`.
+The cast from `Uint<0..N>` to `Bytes<M>` produces the raw serialized representation.
+The cast from `Bytes<M>` to `Uint<0..N>` deserializes the raw serialized representation.
 
-Compact sized integer types `Uint<N>`behave exactly as the bounded unsigned integer type `Uint<0..M>` where `M` is `2^N`.
-So for instance, `Uint<8>` is serialized as `Bytes<1>` and `Uint<16>` is serialized as (little-endian) `Bytes<2>`, etc.
+It fails if little-endian encoded unsigned integer represented by the byte vector is greater than
+or equal to `N`.
 
-#### Field
+**Uint<N>:** Compact sized integer types `Uint<N>` are serialized exactly as
+the bounded unsigned integer type `Uint<0..M>` where `M` is `2^N`.
 
-The raw serialization is a byte vector `Bytes<32>`.
-The byte vector contains the little-endian encoding of the `Field`'s value.
+So for instance, `Uint<8>` has the same raw serialized representation as `Uint<0..256>`,
+that is `Bytes<1>`;
+and `Uint<16>` is (little-endian) `Bytes<2>`; etc.
+
+**Field:** The raw serializated representation is a byte vector `Bytes<32>`.
+The byte vector contains the little-endian encoding of the native field's value.
 Raw deserialization converts a byte vector to an unsigned integer,
 and then reduces that number modulo the field order.
 
@@ -288,13 +296,45 @@ an unsigned integer, reduced modulo the field order.
 
 There is a cast from `Field` to `Bytes<32>` that obeys these rules[^1].
 
-#### Bytes<N>
-
-The raw serialization is the byte vector itself.
+**Bytes<N>:** The raw serialized representation is the byte vector itself.
 
 The ledger serialization has `{ tag: 'bytes', length: N }`.
 
-#### Opaque<'Uint8Array'>
+In Compact, the raw serialized representation of `b: Bytes<N>` is just `b` itself.
+
+**Enumeration Types:** The raw serialized representation of a value of a program-defined enumeration type
+is its zero-based element index in declaration order.
+It uses the same encoding as `Uint<0..N>`, where `N` is the number of enumeration elements.
+Specifically, it is a byte vector `Bytes<M>` where `M` is the maximum of 1 and
+the number of bytes required to represent the zero-based index of the last declared element.
+It is encoded in little-endian order.
+
+The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above.
+
+In Compact, the raw serialized representation of `e: T` where `T` is an enumeration type
+can be obtained by `e as Uint<0..N> as Bytes<M>` for `N` and `M` as above.
+Likewise the raw serialized representation `b: Bytes<M>` can be deserialized by
+`b as Bytes<M> as Uint<0..N>`.
+
+**Opaque<'Uint8Array'>:** The raw serialized representation is `Bytes<N>`
+where `N` is the length of the `Uint8Array`.
+The byte vector contains the bytes of the `Uint8Array` in order.
+
+The ldeger serialization has `{ tag: 'compress' }`.
+This tag does not have a length property, but it is not needed for deserialization because
+"compress" values are allowed by the ledger to have trailing zeros.
+
+There is no way other than serialization to convert a Compact `Opaque<'Uint8Array'>` to a byte vector.
+
+[Note: should we disallow this, even for serialization by the runtime?
+Can we support this in circuit at all?
+We could try using a serialization witness to provide the byte vector representation
+and assert that the `transient_hash` is equal to the in-circuit value of the input.]
+
+**Opaque<'string'>:** [Needs to be filled out.]
+
+#### Compound Types
+
 
 Key ideas:
 
@@ -332,7 +372,7 @@ This design enables some implementation improvements, not mandated by this CoIP.
   This removes the field encoding performed by Midnight.js,
   in favor of letting the ZKIR language perform its own type-directed handling of FAB.
   
-### The serialization format
+### Serialization Format Version 1.0
 
 This is draft text, outlining the current ledger format,
 the current event serialization format,
