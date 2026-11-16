@@ -45,7 +45,6 @@ const OUTPUT_PATH = path.join(COVERAGE_DIR, 'usage.md');
 
 const COMPACT_LIBRARIES: readonly string[] = [
     'standard-library.compact',
-    'zkir-v3-library.compact',
 ];
 
 /** `declare-*` macros that introduce no name a developer can write. */

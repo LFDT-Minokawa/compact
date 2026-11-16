@@ -40,7 +40,6 @@ const VK_B = asVerifierKeyHash('b'.repeat(64));
 /** One value per kind, keyed by it, so adding a kind without a sample here does not compile. */
 const ALL_FAILURES: { [K in ModuleResolutionFailure['kind']]: Extract<ModuleResolutionFailure, { kind: K }> } = {
   ModuleProviderAbsent: { kind: 'ModuleProviderAbsent' },
-  PureInterfaceCircuit: { kind: 'PureInterfaceCircuit' },
   OperationAbsent: { kind: 'OperationAbsent' },
   UnsupportedImplementation: { kind: 'UnsupportedImplementation' },
   ProviderThrew: { kind: 'ProviderThrew', cause: new Error('boom') },
@@ -182,9 +181,7 @@ describe('ModuleResolutionError shape', () => {
 
 describe('ModuleResolutionError.is', () => {
   test('recognizes its own instances', () => {
-    expect(ModuleResolutionError.is(new ModuleResolutionError(CONTEXT, { kind: 'OperationAbsent' }))).toEqual(
-      true,
-    );
+    expect(ModuleResolutionError.is(new ModuleResolutionError(CONTEXT, { kind: 'OperationAbsent' }))).toEqual(true);
   });
 
   test('does not recognize other errors or non-objects', () => {

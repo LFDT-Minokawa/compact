@@ -235,6 +235,42 @@ export const TERMINAL_LIMITS: TerminalLimits = {
     tableLength: 200,
 };
 
+/* Type sizes the compiler accepts, from compiler/langs.ss. */
+export const TYPE_SIZE_LIMITS = {
+    maxUintWidth: 248n,
+    maxUintBound: 2n ** 248n,
+    minMerkleDepth: 2n,
+    maxMerkleDepth: 32n,
+    /* The compiler allows 2^24, but nested vector lengths multiply compile time, so these stay small. */
+    maxVectorLength: 32n,
+    maxBytesLength: 1024n,
+} as const;
+
+/* A random integer from min to max, spread across magnitudes when the range is wide. */
+function randomBigIntBetween(min: bigint, max: bigint): bigint {
+    const span = max - min;
+    if (span < 65536n) return min + BigInt(Math.floor(Math.random() * (Number(span) + 1)));
+    const value = generateBigInt({ bigIntSize: 1 + Math.floor(Math.random() * span.toString(2).length) }, false);
+    return value < min ? min : value > max ? max : value;
+}
+
+/* Writes a size in decimal, or sometimes in hex, binary or octal, which the compiler also accepts. */
+function formatSize(value: bigint): string {
+    const roll = Math.random();
+    if (roll < 0.05) return '0x' + value.toString(16);
+    if (roll < 0.1) return '0b' + value.toString(2);
+    if (roll < 0.15) return '0o' + value.toString(8);
+    return value.toString();
+}
+
+/* Picks a boundary value more than half the time, and any value in range otherwise. */
+function pickSize(edges: bigint[], min: bigint, max: bigint): string {
+    const value = Math.random() < 0.6 ? edges[Math.floor(Math.random() * edges.length)] : randomBigIntBetween(min, max);
+    return formatSize(value);
+}
+
+const L = TYPE_SIZE_LIMITS;
+
 /* Exhaustive typing keeps terminal declarations and generators synchronized. */
 export const TERMINAL_GENERATORS: Record<Terminal, (limits: TerminalLimits) => string> = {
     random_version: () => pickRandomVersion(),
@@ -244,4 +280,14 @@ export const TERMINAL_GENERATORS: Record<Terminal, (limits: TerminalLimits) => s
     small_random_number: () => String(pickRandomNumber('random', { bigIntSize: 16 })),
     random_table: (l) => pickRandomTable(l.tableLength),
     random_mixed_table: (l) => String(randomMixedTable(l.tableLength)),
+    uint_width: () => pickSize([0n, 1n, 8n, 64n, L.maxUintWidth - 1n, L.maxUintWidth], 0n, L.maxUintWidth),
+    uint_bound: () => pickSize([1n, 2n, 256n, 2n ** 64n, L.maxUintBound - 1n, L.maxUintBound], 1n, L.maxUintBound),
+    vector_length: () => pickSize([0n, 1n, 2n, L.maxVectorLength - 1n, L.maxVectorLength], 0n, L.maxVectorLength),
+    bytes_length: () => pickSize([0n, 1n, 32n, 64n, 256n, L.maxBytesLength], 0n, L.maxBytesLength),
+    merkle_depth: () =>
+        pickSize(
+            [L.minMerkleDepth, L.minMerkleDepth + 1n, L.maxMerkleDepth - 1n, L.maxMerkleDepth],
+            L.minMerkleDepth,
+            L.maxMerkleDepth,
+        ),
 };

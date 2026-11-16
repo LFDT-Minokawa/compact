@@ -14,22 +14,9 @@
 // limitations under the License.
 
 // Remaining circuits pending promotion to test-contracts:
-//   constructor  -> contracts/constructors/ (ledger accumulation with range types)
 //   test6/test6a -> generics/circuits/      (parametric circuit with Uint<0..N>)
 //   test7a/test7b -> generics/type_params/  (Uint<0..t> -> Uint<t> via generic)
 //   Test8 module -> generics/modules/       (module generic + ledger + witness + range arithmetic)
-
-// constructor: ledger accumulation over a range-typed vector input
-export ledger sum: Field;
-
-constructor(var0: Vector<10, Uint<0..10>>) {
-
-  for(const a of disclose(var0)) {
-    sum = sum + a;
-  }
-
-  assert(sum == 1 as Field, "Sum is equal to expected sum of 1");
-}
 
 // generics: parametric circuit with Uint<0..N>
 circuit test6a<#N>(a: Uint<0..N>): Uint<0..N> {

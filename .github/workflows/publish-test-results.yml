@@ -11,7 +11,7 @@ name: Publish Test Results
 
 on:
   workflow_run:
-    workflows: ["Compiler Build", "Compiler extracted", "VSC Plugin Build", "Run compatibility tests", "Compiler fuzzer"]
+    workflows: ["Compiler Build", "Compiler extracted", "VSC Plugin Build", "Run compatibility tests"]
     types:
       - completed
 
@@ -63,10 +63,6 @@ jobs:
             "Run compatibility tests")
               echo "report_name=Compatibility Test Report" >> "$GITHUB_OUTPUT"
               echo "summary_name=Compatibility Test Summary" >> "$GITHUB_OUTPUT"
-              ;;
-            "Compiler fuzzer")
-              echo "report_name=Fuzzer Test Report" >> "$GITHUB_OUTPUT"
-              echo "summary_name=Fuzzer Test Summary" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "report_name=Compactc E2E Test Report" >> "$GITHUB_OUTPUT"

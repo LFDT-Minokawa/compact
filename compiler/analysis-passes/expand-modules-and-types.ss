@@ -24,7 +24,6 @@
 ;;; a full description of the pass and how it works is in ../compiler.md.
 
 (define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
-(define-syntax zkir-v3-library-path (identifier-syntax "compiler/zkir-v3-library.compact"))
 
 (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
   (definitions
@@ -38,7 +37,7 @@
                  x*))
              (list x)
              passes))]))
-    (module (zkir-v3-library-pelt* standard-library-pelt*)
+    (module (standard-library-pelt*)
       (define standard-library-pelt*
         (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
                                                               frontend-passes
@@ -51,22 +50,8 @@
                                          [sfd (datum->syntax #'* (source-object-sfd src))])
                              (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
           a))
-      (define zkir-v3-library-pelt*
-        (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
-                                                              frontend-passes
-                                                              (run-passes
-                                                                parser-passes
-                                                                zkir-v3-library-path))
-                          [(program ,src ,pelt* ...)
-                           (#%$require-include zkir-v3-library-path)
-                           (with-syntax ([(pelt ...) (datum->syntax #'* pelt*)]
-                                         [sfd (datum->syntax #'* (source-object-sfd src))])
-                             (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
-          a))
       (unless (member standard-library-path (registered-source-pathnames))
-        (register-source-pathname! standard-library-path))
-      (unless (member zkir-v3-library-path (registered-source-pathnames))
-        (register-source-pathname! zkir-v3-library-path)))
+        (register-source-pathname! standard-library-path)))
     (define program-src)
     (module (make-instance-table instance-table-cell)
       (define (combine hash*)
@@ -220,7 +205,23 @@
     (define empty-env (string #\m #\t))
     (define outer-module-rib (make-hashtable equal-hash equal?))
     (define outer-module-next-seqno '(0 -1))
-    (define Cell-ADT-env #f)
+    (define force-kernel-binding!
+      (let ([forced? #f])
+        (lambda (src)
+          (unless forced?
+            ; the kernel binding is established merely by importing the standard library
+            (do-import src 'CompactStandardLibrary '() "" '() empty-env)))))
+    (define Cell-ADT-env
+      (let ([p #f])
+        (lambda (src)
+          (or p
+              (let ([p^ (add-rib empty-env)])
+                (do-import src 'CompactStandardLibrary '() ""
+                           (list (with-output-language (Lpreexpand Import-Element)
+                                   `(,src __compact_Cell __compact_Cell)))
+                           p^)
+                (set! p p^)
+                p^)))))
     (define (env-insert! p src sym info)
       (assert (env? p))
       (let ([a (hashtable-cell (env-rib p) sym #f)])
@@ -694,9 +695,7 @@
                                   (let ([info (Info-module
                                                 '()
                                                 (append standard-library-pelt*
-                                                        zkir-v3-library-pelt*
-                                                        (let-values ([(native* zkir-v3-native*) (native-declarations)])
-                                                          (append native* zkir-v3-native*))
+                                                        (native-declarations)
                                                         (event-declarations)
                                                         (inline-declarations)
                                                         (map (lambda (adt-defn)
@@ -861,11 +860,9 @@
                    (handle-fun src 'native pelt exported? function-name type-param*)]
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'witness pelt exported? function-name type-param*)]
-                  ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
-                  ;; so its result reaches the caller's proof unconstrained, and the callee's module
-                  ;; is unknown until run time so it cannot be inlined instead. The runtime stops the
-                  ;; call; the declaration should not compile. ~121 test.ss cases declare one.
                   [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
+                   ; desugar-contract-calls counts on the binding of kernel to the Kernel ledger type to be available
+                   (force-kernel-binding! src)
                    (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* pure-dcl* type** type*) p)])
                      (env-insert! p src contract-name info)
                      (set! ecdecl* (cons (cons pelt p) ecdecl*))
@@ -1184,15 +1181,8 @@
      `(public-ledger-declaration ,src ,id
         ,(if (public-adt? type)
              type
-             (let ([p (or Cell-ADT-env
-                          (let ([p (add-rib empty-env)])
-                            (do-import src 'CompactStandardLibrary '() ""
-                                       (list (with-output-language (Lpreexpand Import-Element)
-                                               `(,src __compact_Cell __compact_Cell)))
-                                       p)
-                            (set! Cell-ADT-env p)
-                            p))])
-               (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
+             (handle-type-ref src 'Cell (list (Info-type src type)) p
+               (lookup (Cell-ADT-env src) src '__compact_Cell))))]
     [(constructor ,src (,[arg*] ...) ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
        (for-each

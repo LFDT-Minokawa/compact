@@ -299,9 +299,7 @@ Equivalence of types is defined exclusively by the following rules:
 * A contract A is equivalent to another contract B if A and B have the same name,
   A and B have the same number of circuits, and each circuit of A has a counterpart
   in B and vice versa, taken in any order.  A circuit is a counterpart for another
-  if it has the same name, equivalent purity, equivalent argument types, and
-  equivalent return types. Two circuits have equivalent purity if both are marked
-  pure or neither is marked pure.
+  if it has the same name, equivalent argument types, and equivalent return types.
 
 * An opaque type A is equivalent to another opaque type B if the two have the
   same name.
@@ -855,7 +853,7 @@ Exception: misplaced constructor: should appear only at the top level of a progr
 ```text
 contract C {
   circuit foo(x: Bytes<32>): [];
-  pure circuit barr(): Bytes<32>;
+  circuit barr(): Bytes<32>;
 }
 ledger contract_c: C;
 ```

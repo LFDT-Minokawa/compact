@@ -1,0 +1,108 @@
+# Compact toolchain 0.36.0
+
+- **Date:** 2026-11-02
+- **Language version:** 0.28.0
+- **Compact runtime version:** 0.21.0
+- **Environment:** This release works with a Midnight ledger 9 blockchain.  For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
+
+## High-level summary
+
+Version 0.36.0 of the Compact toolchain is a major release.  It builds on 0.35.0.
+
+The compiler now generates only ZKIR version 3, and the `--feature-zkir-v3` flag is gone, so the features introduced in 0.35.0 behind that flag are available without it.  Recompiling a deployed contract whose verifier keys are ZKIR version 2 therefore changes its keys, and the deployed contract cannot be used with the new artifacts until it is given the new keys or is redeployed.  Circuits declared in a contract type can no longer be `pure`, which changes both the language and the Compact runtime's cross-contract API.  Contracts that make cross-contract calls must be recompiled, and their keys replaced, to get a security fix.  The release also fixes a number of compiler internal errors and Compact runtime defects.  Several changes are breaking; the entries below mark them.
+
+You can update to version 0.36.0 using the Compact devtools.  `compact update` will update to the latest released version, and `compact update 0.36` will specifically update to the latest patch release of toolchain 0.36.
+
+## Audience
+
+These release notes are intended for Compact smart-contract developers and for DApp developers who use the Compact runtime.
+
+## What changed
+
+## New features
+
+### ZKIR version 3 is the default and only backend
+
+The compiler now always generates ZKIR version 3.  The ZKIR version 2 backend is removed.  As a result, the features added in toolchain 0.35.0 that required `--feature-zkir-v3` are available without a flag: `sha512`, the secp256r1 (P256) and Curve25519 curves and fields, `secp256r1EcdsaVerify`, and `ed25519Verify`.
+
+Passing `--feature-zkir-v3` is now an error; see [Breaking changes](#the---feature-zkir-v3-flag-is-removed).
+
+## Improvements
+
+### The `zkir-v3` binary is updated
+
+The `zkir-v3` binary shipped with the compiler now comes from midnight-zkir `zkir-3.2.0-rc.2`.  The compiler continues to generate ZKIR 3.1.
+
+### `assert` produces the value `[]`
+
+In generated JavaScript, a successful `assert` now produces the value `[]`, as the language reference specifies.  Previously, wherever the value of an `assert` was used, such as `return assert(...)` or `[assert(...), x]`, it produced `undefined`.
+
+### `serialize` and `deserialize` support type aliases
+
+The built-in `serialize` and `deserialize` circuits now work for values whose types are or contain structural or nominal type aliases.  They raise a not-yet-implemented exception for values whose types are or contain `Secp256k1Point`, `Secp256r1Point`, or `Curve25519Point`.
+
+### Identity points have a single encoding
+
+The Compact runtime now encodes every `Secp256k1Point` and `Secp256r1Point` identity point the same way, with both coordinates 0, whatever coordinates the JavaScript value carries.
+
+## Breaking changes
+
+### The `--feature-zkir-v3` flag is removed
+
+Passing `--feature-zkir-v3` to the compiler is now an error.  Remove the flag from your build scripts.  `--ledger-version` now always prints the version of the `zkir-v3` dependency.
+
+### Recompiling a contract with ZKIR version 2 keys changes its keys
+
+The ledger checks each call against the verifier keys stored for the called contract, which are fixed at deployment unless the contract's maintenance authority changes them.  The compiler now generates only ZKIR version 3, so recompiling a contract whose keys are ZKIR version 2 produces keys that the deployed contract does not have.  This covers every contract deployed before the ledger 9 hard fork, and every contract compiled by toolchains 0.33 to 0.35 without `--feature-zkir-v3`.  midnight-js's `findDeployedContract` rejects the recompiled artifacts because their keys differ from the deployed ones, and the ledger rejects calls proved with them.
+
+There are three options for such a contract:
+
+- Keep the artifacts the contract was deployed with, and the toolchain that built them.
+- Add the recompiled keys through the contract's maintenance authority, if it has one.  The ledger keeps a contract's ZKIR version 2 and version 3 keys side by side, so the old keys need not be removed.  From then on, `findDeployedContract`, and the Compact runtime when another contract calls this one, compare artifacts against the new keys, so DApps must use the recompiled artifacts.
+- Redeploy the contract from the recompiled artifacts. The redeployed contract has a new address and starts from its initial ledger state.
+
+### Circuits in a contract type cannot be `pure`
+
+A cross-contract call is matched by the ledger against the called circuit's proof, so every circuit declared in a contract type must have a proof.  Marking a circuit declaration in a contract type `pure` is now a compile-time error, since a pure circuit has no proof.  A `contract implements` declaration is likewise rejected when the implementing circuit is declared `pure`.
+
+The arguments of every cross-contract call must now be disclosed.  The exemption for calls to circuits declared `pure` is gone with those declarations.
+
+### Purity is removed from the Compact runtime's cross-contract API
+
+Conformance of a resolved module now checks that every declared circuit is implemented by a provable circuit (the `Provability` check), and nothing about purity.
+
+- The `PureInterfaceCircuit` failure kind and the `Purity` conformance check are removed.
+- The `pure` field of `InterfaceCircuitDeclaration` is removed.
+- The never-read `pureCircuits` field of `Module` is removed, together with the `PureCircuit` and `PureCircuits` types.
+- `CircuitSignature` keeps its `pure` field, for information only.
+
+The compiler no longer emits `pure` for the circuits of a contract type in `declaredInterfaces` or in `contract-info.json`.
+
+### Contracts that make cross-contract calls must be recompiled and their keys replaced
+
+A cross-contract call's proof now binds the callee circuit named at the call site: the compiler emits the entry-point hash as a constant of the call site.  The fix is in the calling contract's circuits, so recompiling a caller changes its verifier keys, and a deployed caller has the fix only once its keys are replaced through its maintenance authority, or once it is redeployed (see the options under [Recompiling a contract with ZKIR version 2 keys changes its keys](#recompiling-a-contract-with-zkir-version-2-keys-changes-its-keys)).  The old keys must be removed, not merely joined by the new ones, because the ledger still accepts a proof for an old key while that key is in place.  Toolchains before 0.33 reject cross-contract calls, so no contract deployed before the ledger 9 hard fork makes them, and the affected callers are those compiled by toolchains 0.33 to 0.35.
+
+Callers and their callees have to be upgraded together.  Code compiled by 0.36.0 requires Compact runtime 0.21, and code compiled by earlier toolchains requires an earlier runtime, so the callee modules that a caller compiled by 0.36.0 resolves must also be compiled by 0.36.0.  The runtime accepts a resolved module only when its verifier keys match the callee's deployed keys.  A callee with ZKIR version 2 keys must therefore be given its new keys, or be redeployed, before a caller compiled by 0.36.0 can call it.  Once it has them, callers that resolve its earlier module fail the same check.
+
+### Casting a non-native field to `Boolean` is a type error
+
+Casting any field type other than `Field` to `Boolean` is now always a type error.  These casts used to be accepted in pure circuits, and failed when compiled to a ZK circuit.
+
+## Links and references
+
+## Fixed defect list
+
+The following defects are fixed by updating to Compact toolchain 0.36.
+
+- The compiler failed with an internal error on a cast to a foreign field type (`Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`, `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar`) when the cast is a constant, such as `(1 as Bytes<32>) as Secp256k1Base`, or when its result is never used, such as a struct field that is never read ([#891](https://github.com/LFDT-Minokawa/compact/issues/891)).  This is fixed.
+- The compiler failed with an internal error when a circuit subtracts a foreign field value from itself, such as `k - k` for a `Secp256k1Scalar` `k`, including when the two operands become the same only after inlining ([#866](https://github.com/LFDT-Minokawa/compact/issues/866)).  This is fixed.
+- The compiler failed with an internal error for `*` or `+` on operands of a nominal `Uint` type whose result range equals the type's own range, such as `x * y` where `x` and `y` have type `Bit` declared by `new type Bit = Uint<1>` ([#881](https://github.com/LFDT-Minokawa/compact/issues/881)).  This is fixed.
+- Casting `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`, `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type failed with an internal error ([#880](https://github.com/LFDT-Minokawa/compact/issues/880)).  It is now reported as a type error.
+- Casting any field type other than `Field`, including `JubjubScalar`, to an enum type failed with an internal error.  It is now reported as a type error.
+- An exported circuit whose only public effect is a cross-contract call on an address that is not read from the ledger (for example, an argument) got no ZKIR or verifier key, so the circuit could not be submitted or called.  This is fixed.
+- A program that declares a contract type had to import `CompactStandardLibrary` for its cross-contract calls to compile.  This is fixed.
+- The compiler failed with an internal error when a circuit needed a default value of type `Curve25519Base`, `Curve25519Scalar`, or `Curve25519Point`, such as in `none<Curve25519Point>()` or the unused side of an `Either` ([#868](https://github.com/LFDT-Minokawa/compact/issues/868)).  This is fixed.
+- When the witness-protect pass encountered a tuple used as an array, it used the first tuple element as a representative for all of the array's elements, which could give the wrong result when the elements differ ([#847](https://github.com/LFDT-Minokawa/compact/issues/847)).  This is fixed.
+- The Compact runtime's conformance check for dynamically resolved contract calls did not recognize `Secp256r1Base`, `Secp256r1Scalar`, `Secp256r1Point`, `Curve25519Base`, `Curve25519Scalar`, or `Curve25519Point`.  A call to a contract type that declares a circuit with one of these types in its signature failed to resolve.  This is fixed.
+- A circuit that returns a conditional expression whose else branch is `[]`, such as `return b ? f() : [];`, returned `undefined` from the generated JavaScript when the condition was false.  It now returns `[]`.
+- The compiler failed with an internal error on a conditional expression with an `assert` in one branch and a `[]` literal in the other, such as `b ? assert(...) : []`.  This is fixed.

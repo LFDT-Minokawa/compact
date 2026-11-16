@@ -99,8 +99,5 @@
     (values
       (fluid-let ([ndecl* '()])
         (include "midnight-natives.ss")
-        (reverse ndecl*))
-      (fluid-let ([ndecl* '()])
-        (include "zkir-v3-natives.ss")
         (reverse ndecl*))))
 )

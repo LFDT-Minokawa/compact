@@ -251,4 +251,23 @@ describe('Contract values are first-class: const assignment', () => {
     expect(result).toEqual(6n);
     expect(innerV(chain, inner.address)).toEqual(6n);
   });
+
+  test('a contract value passed as a parameter can be the receiver of a call', async () => {
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const other = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({
+      module: outerCode,
+      args: [inner.encodedAddress],
+      initialPrivateState: 0,
+    });
+
+    // The call reaches the argument's contract, not the stored one, and its proof is checked like
+    // any other. The circuit touches no ledger field of its own, so the claim is its only public
+    // effect.
+    const { result } = await callOuter(chain, outer.address, 'addViaArg', other.encodedAddress, 8n);
+    expect(result).toEqual(8n);
+    expect(innerV(chain, other.address)).toEqual(8n);
+    expect(innerV(chain, inner.address)).toEqual(0n);
+  });
 });

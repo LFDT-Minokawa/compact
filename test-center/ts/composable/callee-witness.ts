@@ -78,4 +78,35 @@ describe('cross-contract calls into a witness-defining callee', () => {
       }),
     ).rejects.toThrow(`Cross-contract callee '${callee.address}' invoked witness 'secret'`);
   });
+
+  test('a witness-only callee circuit has no proof and cannot be called', async () => {
+    const chain = new TestChain();
+    const { callee, caller } = await deployPair(chain);
+
+    // `peek` is impure but has no proof, so it cannot satisfy the declaration. The call is refused
+    // before the callee runs, with no witness involved.
+    // TODO: If/when exporting a witness-only circuit becomes a compile-time error, this case should be deleted.
+    const error = await chain
+      .call({
+        module: callerCode,
+        address: caller.address,
+        witnesses: {},
+        privateState: 0,
+        circuitId: 'callPeek',
+        args: [callee.encodedAddress],
+      })
+      .then(
+        () => undefined,
+        (e: unknown) => e,
+      );
+    if (!runtime.ModuleResolutionError.is(error)) {
+      throw new Error(`expected a ModuleResolutionError, got ${String(error)}`);
+    }
+    expect(error.context.calleeCircuitId).toEqual('peek');
+    if (error.failure.kind !== 'NonconformantImplementation') {
+      throw new Error(`expected NonconformantImplementation, got ${error.failure.kind}`);
+    }
+    expect(error.failure.check).toEqual('Provability');
+    expect(error.failure.circuitId).toEqual('peek');
+  });
 });

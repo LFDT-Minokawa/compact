@@ -36,9 +36,9 @@ const COIN_PUBLIC_KEY = '0'.repeat(64);
 const PARENT_BLOCK_HASH = '0'.repeat(64);
 const CIRCUIT_ID = 'add';
 
-/** A contract type declaring one impure circuit, as the caller's `declaredInterfaces` would hold. */
+/** A contract type declaring one circuit, as the caller's `declaredInterfaces` would hold. */
 const DECLARATION: InterfaceDescriptor = {
-  [CIRCUIT_ID]: { pure: false, argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
+  [CIRCUIT_ID]: { argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
 };
 
 const emptyProofData = (): PartialProofData => ({
@@ -119,16 +119,6 @@ const providerFor = (module: Module): ContractModuleProvider => ({
 describe('crossContractCall failure classification', () => {
   test('no module provider on the context', async () => {
     expect((await failureFrom({})).kind).toEqual('ModuleProviderAbsent');
-  });
-
-  test('the contract type declares the called circuit pure', async () => {
-    const failure = await failureFrom({
-      moduleProvider: rejectingProvider(new Error('never reached')),
-      declaration: { [CIRCUIT_ID]: { pure: true, argumentTypes: [], resultType: { tag: 'Field' } } },
-    });
-    // Ahead of everything else: a pure circuit has no verifier key and is never a deployed operation,
-    // so there is nothing to resolve rather than something that fails to resolve.
-    expect(failure.kind).toEqual('PureInterfaceCircuit');
   });
 
   test('the provider has no binding for the address', async () => {
@@ -277,6 +267,36 @@ describe('crossContractCall failure classification', () => {
         declaration: DECLARATION,
         calleeCircuitId: CIRCUIT_ID,
         calleeAddress: self,
+        partialProofData: emptyProofData(),
+        args: [1n],
+      }),
+    ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
+  });
+
+  test.each([
+    ['an uppercase entry address', 'AB'.repeat(32), 'ab'.repeat(32)],
+    ['an uppercase callee address', 'ab'.repeat(32), 'AB'.repeat(32)],
+    ['mixed-case spellings', 'aB'.repeat(32), 'Ab'.repeat(32)],
+  ])('re-entry is refused for %s', async (_, entryAddress, calleeAddress) => {
+    const self = 'ab'.repeat(32);
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: entryAddress,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(self), moduleProvider: { resolve: () => undefined } },
+    });
+    expect(Object.keys(context.queryContexts)).toEqual([self]);
+    await expect(
+      crossContractCall({
+        context,
+        interfaceName: 'Inner',
+        declaration: DECLARATION,
+        calleeCircuitId: CIRCUIT_ID,
+        calleeAddress,
         partialProofData: emptyProofData(),
         args: [1n],
       }),

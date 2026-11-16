@@ -49,3 +49,7 @@ export circuit addViaConst(value: Field): Field {
   const target = inner;
   return target.add(disclose(value));
 }
+
+export circuit addViaArg(i: Inner, value: Field): Field {
+  return disclose(i).add(disclose(value));
+}
