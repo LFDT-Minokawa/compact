@@ -9,12 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The compiler now complains if the constructor attempts to call an effect-producing
-  operation directly or indirectly. The minimum set of these operations is `emit`,
-  `minShielded`, `mintUnshielded`, `claimZswapCoinSpend`, `claimZswapCoinReceive`,
-  `claimZswapNullifier`, `claimUnshieldedCoinSpend`, `incUnshieldedInputs`,
-  `incUnshieldedOutputs`, `claimContractCall`, `checkpoint`, `kernel.self`,
-  `createZswapInput`, and `createZswapOutput`.
+- The compiler now complains if the constructor attempts to call an operation
+  that requires contract's state to be already initialized. This includes some
+  natives and some ledger operations which are declared by
+  `(allowed-in-constructor b)` where `b` is a boolean literal in
+  `midnight-natives.ss` and `midnight-ledger.ss`, respectively.
+  
+### Internal notes
+
+- There is now a single pass (`reject-constructor-forbidden-ops`) that
+  rejects some calls in the constructor, including contract calls, emitting events,
+  and the forbidden ledger operations or natives.
+- The `ledger-adt.mdx` spells out which operations cannot be called in a constructor
+  and is directly generated from `midnight-ledger.ss` upon running `./compoiler/go`.
+  However, for the natives, this is documented manually in
+  `CompactStandardLibrary/export.md`.
 
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
