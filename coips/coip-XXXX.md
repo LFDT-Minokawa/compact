@@ -268,16 +268,67 @@ that the ledger relies on.
 
 ## Specification
 
-This CoIP proposes a specified binary serialization format for in-language event serialization.
-The ledger serialization agrees with this format.
-The format is designed to be efficient in circuit.
-It agrees with Compact `Bytes` casts where they are available.
-The format is versioned, with major and minor versions.
+This section specifies a binary serialization format for Compact values.
+It defines:
 
-[Say something about canonical and non-canonical representations.
-Deserialization allows non-canonical representations for, e.g., field values.
-This makes them agree with the `Bytes` casts.
-If we want to break this, then we have potentially less efficient deserialization in circuit.]
+- the **raw serialized representation** of every serializable type,
+  in [Raw serialized representations](#raw-serialized-representations);
+- **serialized values**, which are raw serialized representations preceded by two version bytes,
+  as produced by the standard library's `serialize` and consumed by its `deserialize`,
+  in [Version bytes](#version-bytes);
+- the [Invariants](#invariants) that `serialize`, `deserialize`,
+  and the byte-oriented hashing functions are required to satisfy.
+
+It also requires the existing formats to agree with the raw serialized representation:
+
+- the ledger serialization of a value, as produced by the Compact runtime's descriptors,
+  agrees with its raw serialized representation in the sense defined in
+  [Raw serialized representations](#raw-serialized-representations);
+- where a cast between a type and `Bytes<N>` exists and `N` is the size of the type's raw serialized representation,
+  the cast to `Bytes<N>` produces the raw serialized representation,
+  and the cast from `Bytes<N>` agrees with raw deserialization;
+- JavaScript execution and circuit execution agree,
+  producing the same results and failing on the same inputs.
+
+The format is designed around the following decisions.
+
+**Type-directed.**
+A raw serialized representation contains no type information.
+Serialization and deserialization are always performed at a type known at compile time,
+and the size of a type's raw serialized representation is determined by the type alone.
+
+**Atomic and compound types.**
+Each **atomic type** has its own rule giving its raw serialized representation.
+The raw serialized representation of a value of a **compound type**
+(a tuple, vector, or structure)
+is the concatenation of the raw serialized representations of its parts, in order.
+A type that is defined to be serialized as some other type,
+such as an enumeration type serialized as a `Uint` type,
+is treated as an atomic type whose rule refers to that other type.
+
+**Little-endian.**
+Numeric values are encoded in little-endian byte order.
+
+**Efficient in circuit.**
+The rules are chosen so that serialization and deserialization of field-based types
+correspond to ZKIR's `ToBytes` and `FromBytes` instructions where possible.
+
+**Canonical and non-canonical representations.**
+Serialization always produces a canonical raw serialized representation,
+but deserialization of some atomic types accepts non-canonical ones.
+Deserialization of a field type accepts any byte vector of the right size
+and reduces the encoded integer modulo the field's order,
+rather than failing when the integer is not less than the order.
+Reduction is cheaper than rejection in circuit,
+and it makes deserialization agree with casts from `Bytes` to the field types.
+For the native `Field` type this requires changing the semantics of the existing cast,
+which currently fails;
+see [Backwards Compatibility](#backwards-compatibility).
+Deserialization of all other atomic types rejects non-canonical representations.
+The consequences for hashing are stated in [Deserialization and hashing](#deserialization-and-hashing).
+
+The rules in this section are normative.
+Examples, notes, and stated consequences are not.
 
 ### Version bytes
 
@@ -298,7 +349,7 @@ The **serialized size** of a type `T` is two plus the size of its raw serialized
 +-------+-------+-----------------------------------+
 ```
 
-`serialize` produces a serialized values, possibly followed by padding with zeros;
+`serialize` produces a serialized value, possibly followed by padding with zeros;
 and `deserialize` consumes serialized values, possibly with extra ignored padding.
 The version bytes are not part of the raw serialized representation.
 
@@ -360,7 +411,7 @@ The rules in [Raw serialized representations](#raw-serialized-representations) a
 A **serializable type** is a Compact type that has a raw serialized representation.
 These are the types that contain no contract types and no opaque types.
 
-Throughout this section, `T` is a serializable type,
+Throughout this section, `T` is a serializable type and
 `N` is the size of its raw serialized representation,
 and so its serialized size is `N+2`.
 For a serialized value `b` of type `Bytes<N+2>`,
@@ -370,7 +421,7 @@ For a serialized value `b` of type `Bytes<N+2>`,
 in the invariants below it stands in for the Compact literal `M` such that `M` is equal to `N+2`.
 
 The invariants are stated for size argument `N+2`, by definition of serialization for larger sizes
-they extend to any larger size argument excpt that a serialized value with non-zero trailing bytes
+they extend to any larger size argument except that a serialized value with non-zero trailing bytes
 is accepted but not canonical.
 
 All of these invariants hold both for JavaScript execution and in circuit.
@@ -489,6 +540,7 @@ trailing zeros are added back using the alignment atoms,
 and the value atoms are then concatenated,
 then this produces exactly the same bytes as raw event serialization.
 
+[TODO: restate this in terms of the new invariants]
 Raw serialization followed by raw deserialization of a value of type `T` is the identity on `T`,
 producing an equal value.
 Raw deserialization followed by raw serialization of a byte vector `Bytes<N>` is not necessarily
