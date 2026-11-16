@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
-import * as zkir from '@midnightntwrk/zkir-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { sha512 as nobleSha512 } from '@noble/hashes/sha2.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
@@ -845,6 +844,14 @@ function checkAccumulator(value: unknown, what: string): void {
   }
 }
 
+// zkir's wasm is large, so it is loaded only when a contract first verifies a proof
+let zkirModule: Promise<typeof import('@midnightntwrk/zkir-v3')> | undefined;
+const loadZkir = () =>
+  (zkirModule ??= import('@midnightntwrk/zkir-v3').catch((e) => {
+    zkirModule = undefined;
+    throw e;
+  }));
+
 /**
  * The instance an inner proof is checked against: each public input's fields, in order. An
  * accumulator contributes its encoding; every other public input arrives encoded by its type's
@@ -901,24 +908,27 @@ function innerProofFailure(e: unknown, count: number): string {
  * public inputs was computed by the circuit, as its encoding is not known here; the proof server
  * still refuses such a proof when it proves the circuit.
  */
-export function prepareVerification(
+export async function prepareVerification(
   partialProofData: PartialProofData,
   vk: string,
   publicInputs: readonly unknown[],
   proof: Uint8Array,
-): Accumulator {
+): Promise<Accumulator> {
   if (!(proof instanceof Uint8Array)) {
     throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
   }
+  // a copy, so the bytes recorded for the proof server are the ones checked
+  const recorded = proof.slice();
   const instance = innerProofInstance(publicInputs);
   if (instance !== undefined) {
+    const zkir = await loadZkir();
     try {
-      zkir.checkInnerProof(fromHex(vk.slice(2)), instance, proof);
+      zkir.checkInnerProof(fromHex(vk.slice(2)), instance, recorded);
     } catch (e) {
       throw new CompactError(`prepareVerification: ${innerProofFailure(e, instance.length)}`);
     }
   }
-  partialProofData.innerProofs.push(proof);
+  partialProofData.innerProofs.push(recorded);
   return Accumulator.computed();
 }
 

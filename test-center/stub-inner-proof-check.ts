@@ -13,9 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The tests that call prepareVerification use placeholder proofs, so the runtime's inner-proof
-// check is stubbed out; real proofs are checked end to end. vitest.config.ts routes every import
-// of zkir-v3, including compact-runtime's, to the one module mocked here.
+// vitest.config.ts loads this for every test-center test, so the runtime's inner-proof check is a
+// no-op suite-wide: the staged JavaScript tests use placeholder proofs. Real proofs are checked
+// only by Midnight's separate end-to-end test repository for now; a test here with real proofs
+// must undo this mock, e.g. with vi.unmock. vitest.config.ts routes every import of zkir-v3,
+// including compact-runtime's, to the one module mocked here.
 
 import { vi } from 'vitest';
 

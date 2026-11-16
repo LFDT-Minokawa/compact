@@ -16,6 +16,7 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import { CompactError } from './error.js';
 import {
+  ACCUMULATOR_PUBLIC_INPUTS,
   MAX_SECP256K1_BASE,
   MAX_SECP256K1_SCALAR,
   MAX_SECP256R1_BASE,
@@ -336,12 +337,6 @@ export const CompactTypeField: CompactType<bigint> = {
 export const CompactTypeJubjubScalar: CompactType<bigint> = CompactTypeField;
 
 /**
- * The number of field elements in an {@link Accumulator}'s public-input encoding: two
- * curve points and two scalars.
- */
-export const ACCUMULATOR_PUBLIC_INPUTS = 12;
-
-/**
  * The Compact builtin `Accumulator` type: the deferred final check of one or more
  * proofs verified in a circuit.
  *
@@ -372,8 +367,8 @@ export class Accumulator {
 
   /**
    * The accumulator whose public-input encoding is `publicInputs`: the
-   * {@link ACCUMULATOR_PUBLIC_INPUTS} field elements an inner proof that carries an
-   * accumulator ends its public inputs with.
+   * {@link ACCUMULATOR_PUBLIC_INPUTS} field elements by which an inner proof that carries an
+   * accumulator exposes it, wherever its instance places them.
    */
   static fromPublicInputs(publicInputs: readonly bigint[]): Accumulator {
     if (publicInputs.length !== ACCUMULATOR_PUBLIC_INPUTS) {

@@ -148,10 +148,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@midnightntwrk/onchain-runtime-v4@^4.0.0-rc.3":
-  version "4.0.0-rc.3"
-  resolved "https://registry.yarnpkg.com/@midnightntwrk/onchain-runtime-v4/-/onchain-runtime-v4-4.0.0-rc.3.tgz#95d9c3219d6d0e5d5e812659bca78b417eaaa4c3"
-  integrity sha512-LAf4g3vgwtPqActbi5RAoZcfYduqnFqtsHN+i1s/Mcb5vi2yMbPmpSOJ0YCCIGb2S/qY7G5tQARHVD0PJyHSNA==
+"@midnightntwrk/onchain-runtime-v5@^5.0.0-alpha.1":
+  version "5.0.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@midnightntwrk/onchain-runtime-v5/-/onchain-runtime-v5-5.0.0-alpha.1.tgz#63792c13a309a3a4c1be2953e5f72fcc723c5fc2"
+  integrity sha512-TBu9mKWeRmOgk4wvznWdHVqm90Ql31hlA7WHyWyLG0eym55T4rVimbniSevSFJll/063YzTfHXOLM0Q0mvf2Kg==
 
 "@noble/curves@^2.2.0":
   version "2.2.0"

@@ -102,6 +102,12 @@ export const CURVE25519_SCALAR_MODULUS: bigint =
 export const MAX_CURVE25519_SCALAR: bigint = CURVE25519_SCALAR_MODULUS - 1n;
 
 /**
+ * The number of field elements in an `Accumulator`'s public-input encoding: transient-crypto's
+ * `accumulator_pi_len`, which compiler/zkir-v3-passes/reduce-to-zkir.ss also uses
+ */
+export const ACCUMULATOR_PUBLIC_INPUTS: number = 12;
+
+/**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use

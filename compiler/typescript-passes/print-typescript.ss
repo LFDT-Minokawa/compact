@@ -188,7 +188,7 @@
         [(XPelt-public-ledger pl-array lconstructor external-names) #f]
         [(XPelt-ledger-kernel) #f]))
     ;; Which functions have async wrappers in the generated JS. Only impure circuits, since their
-    ;; bodies may `await` a cross-contract call; everything else is synchronous.
+    ;; bodies may `await` a cross-contract call or prepareVerification; everything else is synchronous.
     (define function-async-ht (make-eq-hashtable))
     (define (mark-function-async! function-name)
       (eq-hashtable-set! function-async-ht function-name #t))
@@ -3158,9 +3158,11 @@
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])]
     ;; prepareVerification(vk, publicInputs, proof) becomes
-    ;;   __compactRuntime.prepareVerification(partialProofData, _vk_N, [publicInput, ...], proof)
+    ;;   await __compactRuntime.prepareVerification(partialProofData, _vk_N, [publicInput, ...], proof)
     ;; with each public input but an accumulator encoded by its type's descriptor.
     [(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
+     (when outer-pure?
+       (internal-errorf 'print-typescript "prepareVerification in pure circuit"))
      (let* ([pi* (maplr (lambda (pubin)
                           (nanopass-case (Ltypescript Public-Input) pubin
                             [(pi-fields ,expr ,type)
@@ -3172,10 +3174,9 @@
                              (Expr expr (precedence add1 comma) outer-pure?)]))
                         pubin*)]
             [proof (Expr expr2 (precedence add1 comma) outer-pure?)])
-       (parenthesize level (precedence call)
+       (parenthesize level (precedence not)
          (make-Qconcat
-           (compact-stdlib "prepareVerification")
-           "("
+           (format "await ~a(" (compact-stdlib "prepareVerification"))
            (apply (make-Qsep ",")
               "partialProofData"
               (format-id-reference (hashtable-ref vk-table (verifying-key-content vk) #f))
