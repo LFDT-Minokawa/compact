@@ -289,7 +289,15 @@ Propose adding `serialize` and `deserialize` methods to descriptors.
 
 ### Version bytes
 
-The result of a call to `serialize` is a byte vector that starts with a pair of **major** and **minor** version bytes, followed by the raw serialized representation of the Compact object.
+A **format version** is a pair of a major version and a minor version, written `MAJOR.MINOR`.
+Each is a number from 0 to 255.
+The format defined by this CoIP is version 1.0.
+The format implemented by the compiler at the time of writing is designated version 0.0.
+
+A **serialized value** is a byte vector consisting of two **version bytes**, `MAJOR` and `MINOR`,
+followed by the raw serialized representation of a Compact value,
+as defined in [Raw serialized representations](#raw-serialized-representations).
+The **serialized size** of a type `T` is two plus the size of its raw serialized representation.
 
 ```
  Byte 0  Byte 1
@@ -298,35 +306,170 @@ The result of a call to `serialize` is a byte vector that starts with a pair of 
 +-------+-------+-----------------------------------+
 ```
 
-The format defined in this CoIP is version 1.0, so a serialized object will start with the pair of bytes `[0x1,0x0]`.
-The format currently implemented by the compiler, as of this time of writing this proposal, is version 0.0.
-**This CoIP proposes adding the pair of bytes `[0x0,0x0]` to every object serialized by the current implementation.**
+`serialize` produces serialized values, and `deserialize` consumes them.
+The version bytes are not part of the raw serialized representation.
 
-The minor version will be incremented whenever there is a **non-breaking** format change.
-A change from version X to version Y is non-breaking if and only if:
+**Breaking and non-breaking changes.**
+A change from format version X to format version Y is **non-breaking** if and only if:
 
-1. the version Y serializer can serialize all Compact values that the version X serializer can,
-   and produces the same raw serialized representation
-2. the version Y deserializer can deserialize all byte vectors produced by the version X serializer.
+1. every type that has a raw serialized representation in version X has the same raw serialized representation in version Y, and
+2. every serialized value that version X can deserialize, version Y can also deserialize, producing an equal value.
 
-So for instance, if X is 1.4 and Y is 1.5, then this implies that the version 1.5 deserializer will
-be able to deserialize binary data tagged with version 1.4.
-In fact, the version 1.5 deserializer will be able to deserialize all versions 1.x
-where x is less than or equal to 5.
+Any other change is **breaking**.
+A non-breaking change increments the minor version.
+A breaking change increments the major version and sets the minor version to 0.
+For example, adding a raw serialized representation for a type that previously had none is non-breaking,
+while changing the raw serialized representation of an existing type is breaking.
 
-Practically speaking, for the 1.0 format defined in this proposal,
-the only non-breaking changes will be to add serialization of new types.
-That format needs a minor version increment, because the previous version's deserializer will not
-be able to recognize the new types.
+**Type versions.**
+Within a major version `M`, the **version of a type** `T` is `M.N`,
+where `N` is the least minor version in which every type occurring in `T` has a raw serialized representation.
+The types occurring in `T` are `T` itself and, recursively, the types of its elements, fields, and components.
+For version 1.0, every type with a raw serialized representation has version 1.0.
 
-The major version will be incremented and the minor version will be set to 0 whenever there is a
-**breaking** format change.
+**Writing version bytes.**
+`serialize<T>` writes the version of `T` as its version bytes,
+whatever the minor version of the compiler that produced it.
 
-It is desirable to minimize the disruption of minor version changes,
-such as providing support for deserializing older versions or a migration path.
-However, this CoIP does not propose or mandate any specific approach.
+**Reading version bytes.**
+`deserialize<T>` fails unless its argument's version bytes are exactly the version of `T`.
+It then deserializes the raw serialized representation that follows.
 
-[Text about major version and minimum reader (minor) version needs to go here.]
+These rules have the following consequences:
+
+- A value of type `T` is readable by any compiler with the same major version that supports `T`,
+  whether that compiler is older or newer than the one that wrote it.
+  In particular, an older compiler can read values written by a newer one,
+  provided the value's type existed in the older version.
+- A compiler never reads a serialized value with a different major version.
+  Supporting values written with an older major version,
+  or migrating them, is outside the scope of this CoIP.
+- Because the version of a type is fixed, the serialized value for a given Compact value is unique.
+  Two serialized values of the same type are equal if and only if the values they encode are equal,
+  as long as the raw serialized representations involved are canonical.
+- Hashing is defined on the raw serialized representation, without the version bytes;
+  see [Hashing](#hashing).
+
+**This CoIP proposes adding the version bytes `[0x00, 0x00]` to every value serialized by the current implementation.**
+Since this changes the output of `serialize`, it is itself a breaking change to the current, unversioned format.
+
+### Invariants
+
+This section states properties that the serialization rules,
+`serialize`, `deserialize`, and `persistentHash` are required to satisfy.
+The rules in [Raw serialized representations](#raw-serialized-representations) are designed so that they hold.
+
+A **serializable type** is a Compact type that has a raw serialized representation.
+These are the types that contain no contract types and no opaque types.
+
+Throughout this section, `T` is a serializable type,
+`N` is the size of its raw serialized representation,
+and so its serialized size is `N + 2`.
+For a serialized value `b` of type `Bytes<N + 2>`,
+`slice<N>(b, 2)` is its raw serialized representation without the version bytes.
+
+All of these invariants hold both for JavaScript execution and in circuit.
+Moreover, JavaScript execution and circuit execution of `serialize<T>` and `deserialize<T>` agree:
+they produce the same results for the same arguments,
+and `deserialize<T>` fails in one exactly when it fails in the other.
+
+#### Round trip
+
+For all values `x` of type `T`:
+
+```
+deserialize<T>(serialize<T>(x)) == x
+```
+
+`deserialize<T>(b)` fails if the version bytes of `b` are not the version of `T`,
+or if its raw serialized representation is rejected by the rules for `T`.
+Otherwise we say that `b` is **accepted** by `deserialize<T>`.
+
+An accepted serialized value `b` is **canonical** for `T` if:
+
+```
+serialize<T>(deserialize<T>(b)) == b
+```
+
+Every serialized value produced by `serialize<T>` is canonical.
+Some accepted serialized values are not:
+the rules for some atomic types accept more than one raw serialized representation of the same value,
+for example a `Field` whose encoded integer is at least the field order.
+The rules for each atomic type say whether it has non-canonical representations.
+A serialized value of a compound type is canonical if and only if the raw serialized representations of all of its parts are canonical.
+
+For a value `x` of type `T`, `serialize<T>(x)` is the unique canonical serialized value `b` with `deserialize<T>(b) == x`.
+
+#### Serialization and hashing
+
+For all values `x` of type `T`:
+
+```
+persistentHash<T>(x) == persistentHash<Bytes<N>>(slice<N>(serialize<T>(x), 2))
+```
+
+and for all byte vectors `v` of type `Bytes<N>`,
+`persistentHash<Bytes<N>>(v)` is the SHA-256 hash of the `N` bytes of `v`.
+That is, `persistentHash<T>(x)` is the SHA-256 hash of the raw serialized representation of `x`.
+The version bytes are not hashed.
+
+`persistentHash` is defined in terms of the raw serialized representations of major version 1.
+A future major version that changes the raw serialized representation of a type
+does not change the result of `persistentHash` for that type.
+
+`persistentHash<T>(x)` depends only on the raw serialized representation of `x`, and not on `T`.
+Values of different types with the same raw serialized representation have the same hash;
+for example, `persistentHash<Uint<8>>(5) == persistentHash<Bytes<1>>([5])`.
+Programs that need hashes of different kinds of data to be distinct
+must include a distinguishing value in the data being hashed,
+as the standard library does with domain separators.
+
+The same invariants hold for `keccak256` and `sha512`,
+which hash the raw serialized representation with Keccak-256 and SHA-512 respectively:
+
+```
+keccak256<T>(x) == keccak256<Bytes<N>>(slice<N>(serialize<T>(x), 2))
+sha512<T>(x)    == sha512<Bytes<N>>(slice<N>(serialize<T>(x), 2))
+```
+
+They also hold for `persistentCommit`, for every opening `rand` of type `Bytes<32>`:
+
+```
+persistentCommit<T>(x, rand) == persistentCommit<Bytes<N>>(slice<N>(serialize<T>(x), 2), rand)
+```
+
+As for `persistentHash`, these functions are defined in terms of the raw serialized representations of major version 1,
+and do not depend on `T` except through the raw serialized representation of their argument.
+
+#### Deserialization and hashing
+
+For all serialized values `b` accepted by `deserialize<T>`:
+
+```
+persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(serialize<T>(deserialize<T>(b)), 2))
+```
+
+This follows from the previous invariant.
+If `b` is canonical for `T`, then also:
+
+```
+persistentHash<T>(deserialize<T>(b)) == persistentHash<Bytes<N>>(slice<N>(b, 2))
+```
+
+If `b` is not canonical, this second equation does not hold in general.
+A program that deserializes a value from bytes it did not produce itself,
+and that hashes or compares those bytes,
+should hash or compare the deserialized value (or its re-serialization) rather than the bytes it received,
+unless it knows that they are canonical.
+
+The same holds for `persistentCommit` (with the same opening on both sides), `keccak256`, and `sha512`.
+
+#### Transient hashing
+
+These invariants do not apply to `transientHash`.
+`transientHash` is defined on the field representation of a value's ledger serialization,
+not on its raw serialized representation,
+and `transientHash<T>(x)` is in general not equal to the transient hash of `serialize<T>(x)` or of its raw serialized representation.
 
 ### Raw serialized representations
 
