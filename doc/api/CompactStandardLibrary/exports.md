@@ -270,7 +270,7 @@ Events are struct types that can be emitted using an `emit` operation.
 
 Shielded coin consumed, new coin created for a user recipient.
 
-Serialized size is 32.
+Serialized size is 34.
 
 ```compact
 struct ShieldedSpend {
@@ -284,7 +284,7 @@ A contract accepts an incoming shielded coin.
 
 `contractAddress` set when received by a contract, absent for user recipients.
 
- Serialized size is 578.
+Serialized size is 580.
 
 ```compact
 struct ShieldedReceive {
@@ -300,7 +300,7 @@ New shielded tokens created.
 
 `tokenType` derived by the consumer from `domainSep` + `ContractLog.address`.
 
- Serialized size is 81.
+Serialized size is 83.
  
 ```compact
 struct ShieldedMint {
@@ -316,7 +316,7 @@ Shielded coin sent to the burn address.
 
 Supply tracking — tokens permanently removed from circulation.
 
-Serialized size is 49.
+Serialized size is 51.
  
 ```compact
 struct ShieldedBurn {
@@ -329,7 +329,7 @@ struct ShieldedBurn {
 
 Public token sent from a sender.
 
-Serialized size is 145.
+Serialized size is 147.
 
 ```compact
 struct UnshieldedSpend {
@@ -344,7 +344,7 @@ struct UnshieldedSpend {
 
 Public token sent to a recipient.
 
-Serialized size is 145.
+Serialized size is 147.
 
 ```compact
 struct UnshieldedReceive {
@@ -359,7 +359,7 @@ struct UnshieldedReceive {
 
 New unshielded tokens created.
 
-Serialized size is 80.
+Serialized size is 82.
 
 ```compact
 struct UnshieldedMint {
@@ -373,7 +373,7 @@ struct UnshieldedMint {
 
 Unshielded coin sent to the burn address.
 
-Serialized size is 113.
+Serialized size is 115.
 
 ```compact
 struct UnshieldedBurn {
@@ -387,7 +387,7 @@ struct UnshieldedBurn {
 
 Contract operations suspended.
 
-Serialized size is 0.
+Serialized size is 2.
 
 ```compact
 struct Paused {}
@@ -397,7 +397,7 @@ struct Paused {}
 
 Contract operations resumed.
 
-Serialized size is 0.
+Serialized size is 2.
 
 ```compact
 struct Unpaused {}
@@ -407,7 +407,7 @@ struct Unpaused {}
 
 Miscellaneous event type.
 
-Serialized size is 288.
+Serialized size is 290.
 
 ```compact
 struct Misc {
@@ -1329,9 +1329,11 @@ circuit blockTimeLte(time: Uint<64>): Boolean;
 
 ### `serialize<T, #n>`
 
-Returns the canonical byte encoding of for a given value of event type. 
-Note that `serialize` can only be instantiated for an event type and its
-canonical serialized size.
+Returns the canonical byte encoding for a Compact type `T`.
+
+`T` can be any type other than contract types and `Opaque` types.  `n` must be
+at least the serialized size of `T`.  If it is larger, the result is padded with
+zero bytes.
 
 ```compact
 circuit serialize<T, #n> (x: T): Bytes<n>;
@@ -1339,9 +1341,14 @@ circuit serialize<T, #n> (x: T): Bytes<n>;
 
 ### `deserialize<T, #n>`
 
-Reconstructs a value of type event from its canonical byte encoding.
-Note that `deserialize` can only be instantiated for an event type and its
-canonical serialized size.
+Reconstructs a value of Compact type `T` from its canonical byte encoding.
+
+`T` can be any type other than contract types and `Opaque` types.  `n` must be
+at least the serialized size of `T`.  Trailing bytes beyond the serialized size
+of `T` are ignored and not checked.  Deserialization fails at runtime if the
+bytes are not the canonical encoding of a value of type `T`, or if there is a
+version mismatch (the bytes represent an older or newer version that the
+deserializer cannot deserialize).
 
 ```compact
 circuit deserialize<T, #n> (x: Bytes<n>): T;
