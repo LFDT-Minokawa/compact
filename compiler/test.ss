@@ -31156,7 +31156,7 @@ groups than for single tests.
     )
 )
 
-(run-tests reject-constructor-effects
+(run-tests reject-constructor-forbidden-ops
   (test
     '(
       "import CompactStandardLibrary;"
@@ -37660,7 +37660,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 7 char 21")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 7 char 21"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 7 char 21" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -37681,7 +37683,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 6 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 6 char 43")))
+       irritants: '("testfile.compact line 6 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 6 char 43"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 43" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 6 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   ;; calls inside tuple literals and map arguments are checked too
@@ -37693,7 +37697,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 3 char 43")))
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call circuit get from external contract C" "line 3 char 43")))
     )
 
   (test
@@ -37705,7 +37709,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit getv from external contract C" "line 4 char 50")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a" ("call circuit getv from external contract C" "line 4 char 50")))
     )
 
   (test-group
@@ -37740,7 +37744,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit fooo from external contract C2" "line 11 char 32")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit fooo from external contract C2" "line 11 char 32"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -38753,7 +38759,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 7 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 7 char 47"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 7 char 47" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -38939,7 +38947,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit fooo from external contract C2" "line 11 char 59")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit fooo from external contract C2" "line 11 char 59"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 59" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -38972,7 +38982,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C1" "line 11 char 67")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C1" "line 11 char 67")))
      ))
 
   (test-group
@@ -39005,7 +39015,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit bar from external contract C1" "line 11 char 89")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit bar from external contract C1" "line 11 char 89"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 69" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -39038,7 +39050,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (foofoo "calls circuit foo from external contract C1" "line 12 char 50")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo "contract_c.foo"))))
      ))
 
   (test-group
@@ -39073,7 +39085,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo blah fab "contract_c.foo"))))
      ))
 
   (test-group
@@ -39107,7 +39119,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab "contract_c.foo"))))
      ))
 
   (test-group
@@ -39141,7 +39153,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab "contract_c.foo"))))
      ))
 
   (test-group
@@ -39165,7 +39177,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor baz "contract_c.bar"))))
      ))
 
   (test-group
@@ -39191,7 +39203,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor blah id baz "contract_c.bar"))))
      ))
 
   (test-group
@@ -39216,7 +39228,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor id baz "contract_c.bar"))))
       ))
 
   (test-group
@@ -39249,8 +39261,32 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (foofoo "calls circuit foo from external contract C1" "line 12 char 50")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo "contract_c.foo"))))
      ))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(): []; }"
+      "circuit bar(c: C): [] { c.foo(); }"
+      "constructor(c: C) { bar(disclose(c)); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 26" (constructor bar "c.foo"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(): []; }"
+      "circuit bar(c: C): [] { (true ? c : c).foo(); }"
+      "constructor(c: C) { bar(disclose(c)); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 39" (constructor bar "C.foo"))))
+    )
 
   (test-group
     ((create-file "C.compact"

@@ -55,8 +55,6 @@
 
   (include "analysis-passes/reject-constructor-forbidden-ops.ss")
 
-  (include "analysis-passes/reject-constructor-cc-calls.ss")
-
   (include "analysis-passes/identify-pure-circuits.ss")
 
   (include "analysis-passes/determine-ledger-paths.ss")
@@ -81,7 +79,6 @@
     (recognize-let                    Lnodca)
     (check-sealed-fields              Lnodca)
     (reject-constructor-forbidden-ops Lnodca)
-    (reject-constructor-cc-calls      Lnodca)
     (identify-pure-circuits           Lnodca)
     (determine-ledger-paths           Lwithpaths0)
     (propagate-ledger-paths           Lwithpaths)

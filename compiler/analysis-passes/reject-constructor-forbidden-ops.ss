@@ -90,6 +90,18 @@
         [(public-ledger-declaration ,public-binding* ... ,lconstructor)
          (for-each record-ledger-adt! public-binding*)]
         [else (void)]))
+    (define (name-of-contract type)
+      (nanopass-case (Lnodca Type) (de-alias type)
+        [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          contract-name]
+        [else (assert cannot-happen)]))
+    ; the ledger field it is read from or the variable bound to it,
+    ; falling back on the contract's own name
+    (define (ledger-field expr type)
+      (nanopass-case (Lnodca Expression) expr
+        [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...) (id-sym ledger-field-name)]
+        [(var-ref ,src ,var-name) (id-sym var-name)]
+        [else (name-of-contract type)]))
   )
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -135,8 +147,7 @@
              (nanopass-case (Lnodca Ledger-Accessor) accessor
                [(,src^ ,ledger-op ,expr* ...)
                 (when (forbidden-in-constructor? adt-op* ledger-op)
-                  ; the kernel's ledger field name is internal
-                  (let ([op-name (format "~a.~a" (if (eq? adt-name 'Kernel) 'kernel ledger-field-name) ledger-op)])
+                  (let ([op-name (format "~a.~a" (if (eq? adt-name 'Kernel) 'kernel (id-sym ledger-field-name)) ledger-op)])
                     (raise (make-forbidden-condition (format "call ~a" op-name) (string->symbol op-name) src^ '()))))]))
            accessor*))
        ir]
@@ -148,7 +159,11 @@
        [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
         (let ([what (format "emit event ~a" struct-name)])
           (raise (make-forbidden-condition what what src '())))]
-       [else (assert cannot-happen)])])
+       [else (assert cannot-happen)])]
+    [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+     (let ([what (format "call circuit ~a from external contract ~a" elt-name (name-of-contract type))]
+           [ledger-name (ledger-field expr type)])
+       (raise (make-forbidden-condition what (format "~a.~a" ledger-name elt-name) src '())))])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
   (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
   (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
