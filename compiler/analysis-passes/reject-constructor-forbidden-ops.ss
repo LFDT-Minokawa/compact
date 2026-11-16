@@ -150,6 +150,8 @@
           (raise (make-forbidden-condition what what src '())))]
        [else (assert cannot-happen)])])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
+  (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
+  (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
   (Function : Function (ir function-name) -> Function ()
     [(fref ,src ,function-name)
      (process-function-name! function-name src)
