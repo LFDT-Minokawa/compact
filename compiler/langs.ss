@@ -28,7 +28,7 @@
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
-          native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param* native-entry-forbidden?-in-constructor
+          native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param* native-entry-constructor-ok?
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
@@ -404,14 +404,14 @@
 
   (define-record-type native-entry
     (nongenerative)
-    (fields function class disclosure* maybe-type-param* forbidden?-in-constructor))
+    (fields function class disclosure* maybe-type-param* constructor-ok?))
 
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (boolean (exported sealed pure-dcl nominal))
          (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
-      (+ (boolean (exported sealed pure-dcl nominal forbidden?-in-constructor))
+      (+ (boolean (exported sealed pure-dcl nominal constructor-ok))
          (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (string (prefix mesg opaque-type file discloses))
          (procedure (result-type runtime-code))
@@ -438,7 +438,7 @@
       (+ (ledger-op ((var-name* type*) ...) result-type runtime-code) =>
            ledger-op))
     (ADT-Op (adt-op)
-      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code forbidden?-in-constructor adt-op-cond* ...) =>
+      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok? adt-op-cond* ...) =>
            ledger-op))
     (ADT-Op-Class (op-class)
       (+ ledger-op-class
@@ -508,10 +508,10 @@
     (terminals
       (+ (len (len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
-         (boolean (exported sealed pure-dcl nominal forbidden?-in-constructor))
+         (boolean (exported sealed pure-dcl nominal constructor-ok))
          (string (prefix mesg opaque-type file discloses)))
       (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
-         (boolean (pure-dcl nominal forbidden?-in-constructor))
+         (boolean (pure-dcl nominal constructor-ok))
          (id (name var-name function-name ledger-field-name))
          (string (mesg opaque-type file discloses))))
     (Program (p)
@@ -584,8 +584,8 @@
       (+ (ledger-op (arg* ...) result-type runtime-code) =>
            ledger-op))
     (ADT-Op (adt-op)
-      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code forbidden?-in-constructor adt-op-cond* ...))
-      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code forbidden?-in-constructor) =>
+      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok? adt-op-cond* ...))
+      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok?) =>
            ledger-op))
     (ADT-Op-Condition (adt-op-cond)
       (- (= tvar-name type)))
@@ -654,7 +654,7 @@
       (bits (bits))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
-      (boolean (pure-dcl nominal forbidden?-in-constructor))
+      (boolean (pure-dcl nominal constructor-ok))
       (id (name var-name function-name ledger-field-name))
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
@@ -694,7 +694,7 @@
       (ledger-op (arg* ...) result-type runtime-code) =>
         ledger-op)
     (ADT-Op (adt-op)
-      (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code forbidden?-in-constructor) =>
+      (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok?) =>
         ledger-op)
     (ADT-Op-Class (op-class)
       ledger-op-class
@@ -862,11 +862,11 @@
 
   (define-language/pretty Lwithpaths0 (extends Lnodca)
     (terminals
-      (- (boolean (pure-dcl nominal forbidden?-in-constructor)))
+      (- (boolean (pure-dcl nominal constructor-ok)))
       (+ (boolean (pure-dcl nominal))
          (path-index (path-index))))
     (ADT-Op (adt-op)
-      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code forbidden?-in-constructor))
+      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok?))
       (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
            ledger-op))
     (Ledger-Declaration (ldecl)

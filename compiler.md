@@ -1559,8 +1559,8 @@ This pass throws an error if the constructor tries to call a forbidden operation
 either directly or indirectly. These operations are
 
 - emitting events
-- natives flagged with `is-forbidden-in-constructor`
-- ledger operations flagged `is-forbidden-in-constructor`.
+- natives declared with `(allowed-in-constructor #f)`
+- ledger operations declared with `(allowed-in-constructor #f)`.
 
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
 
@@ -1593,7 +1593,7 @@ that the path of a field is its index within each enclosing segment.  Each
 public ledger binding in the output carries its path, and the kernel declaration
 gets the empty path.
 
-This pass also drops the `forbidden-in-constructor` flag from every ledger
+This pass also drops the `constructor-ok?` flag from every ledger
 ADT operation.  The flag is needed only by `reject-constructor-forbidden-ops`,
 so it is carried through `Lnodca` and no further.
 

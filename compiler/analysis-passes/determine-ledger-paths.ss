@@ -17,7 +17,7 @@
 
 (define-pass determine-ledger-paths : Lnodca (ir) -> Lwithpaths0 ()
   (ADT-Op : ADT-Op (ir) -> ADT-Op ()
-    [(,ledger-op ,[op-class] ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code ,forbidden?-in-constructor)
+    [(,ledger-op ,[op-class] ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code ,constructor-ok?)
      `(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)])
   (Kernel-Declaration : Kernel-Declaration (ir) -> Kernel-Declaration ()
     [(kernel-declaration ,public-binding)

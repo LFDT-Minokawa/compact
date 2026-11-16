@@ -19,8 +19,8 @@
   ; this pass reports an error if the constructor calls, either directly or
   ; indirectly, an operation that is forbidden in a constructor.  the forbidden
   ; operations are:
-  ;   - ledger ADT functions whose declaration carries the is-forbidden-in-constructor flag
-  ;   - natives whose declaration carries the is-forbidden-in-constructor flag
+  ;   - ledger ADT functions declared (allowed-in-constructor #f)
+  ;   - natives declared (allowed-in-constructor #f)
   ;   - emit.
   (definitions
     ; a forbidden-condition records one forbidden operation found within a circuit:
@@ -80,8 +80,8 @@
       (ormap
         (lambda (adt-op)
           (nanopass-case (Lnodca ADT-Op) adt-op
-            [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,forbidden?-in-constructor)
-             (and (eq? ledger-op^ ledger-op) forbidden?-in-constructor)]))
+            [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
+             (and (eq? ledger-op^ ledger-op) (not constructor-ok?))]))
         adt-op*))
     (define (record-ledger-adts! pelt)
       (nanopass-case (Lnodca Program-Element) pelt
@@ -101,7 +101,7 @@
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! function-ht function-name expr)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
-     (when (native-entry-forbidden?-in-constructor native-entry)
+     (unless (native-entry-constructor-ok? native-entry)
        (eq-hashtable-set! function-ht function-name 'forbidden-native))]
     [else (void)])
   (Program-Element : Program-Element (ir) -> Program-Element ()

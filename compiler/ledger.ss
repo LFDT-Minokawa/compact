@@ -46,11 +46,12 @@
         (define (check-identifier x) (unless (identifier? x) (syntax-error x "not an identifier")))
         (define (non-negative-fixnum? x) (and (fixnum? x) (fx>= x 0)))
         (define (check-string x) (unless (string? (syntax->datum x)) (syntax-error x "not a string")))
-        (define (parse-constructor-flag x)
-          (case (syntax->datum x)
-            [(is-forbidden-in-constructor) #t]
-            [(is-allowed-in-constructor) #f]
-            [else (syntax-error x "expected is-forbidden-in-constructor or is-allowed-in-constructor")]))
+        (define (parse-allowed-in-constructor x)
+          (syntax-case x (allowed-in-constructor)
+            [(allowed-in-constructor b)
+             (boolean? (syntax->datum #'b))
+             (syntax->datum #'b)]
+            [_ (syntax-error x "expected (allowed-in-constructor #t) or (allowed-in-constructor #f)")]))
         (define (check-class x)
           (syntax-case x ()
             [class-name
@@ -159,7 +160,7 @@
                   (list (reverse radt-op*) (reverse radt-rt-op*))
                   (let ([clause (car clause*)] [clause* (cdr clause*)])
                     (let add-cond ([clause clause] [adt-op-cond* '()])
-                      (syntax-case clause (when function js-only =)
+                      (syntax-case clause (when function js-only = allowed-in-constructor)
                         [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                          (begin
                            (check-identifier #'op-name)
@@ -188,11 +189,11 @@
                                                  [result-type (expand-type #'result-type)]
                                                  [(adt-op-cond ...) adt-op-cond*]
                                                  [(discloses? ...) (map parse-disclosure #'(disclosure ...))]
-                                                 [forbidden-in-constructor (parse-constructor-flag #'flag)])
+                                                 [constructor-ok? (parse-allowed-in-constructor #'flag)])
                                      #'(op-name class ((input-name input-type discloses?) ...)
                                          result-type
                                          ,(make-vm-code #'(vm-op ...))
-                                         ,forbidden-in-constructor
+                                         ,constructor-ok?
                                          adt-op-cond ...))
                                    radt-op*)
                                  radt-rt-op*))]
