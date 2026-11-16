@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- The standard library circuits `secp256k1EcdsaVerify` and
+  `secp256r1EcdsaVerify` now return false wherever the verification algorithm
+  of FIPS 186-5 section 6.4.2 outputs "reject", where they used to fail in two
+  of those cases. A zero `s` failed on its inverse, and a signature
+  whose verification point `u1*G + u2*pk` is the identity, which the holder of
+  the private key can construct, failed on that point's x-coordinate. A
+  contract that branches on the result therefore could not reach its
+  invalid-signature branch. A circuit computes a verification even on a branch
+  that is not taken, where a signature read from a witness is all zeros, so a
+  circuit that verified a witness signature on only one branch could not be
+  proved when it took the other.
+
+### Changed
+
+- `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` reject a signature whose
+  `r` is zero, as step 1 of FIPS 186-5 section 6.4.2 requires.
+
+- The circuits of `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` have
+  changed, so a contract that calls either one has different ZKIR and
+  different prover and verifier keys when it is recompiled.
+
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
 ### Fixed

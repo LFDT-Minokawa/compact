@@ -59289,165 +59289,191 @@ groups than for single tests.
           ()
           (constrain_bits %d.4 8)
           (constrain_bits %d.5 248)
-          (private_input "Scalar<Secp256k1>" %sig.42)
-          (private_input "Scalar<Secp256k1>" %sig.64)
+          (private_input "Scalar<Secp256k1>" %sig.46)
+          (private_input "Scalar<Secp256k1>" %sig.41)
           (private_input "Point<Secp256k1>" %pk.1)
-          (to_bytes %tmp.65 0)
-          (from_bytes "Scalar<Secp256k1>" %tmp.66 %tmp.65)
-          (ec_mul_generator %t.0 %tmp.66)
-          (test_eq %t.2 %pk.1 %t.0)
+          (to_bytes %tmp.103 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.104 %tmp.103)
+          (ec_mul_generator %identity.0 %tmp.104)
+          (test_eq %t.2 %pk.1 %identity.0)
           (cond_select %t.3 %t.2 0 1)
           (assert %t.3)
           (copy %v.7 %d.4)
-          (div_mod_power_of_two %quo.67 %v.6 %d.5 8)
-          (div_mod_power_of_two %quo.68 %v.37 %quo.67 8)
-          (div_mod_power_of_two %quo.69 %v.36 %quo.68 8)
-          (div_mod_power_of_two %quo.70 %v.35 %quo.69 8)
-          (div_mod_power_of_two %quo.71 %v.34 %quo.70 8)
-          (div_mod_power_of_two %quo.72 %v.33 %quo.71 8)
-          (div_mod_power_of_two %quo.73 %v.32 %quo.72 8)
-          (div_mod_power_of_two %quo.74 %v.31 %quo.73 8)
-          (div_mod_power_of_two %quo.75 %v.30 %quo.74 8)
-          (div_mod_power_of_two %quo.76 %v.29 %quo.75 8)
-          (div_mod_power_of_two %quo.77 %v.28 %quo.76 8)
-          (div_mod_power_of_two %quo.78 %v.27 %quo.77 8)
-          (div_mod_power_of_two %quo.79 %v.26 %quo.78 8)
-          (div_mod_power_of_two %quo.80 %v.25 %quo.79 8)
-          (div_mod_power_of_two %quo.81 %v.24 %quo.80 8)
-          (div_mod_power_of_two %quo.82 %v.23 %quo.81 8)
-          (div_mod_power_of_two %quo.83 %v.22 %quo.82 8)
-          (div_mod_power_of_two %quo.84 %v.21 %quo.83 8)
-          (div_mod_power_of_two %quo.85 %v.20 %quo.84 8)
-          (div_mod_power_of_two %quo.86 %v.19 %quo.85 8)
-          (div_mod_power_of_two %quo.87 %v.18 %quo.86 8)
-          (div_mod_power_of_two %quo.88 %v.17 %quo.87 8)
-          (div_mod_power_of_two %quo.89 %v.16 %quo.88 8)
-          (div_mod_power_of_two %quo.90 %v.15 %quo.89 8)
-          (div_mod_power_of_two %quo.91 %v.14 %quo.90 8)
-          (div_mod_power_of_two %quo.92 %v.13 %quo.91 8)
-          (div_mod_power_of_two %quo.93 %v.12 %quo.92 8)
-          (div_mod_power_of_two %quo.94 %v.11 %quo.93 8)
-          (div_mod_power_of_two %quo.95 %v.10 %quo.94 8)
-          (div_mod_power_of_two %quo.96 %v.9 %quo.95 8)
-          (copy %v.8 %quo.96)
-          (copy %beReversed.38 %v.6)
-          (reconstitute_field %div.97 %v.37 %v.36 8)
-          (reconstitute_field %div.98 %div.97 %v.35 8)
-          (reconstitute_field %div.99 %div.98 %v.34 8)
-          (reconstitute_field %div.100 %div.99 %v.33 8)
-          (reconstitute_field %div.101 %div.100 %v.32 8)
-          (reconstitute_field %div.102 %div.101 %v.31 8)
-          (reconstitute_field %div.103 %div.102 %v.30 8)
-          (reconstitute_field %div.104 %div.103 %v.29 8)
-          (reconstitute_field %div.105 %div.104 %v.28 8)
-          (reconstitute_field %div.106 %div.105 %v.27 8)
-          (reconstitute_field %div.107 %div.106 %v.26 8)
-          (reconstitute_field %div.108 %div.107 %v.25 8)
-          (reconstitute_field %div.109 %div.108 %v.24 8)
-          (reconstitute_field %div.110 %div.109 %v.23 8)
-          (reconstitute_field %div.111 %div.110 %v.22 8)
-          (reconstitute_field %div.112 %div.111 %v.21 8)
-          (reconstitute_field %div.113 %div.112 %v.20 8)
-          (reconstitute_field %div.114 %div.113 %v.19 8)
-          (reconstitute_field %div.115 %div.114 %v.18 8)
-          (reconstitute_field %div.116 %div.115 %v.17 8)
-          (reconstitute_field %div.117 %div.116 %v.16 8)
-          (reconstitute_field %div.118 %div.117 %v.15 8)
-          (reconstitute_field %div.119 %div.118 %v.14 8)
-          (reconstitute_field %div.120 %div.119 %v.13 8)
-          (reconstitute_field %div.121 %div.120 %v.12 8)
-          (reconstitute_field %div.122 %div.121 %v.11 8)
-          (reconstitute_field %div.123 %div.122 %v.10 8)
-          (reconstitute_field %div.124 %div.123 %v.9 8)
-          (reconstitute_field %div.125 %div.124 %v.8 8)
-          (reconstitute_field %beReversed.39 %div.125 %v.7 8)
-          (bytes_from_natives
-            %tmp.126
-            32
-            %beReversed.39
-            %beReversed.38)
-          (from_bytes "Scalar<Secp256k1>" %z.41 %tmp.126)
-          (inv %w.40 %sig.64)
-          (mul %u1.127 %z.41 %w.40)
-          (mul %u2.128 %sig.42 %w.40)
-          (ec_mul_generator %t.129 %u1.127)
-          (ec_mul %t.130 %pk.1 %u2.128)
-          (add %point.131 %t.129 %t.130)
-          (into_coordinates %t.43 %ignore.132 %point.131)
-          (to_bytes %tmp.133 %t.43)
-          (bytes_into_natives (%t.45 %t.44) %tmp.133)
-          (bytes_from_natives %tmp.134 32 %t.45 %t.44)
-          (from_bytes "Scalar<Secp256k1>" %t.46 %tmp.134)
-          (test_eq %t.47 %t.46 %sig.42)
-          (assert %t.47)
-          (private_input "Scalar<Secp256k1>" %sig.56)
-          (private_input "Scalar<Secp256k1>" %sig.135)
-          (private_input "Point<Secp256k1>" %pk.49)
-          (to_bytes %tmp.136 0)
-          (from_bytes "Scalar<Secp256k1>" %tmp.137 %tmp.136)
-          (ec_mul_generator %t.48 %tmp.137)
-          (test_eq %t.50 %pk.49 %t.48)
-          (cond_select %t.51 %t.50 0 1)
-          (assert %t.51)
-          (copy %beReversed.52 %v.6)
-          (reconstitute_field %div.138 %v.37 %v.36 8)
-          (reconstitute_field %div.139 %div.138 %v.35 8)
-          (reconstitute_field %div.140 %div.139 %v.34 8)
-          (reconstitute_field %div.141 %div.140 %v.33 8)
-          (reconstitute_field %div.142 %div.141 %v.32 8)
-          (reconstitute_field %div.143 %div.142 %v.31 8)
-          (reconstitute_field %div.144 %div.143 %v.30 8)
-          (reconstitute_field %div.145 %div.144 %v.29 8)
-          (reconstitute_field %div.146 %div.145 %v.28 8)
-          (reconstitute_field %div.147 %div.146 %v.27 8)
-          (reconstitute_field %div.148 %div.147 %v.26 8)
-          (reconstitute_field %div.149 %div.148 %v.25 8)
-          (reconstitute_field %div.150 %div.149 %v.24 8)
-          (reconstitute_field %div.151 %div.150 %v.23 8)
-          (reconstitute_field %div.152 %div.151 %v.22 8)
-          (reconstitute_field %div.153 %div.152 %v.21 8)
-          (reconstitute_field %div.154 %div.153 %v.20 8)
-          (reconstitute_field %div.155 %div.154 %v.19 8)
-          (reconstitute_field %div.156 %div.155 %v.18 8)
-          (reconstitute_field %div.157 %div.156 %v.17 8)
-          (reconstitute_field %div.158 %div.157 %v.16 8)
-          (reconstitute_field %div.159 %div.158 %v.15 8)
-          (reconstitute_field %div.160 %div.159 %v.14 8)
-          (reconstitute_field %div.161 %div.160 %v.13 8)
-          (reconstitute_field %div.162 %div.161 %v.12 8)
-          (reconstitute_field %div.163 %div.162 %v.11 8)
-          (reconstitute_field %div.164 %div.163 %v.10 8)
-          (reconstitute_field %div.165 %div.164 %v.9 8)
-          (reconstitute_field %div.166 %div.165 %v.8 8)
-          (reconstitute_field %beReversed.53 %div.166 %v.7 8)
-          (bytes_from_natives
-            %tmp.167
-            32
-            %beReversed.53
-            %beReversed.52)
-          (from_bytes "Scalar<Secp256k1>" %z.55 %tmp.167)
-          (inv %w.54 %sig.135)
-          (mul %u1.168 %z.55 %w.54)
-          (mul %u2.169 %sig.56 %w.54)
-          (ec_mul_generator %t.170 %u1.168)
-          (ec_mul %t.171 %pk.49 %u2.169)
-          (add %point.172 %t.170 %t.171)
-          (into_coordinates %t.57 %ignore.173 %point.172)
-          (to_bytes %tmp.174 %t.57)
-          (bytes_into_natives (%t.59 %t.58) %tmp.174)
-          (bytes_from_natives %tmp.175 32 %t.59 %t.58)
-          (from_bytes "Scalar<Secp256k1>" %t.60 %tmp.175)
-          (test_eq %t.61 %t.60 %sig.56)
-          (assert %t.61)
-          (public_input "Scalar<BLS12-381>" %t.62)
+          (div_mod_power_of_two %quo.105 %v.6 %d.5 8)
+          (div_mod_power_of_two %quo.106 %v.37 %quo.105 8)
+          (div_mod_power_of_two %quo.107 %v.36 %quo.106 8)
+          (div_mod_power_of_two %quo.108 %v.35 %quo.107 8)
+          (div_mod_power_of_two %quo.109 %v.34 %quo.108 8)
+          (div_mod_power_of_two %quo.110 %v.33 %quo.109 8)
+          (div_mod_power_of_two %quo.111 %v.32 %quo.110 8)
+          (div_mod_power_of_two %quo.112 %v.31 %quo.111 8)
+          (div_mod_power_of_two %quo.113 %v.30 %quo.112 8)
+          (div_mod_power_of_two %quo.114 %v.29 %quo.113 8)
+          (div_mod_power_of_two %quo.115 %v.28 %quo.114 8)
+          (div_mod_power_of_two %quo.116 %v.27 %quo.115 8)
+          (div_mod_power_of_two %quo.117 %v.26 %quo.116 8)
+          (div_mod_power_of_two %quo.118 %v.25 %quo.117 8)
+          (div_mod_power_of_two %quo.119 %v.24 %quo.118 8)
+          (div_mod_power_of_two %quo.120 %v.23 %quo.119 8)
+          (div_mod_power_of_two %quo.121 %v.22 %quo.120 8)
+          (div_mod_power_of_two %quo.122 %v.21 %quo.121 8)
+          (div_mod_power_of_two %quo.123 %v.20 %quo.122 8)
+          (div_mod_power_of_two %quo.124 %v.19 %quo.123 8)
+          (div_mod_power_of_two %quo.125 %v.18 %quo.124 8)
+          (div_mod_power_of_two %quo.126 %v.17 %quo.125 8)
+          (div_mod_power_of_two %quo.127 %v.16 %quo.126 8)
+          (div_mod_power_of_two %quo.128 %v.15 %quo.127 8)
+          (div_mod_power_of_two %quo.129 %v.14 %quo.128 8)
+          (div_mod_power_of_two %quo.130 %v.13 %quo.129 8)
+          (div_mod_power_of_two %quo.131 %v.12 %quo.130 8)
+          (div_mod_power_of_two %quo.132 %v.11 %quo.131 8)
+          (div_mod_power_of_two %quo.133 %v.10 %quo.132 8)
+          (div_mod_power_of_two %quo.134 %v.9 %quo.133 8)
+          (copy %v.8 %quo.134)
+          (copy %t.38 %v.6)
+          (reconstitute_field %div.135 %v.37 %v.36 8)
+          (reconstitute_field %div.136 %div.135 %v.35 8)
+          (reconstitute_field %div.137 %div.136 %v.34 8)
+          (reconstitute_field %div.138 %div.137 %v.33 8)
+          (reconstitute_field %div.139 %div.138 %v.32 8)
+          (reconstitute_field %div.140 %div.139 %v.31 8)
+          (reconstitute_field %div.141 %div.140 %v.30 8)
+          (reconstitute_field %div.142 %div.141 %v.29 8)
+          (reconstitute_field %div.143 %div.142 %v.28 8)
+          (reconstitute_field %div.144 %div.143 %v.27 8)
+          (reconstitute_field %div.145 %div.144 %v.26 8)
+          (reconstitute_field %div.146 %div.145 %v.25 8)
+          (reconstitute_field %div.147 %div.146 %v.24 8)
+          (reconstitute_field %div.148 %div.147 %v.23 8)
+          (reconstitute_field %div.149 %div.148 %v.22 8)
+          (reconstitute_field %div.150 %div.149 %v.21 8)
+          (reconstitute_field %div.151 %div.150 %v.20 8)
+          (reconstitute_field %div.152 %div.151 %v.19 8)
+          (reconstitute_field %div.153 %div.152 %v.18 8)
+          (reconstitute_field %div.154 %div.153 %v.17 8)
+          (reconstitute_field %div.155 %div.154 %v.16 8)
+          (reconstitute_field %div.156 %div.155 %v.15 8)
+          (reconstitute_field %div.157 %div.156 %v.14 8)
+          (reconstitute_field %div.158 %div.157 %v.13 8)
+          (reconstitute_field %div.159 %div.158 %v.12 8)
+          (reconstitute_field %div.160 %div.159 %v.11 8)
+          (reconstitute_field %div.161 %div.160 %v.10 8)
+          (reconstitute_field %div.162 %div.161 %v.9 8)
+          (reconstitute_field %div.163 %div.162 %v.8 8)
+          (reconstitute_field %t.39 %div.163 %v.7 8)
+          (bytes_from_natives %tmp.164 32 %t.39 %t.38)
+          (from_bytes "Scalar<Secp256k1>" %z.45 %tmp.164)
+          (to_bytes %tmp.165 0)
+          (from_bytes "Scalar<Secp256k1>" %zero.40 %tmp.165)
+          (bytes_from_natives %tmp.166 32 1 0)
+          (from_bytes "Scalar<Secp256k1>" %one.43 %tmp.166)
+          (test_eq %t.42 %sig.41 %zero.40)
+          (cond_select %t.167 %t.42 %one.43 %sig.41)
+          (inv %w.44 %t.167)
+          (mul %u1.47 %z.45 %w.44)
+          (mul %u2.168 %sig.46 %w.44)
+          (test_eq %t.48 %u1.47 %zero.40)
+          (cond_select %t.169 %t.48 0 1)
+          (cond_select %t.170 %t.48 %one.43 %u1.47)
+          (ec_mul_generator %u1G.53 %t.170)
+          (ec_mul %u2Pk.50 %pk.1 %u2.168)
+          (add %t.49 %u1G.53 %u2Pk.50)
+          (cond_select %point.51 %t.48 %u2Pk.50 %t.49)
+          (test_eq %t.52 %point.51 %identity.0)
+          (cond_select %t.171 %t.52 %u1G.53 %point.51)
+          (into_coordinates %t.54 %ignore.172 %t.171)
+          (to_bytes %tmp.173 %t.54)
+          (bytes_into_natives (%t.56 %t.55) %tmp.173)
+          (bytes_from_natives %tmp.174 32 %t.56 %t.55)
+          (from_bytes "Scalar<Secp256k1>" %x.65 %tmp.174)
+          (test_eq %t.57 %sig.46 %zero.40)
+          (cond_select %t.60 %t.42 0 1)
+          (cond_select %t.61 %t.57 0 %t.60)
+          (cond_select %t.63 %t.52 0 1)
+          (cond_select %t.64 %t.61 %t.63 0)
+          (test_eq %t.66 %x.65 %sig.46)
+          (cond_select %t.67 %t.64 %t.66 0)
+          (assert %t.67)
+          (private_input "Scalar<Secp256k1>" %sig.79)
+          (private_input "Scalar<Secp256k1>" %sig.75)
+          (private_input "Point<Secp256k1>" %pk.69)
+          (to_bytes %tmp.175 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.176 %tmp.175)
+          (ec_mul_generator %identity.68 %tmp.176)
+          (test_eq %t.70 %pk.69 %identity.68)
+          (cond_select %t.71 %t.70 0 1)
+          (assert %t.71)
+          (copy %t.72 %v.6)
+          (reconstitute_field %div.177 %v.37 %v.36 8)
+          (reconstitute_field %div.178 %div.177 %v.35 8)
+          (reconstitute_field %div.179 %div.178 %v.34 8)
+          (reconstitute_field %div.180 %div.179 %v.33 8)
+          (reconstitute_field %div.181 %div.180 %v.32 8)
+          (reconstitute_field %div.182 %div.181 %v.31 8)
+          (reconstitute_field %div.183 %div.182 %v.30 8)
+          (reconstitute_field %div.184 %div.183 %v.29 8)
+          (reconstitute_field %div.185 %div.184 %v.28 8)
+          (reconstitute_field %div.186 %div.185 %v.27 8)
+          (reconstitute_field %div.187 %div.186 %v.26 8)
+          (reconstitute_field %div.188 %div.187 %v.25 8)
+          (reconstitute_field %div.189 %div.188 %v.24 8)
+          (reconstitute_field %div.190 %div.189 %v.23 8)
+          (reconstitute_field %div.191 %div.190 %v.22 8)
+          (reconstitute_field %div.192 %div.191 %v.21 8)
+          (reconstitute_field %div.193 %div.192 %v.20 8)
+          (reconstitute_field %div.194 %div.193 %v.19 8)
+          (reconstitute_field %div.195 %div.194 %v.18 8)
+          (reconstitute_field %div.196 %div.195 %v.17 8)
+          (reconstitute_field %div.197 %div.196 %v.16 8)
+          (reconstitute_field %div.198 %div.197 %v.15 8)
+          (reconstitute_field %div.199 %div.198 %v.14 8)
+          (reconstitute_field %div.200 %div.199 %v.13 8)
+          (reconstitute_field %div.201 %div.200 %v.12 8)
+          (reconstitute_field %div.202 %div.201 %v.11 8)
+          (reconstitute_field %div.203 %div.202 %v.10 8)
+          (reconstitute_field %div.204 %div.203 %v.9 8)
+          (reconstitute_field %div.205 %div.204 %v.8 8)
+          (reconstitute_field %t.73 %div.205 %v.7 8)
+          (bytes_from_natives %tmp.206 32 %t.73 %t.72)
+          (from_bytes "Scalar<Secp256k1>" %z.78 %tmp.206)
+          (to_bytes %tmp.207 0)
+          (from_bytes "Scalar<Secp256k1>" %zero.74 %tmp.207)
+          (test_eq %t.76 %sig.75 %zero.74)
+          (cond_select %t.208 %t.76 %one.43 %sig.75)
+          (inv %w.77 %t.208)
+          (mul %u1.80 %z.78 %w.77)
+          (mul %u2.209 %sig.79 %w.77)
+          (test_eq %t.81 %u1.80 %zero.74)
+          (cond_select %t.210 %t.81 0 1)
+          (cond_select %t.211 %t.81 %one.43 %u1.80)
+          (ec_mul_generator %u1G.86 %t.211)
+          (ec_mul %u2Pk.83 %pk.69 %u2.209)
+          (add %t.82 %u1G.86 %u2Pk.83)
+          (cond_select %point.84 %t.81 %u2Pk.83 %t.82)
+          (test_eq %t.85 %point.84 %identity.68)
+          (cond_select %t.212 %t.85 %u1G.86 %point.84)
+          (into_coordinates %t.87 %ignore.213 %t.212)
+          (to_bytes %tmp.214 %t.87)
+          (bytes_into_natives (%t.89 %t.88) %tmp.214)
+          (bytes_from_natives %tmp.215 32 %t.89 %t.88)
+          (from_bytes "Scalar<Secp256k1>" %x.98 %tmp.215)
+          (test_eq %t.90 %sig.79 %zero.74)
+          (cond_select %t.93 %t.76 0 1)
+          (cond_select %t.94 %t.90 0 %t.93)
+          (cond_select %t.96 %t.85 0 1)
+          (cond_select %t.97 %t.94 %t.96 0)
+          (test_eq %t.99 %x.98 %sig.79)
+          (cond_select %t.100 %t.97 %t.99 0)
+          (assert %t.100)
+          (public_input "Scalar<BLS12-381>" %t.101)
           (impact 1 48)
           (impact 1 80 1 1 0)
-          (impact 1 12 1 8 %t.62)
-          (add %t.63 %t.62 1)
-          (constrain_bits %t.63 64)
-          (copy %tmp.176 %t.63)
+          (impact 1 12 1 8 %t.101)
+          (add %t.102 %t.101 1)
+          (constrain_bits %t.102 64)
+          (copy %tmp.216 %t.102)
           (impact 1 16 1 1 1 0)
-          (impact 1 17 1 1 8 %tmp.176)
+          (impact 1 17 1 1 8 %tmp.216)
           (impact 1 145))))
     )
 
@@ -84914,6 +84940,145 @@ groups than for single tests.
         "  await expect(contract.circuits.verify(context, msg, sig, identity)).rejects.toThrow("
         "    'failed assert: Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key');"
         "});"
+        ))
+    )
+
+  ;; ECDSA verification returns false for a signature that cannot be valid, where it
+  ;; used to fail on the inverse of a zero `s` and on the x-coordinate of the identity.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger B: Boolean;"
+      "struct K1Auth { msg: Bytes<32>, sig: Secp256k1EcdsaSignature, pk: Secp256k1Point }"
+      "struct R1Auth { msg: Bytes<32>, sig: Secp256r1EcdsaSignature, pk: Secp256r1Point }"
+      "witness k1Auth(): K1Auth;"
+      "witness r1Auth(): R1Auth;"
+      "export circuit k1(msg: Bytes<32>, sig: Secp256k1EcdsaSignature, pk: Secp256k1Point): Boolean {"
+      "  B = disclose(secp256k1EcdsaVerify(msg, sig, pk));"
+      "  return B;"
+      "}"
+      "export circuit r1(msg: Bytes<32>, sig: Secp256r1EcdsaSignature, pk: Secp256r1Point): Boolean {"
+      "  B = disclose(secp256r1EcdsaVerify(msg, sig, pk));"
+      "  return B;"
+      "}"
+      "// A witness called on a branch that is not taken reads as zeros in the circuit,"
+      "// which still computes the verification."
+      "export circuit k1Guarded(check: Boolean): Boolean {"
+      "  if (disclose(check)) {"
+      "    const a = k1Auth();"
+      "    B = disclose(secp256k1EcdsaVerify(a.msg, a.sig, a.pk));"
+      "  }"
+      "  return B;"
+      "}"
+      "export circuit r1Guarded(check: Boolean): Boolean {"
+      "  if (disclose(check)) {"
+      "    const a = r1Auth();"
+      "    B = disclose(secp256r1EcdsaVerify(a.msg, a.sig, a.pk));"
+      "  }"
+      "  return B;"
+      "}"
+      "// A caller with a fallback for a signature that does not verify."
+      "export ledger outcome: Uint<8>;"
+      "export circuit k1Settle(msg: Bytes<32>, sig: Secp256k1EcdsaSignature, pk: Secp256k1Point): [] {"
+      "  if (disclose(secp256k1EcdsaVerify(msg, sig, pk))) { outcome = 1; } else { outcome = 2; }"
+      "}"
+      "export circuit r1Settle(msg: Bytes<32>, sig: Secp256r1EcdsaSignature, pk: Secp256r1Point): [] {"
+      "  if (disclose(secp256r1EcdsaVerify(msg, sig, pk))) { outcome = 1; } else { outcome = 2; }"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const curves = ["
+        "  { name: 'k1', curve: secp256k1, mulGenerator: runtime.secp256k1MulGenerator },"
+        "  { name: 'r1', curve: p256, mulGenerator: runtime.secp256r1MulGenerator },"
+        "];"
+        "for (const { name, curve, mulGenerator } of curves) {"
+        "  const Fn = curve.Point.Fn;"
+        "  const SK = 7n;"
+        "  const pk = mulGenerator(SK);"
+        "  const msg = new Uint8Array(32).fill(0xab);"
+        "  const z = msg.reduce((acc, byte) => (acc << 8n) | BigInt(byte), 0n) % Fn.ORDER;"
+        "  const sign = (digest: Uint8Array) => {"
+        "    const parsed = curve.Signature.fromBytes("
+        "      curve.sign(digest, Fn.toBytes(SK), { prehash: false }));"
+        "    return { r: parsed.r, s: parsed.s };"
+        "  };"
+        "  const sig = sign(msg);"
+        "  // Every call writes its result to the ledger, so each one is also checked"
+        "  // against the circuit's ZKIR."
+        "  const start = async (auth: unknown) => {"
+        "    const witnesses = {"
+        "      k1Auth: (context: any) => [context.privateState, auth],"
+        "      r1Auth: (context: any) => [context.privateState, auth],"
+        "    };"
+        "    const [contract, context] = await startContract(contractCode, witnesses as any, 0);"
+        "    const circuits = contract.circuits as any;"
+        "    const verify = async (...args: unknown[]): Promise<boolean> =>"
+        "      (await circuits[name](context, ...args)).result;"
+        "    const guarded = async (check: boolean): Promise<boolean> =>"
+        "      (await circuits[`${name}Guarded`](context, check)).result;"
+        "    const settle = async (...args: unknown[]): Promise<bigint> => {"
+        "      const r = await circuits[`${name}Settle`](context, ...args);"
+        "      return contractCode.ledger(r.context.callContext.currentQueryContext.state).outcome;"
+        "    };"
+        "    return { verify, guarded, settle };"
+        "  };"
+        "  test(`${name}: a zero r or s is rejected`, async () => {"
+        "    const { verify } = await start(undefined);"
+        "    expect(await verify(msg, sig, pk)).toEqual(true);"
+        "    expect(await verify(msg, { r: 1n, s: 0n }, pk)).toEqual(false);"
+        "    expect(await verify(msg, { r: sig.r, s: 0n }, pk)).toEqual(false);"
+        "    expect(await verify(msg, { r: 0n, s: sig.s }, pk)).toEqual(false);"
+        "    expect(await verify(msg, { r: 0n, s: 0n }, pk)).toEqual(false);"
+        "  });"
+        "  test(`${name}: a caller reaches its fallback`, async () => {"
+        "    const { settle } = await start(undefined);"
+        "    expect(await settle(msg, sig, pk)).toEqual(1n);"
+        "    expect(await settle(msg, { r: 1n, s: 0n }, pk)).toEqual(2n);"
+        "    expect(await settle(msg, { r: Fn.neg(Fn.mul(z, Fn.inv(SK))), s: 1n }, pk)).toEqual(2n);"
+        "  });"
+        "  test(`${name}: a digest of the group order or more is reduced`, async () => {"
+        "    const { verify } = await start(undefined);"
+        "    const bytes = (x: bigint) =>"
+        "      Uint8Array.from({ length: 32 }, (_, i) => Number((x >> BigInt(8 * (31 - i))) & 0xffn));"
+        "    for (const digest of [bytes(Fn.ORDER), bytes((1n << 256n) - 1n)]) {"
+        "      expect(await verify(digest, sign(digest), pk)).toEqual(true);"
+        "    }"
+        "  });"
+        "  test(`${name}: a signature whose point is the identity is rejected`, async () => {"
+        "    const { verify } = await start(undefined);"
+        "    // u1 * G + u2 * pk is the identity when z + r * SK is zero, which the"
+        "    // holder of SK can arrange for any s."
+        "    const r = Fn.neg(Fn.mul(z, Fn.inv(SK)));"
+        "    expect(await verify(msg, { r, s: 1n }, pk)).toEqual(false);"
+        "    expect(await verify(msg, { r, s: sig.s }, pk)).toEqual(false);"
+        "    // A zero digest and a zero r reach the identity for every key."
+        "    const zero = new Uint8Array(32);"
+        "    expect(await verify(zero, { r: 0n, s: 1n }, pk)).toEqual(false);"
+        "    // A zero digest alone is not a reason to reject."
+        "    expect(await verify(zero, sign(zero), pk)).toEqual(true);"
+        "  });"
+        "  test(`${name}: a key that cancels the generator term is rejected`, async () => {"
+        "    // A digest of 1 with r = s = 1 makes the point G + pk, therefore pk = -G"
+        "    // reaches the identity for a key that anyone can compute."
+        "    const one = Uint8Array.from({ length: 32 }, (_, i) => (i === 31 ? 1 : 0));"
+        "    const cancelling = { msg: one, sig: { r: 1n, s: 1n }, pk: mulGenerator(Fn.neg(1n)) };"
+        "    const { verify, settle, guarded } = await start(cancelling);"
+        "    expect(await verify(one, cancelling.sig, cancelling.pk)).toEqual(false);"
+        "    expect(await settle(one, cancelling.sig, cancelling.pk)).toEqual(2n);"
+        "    expect(await guarded(true)).toEqual(false);"
+        "    expect(await guarded(false)).toEqual(false);"
+        "  });"
+        "  test(`${name}: a verification on a branch`, async () => {"
+        "    const valid = await start({ msg, sig, pk });"
+        "    expect(await valid.guarded(true)).toEqual(true);"
+        "    // The branch is not taken, therefore the ledger keeps its initial false."
+        "    expect(await valid.guarded(false)).toEqual(false);"
+        "    const invalid = await start({ msg, sig: { r: 1n, s: 0n }, pk });"
+        "    expect(await invalid.guarded(true)).toEqual(false);"
+        "    expect(await invalid.guarded(false)).toEqual(false);"
+        "  });"
+        "}"
         ))
     )
 
