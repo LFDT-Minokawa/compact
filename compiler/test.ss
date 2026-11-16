@@ -31092,6 +31092,68 @@ groups than for single tests.
             (lookup (safe-cast (tunsigned 255) (tunsigned 7) 7))
             (lookup (safe-cast (tunsigned 255) (tunsigned 11) 11))))))
     )
+
+  ;; calls inside tuple and vector literals and map and fold arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit set(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { const t = [set(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f set "modifies sealed field s" "line 3 char 24")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit set(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { const v: Vector<2, Field> = [set(), 1 as Field]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f set "modifies sealed field s" "line 3 char 24")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "circuit id(x: Field): Field { return x; }"
+      "export circuit f(): [] { const r = map(id, mk()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "export circuit f(): Field { return fold((a: Field, x: Field): Field => a, 0 as Field, mk()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export sealed ledger s: Field;"
+      "circuit mk(): Vector<2, Field> { s = 1 as Field; return [1 as Field, 2 as Field]; }"
+      "export circuit f(): [] { for (const x of mk()) { } }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
+    )
 )
 
 (run-tests reject-constructor-emit
@@ -31142,6 +31204,30 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  ;; calls inside tuple literals and map arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit e(): Field { emit (ShieldedSpend { pad(32, 'a') }); return 1 as Field; }"
+      "constructor() { const t = [e(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 2 char 22")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit ev(): Vector<2, Field> { emit (ShieldedSpend { pad(32, 'a') }); return [1 as Field, 2 as Field]; }"
+      "circuit id(x: Field): Field { return x; }"
+      "constructor() { const r = map(id, ev()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (ev "emits event ShieldedSpend" "line 2 char 34")))
     )
   )
 
@@ -34897,12 +34983,12 @@ groups than for single tests.
               (new (tstruct Maybe
                      (is_some (tboolean))
                      (value (tbytes 512)))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.8 34)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.8 34)) 1)
                 (bytes-slice %value.8 35 512))
               (new (tstruct Maybe
                      (is_some (tboolean))
                      (value (tbytes 32)))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.8 547)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.8 547)) 1)
                 (bytes-slice %value.8 548 32)))))
         (circuit %deserialize_ShieldedReceive.9 ([%x.10 (tbytes
                                                           580)])
@@ -35020,7 +35106,7 @@ groups than for single tests.
                      (is_some (tboolean))
                      (value (tunsigned
                               340282366920938463463374607431768211455)))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.7 66)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.7 66)) 1)
                 (cast-from-bytes (tunsigned
                                    340282366920938463463374607431768211455) 16
                   (bytes-slice %value.7 67 16))))))
@@ -35127,7 +35213,7 @@ groups than for single tests.
                      (is_some (tboolean))
                      (value (tunsigned
                               340282366920938463463374607431768211455)))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.7 34)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.7 34)) 1)
                 (cast-from-bytes (tunsigned
                                    340282366920938463463374607431768211455) 16
                   (bytes-slice %value.7 35 16))))))
@@ -35265,7 +35351,7 @@ groups than for single tests.
                      (is_left (tboolean))
                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                      (right (tstruct ContractAddress (bytes (tbytes 32)))))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.7 2)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.7 2)) 1)
                 (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                   (bytes-slice %value.7 3 32))
                 (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35424,7 +35510,7 @@ groups than for single tests.
                      (is_left (tboolean))
                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                      (right (tstruct ContractAddress (bytes (tbytes 32)))))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.7 2)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.7 2)) 1)
                 (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                   (bytes-slice %value.7 3 32))
                 (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35664,7 +35750,7 @@ groups than for single tests.
                      (is_left (tboolean))
                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                      (right (tstruct ContractAddress (bytes (tbytes 32)))))
-                (== (downcast-unsigned 8 1 (bytes-ref %value.7 2)) 1)
+                (== (downcast-unsigned 255 1 (bytes-ref %value.7 2)) 1)
                 (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                   (bytes-slice %value.7 3 32))
                 (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -36050,7 +36136,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 32)))
-              (== (downcast-unsigned 8 1 (bytes-ref %value.2 2)) 1)
+              (== (downcast-unsigned 255 1 (bytes-ref %value.2 2)) 1)
               (bytes-slice %value.2 3 32))))
         (circuit %non_event_deserialize.3 ([%x.4 (tbytes 35)])
              (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
@@ -37493,6 +37579,30 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 6 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 6 char 43")))
      ))
+
+  ;; calls inside tuple literals and map arguments are checked too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit get(): Field; }"
+      "constructor(c: C) { const t = [disclose(c).get(), 2]; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 3 char 43")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit getv(): Vector<2, Field>; }"
+      "circuit id(x: Field): Field { return x; }"
+      "constructor(c: C) { const r = map(id, disclose(c).getv()); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit getv from external contract C" "line 4 char 50")))
+    )
 
   (test-group
     ((create-file "C1.compact"
@@ -60289,6 +60399,55 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.15\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger flag: Boolean;"
+      "export circuit go(output: Bytes<3>): Boolean {"
+      "  return flag || deserialize<Boolean, 3>(output);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/go.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%output.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%output.0\", \"bits\": 24 },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x01\", \"%t.1\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.2\", \"%ignore.3\"], \"val\": \"%output.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.4\", \"%t.5\"], \"val\": \"%quo.2\", \"bits\": 8 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%t.5\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t.6\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.7\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.8\", \"%ignore.9\"], \"val\": \"%output.0\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.10\", \"%t.11\"], \"val\": \"%quo.8\", \"bits\": 8 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.12\", \"a\": \"%t.11\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.13\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.13\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.14\", \"%ignore.15\"], \"val\": \"%output.0\", \"bits\": 16 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.16\", \"%t.17\"], \"val\": \"%quo.14\", \"bits\": 8 },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.18\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%t.17\" },"
+        "    { \"op\": \"less_than\", \"output\": \"%t1.19\", \"a\": \"%t.18\", \"b\": \"0x02\", \"bits\": 8 },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t2.20\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t1.19\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t2.20\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.21\", \"val\": \"%t.18\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.22\", \"a\": \"%t.21\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.23\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t.22\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.23\"] }"
         "  ]"
         "}"))
     )

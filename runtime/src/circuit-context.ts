@@ -24,6 +24,7 @@ import {
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
 import { ContractModuleProvider, ContractStateProvider } from './providers.js';
+import { canonicalContractAddress } from './utils.js';
 
 export type CircuitId = string;
 
@@ -228,7 +229,7 @@ export type CircuitContextOptions<PS = any> = {
  */
 export const createCircuitContext = <PS>({
   circuitId,
-  contractAddress,
+  contractAddress: suppliedAddress,
   coinPublicKeyOrZswapState,
   contractState,
   privateState,
@@ -238,6 +239,7 @@ export const createCircuitContext = <PS>({
   parentBlockHash,
   crossContract,
 }: CircuitContextOptions<PS>): CircuitContext<PS> => {
+  const contractAddress = canonicalContractAddress(suppliedAddress);
   const callContext = createCallContext(
     circuitId,
     contractAddress,
