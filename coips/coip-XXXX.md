@@ -40,15 +40,14 @@ They are not versioned and can change between Compact releases.
 The three formats do not necessarily agree with each other.
 
 This CoIP specifies a single raw serialized representation for all Compact types other
-than contract types and opaque types.
+than types containing contract types and opaque types.
 The ledger encoding and the byte-vector casts are required to agree with it.
 Standard-library serialized values carry major and minor version bytes,
 with defined rules for breaking and non-breaking changes.
 The standard library's byte-oriented hashing functions compute a hash of
-the raw serialized representation major version 1, so hashes are stable across Compact releases.
+the raw serialized representation of major version 1, so hashes are stable across Compact releases.
 
-The proposal changes the signatures of `serialize` and `deserialize`,
-and the semantics of casts from `Bytes` to `Field`.
+The proposal changes the semantics of casts from `Bytes` to `Field`.
 
 ## Motivation
 
@@ -68,7 +67,8 @@ The existing encodings are separate implementations and already disagree for sev
 
 This CoIP addresses these problems by proposing one specified raw serialization format
 and versioned serialized values.
-The ledger encoding, the byte-vector casts, and `persistentHash` agree with this encoding.
+The ledger encoding, the byte-vector casts, and the standard library's byte-oriented hashing functions
+agree with this encoding.
 The rest of this section describes the three existing formats and how they relate.
 
 ### The public ledger serialization format
@@ -279,10 +279,6 @@ Deserialization allows non-canonical representations for, e.g., field values.
 This makes them agree with the `Bytes` casts.
 If we want to break this, then we have potentially less efficient deserialization in circuit.]
 
-### Runtime Support
-
-Propose adding `serialize` and `deserialize` methods to descriptors.
-
 ### Version bytes
 
 A **format version** is a pair of a major version and a minor version, written `MAJOR.MINOR`.
@@ -302,8 +298,14 @@ The **serialized size** of a type `T` is two plus the size of its raw serialized
 +-------+-------+-----------------------------------+
 ```
 
-`serialize` produces serialized values, and `deserialize` consumes them.
+`serialize` produces a serialized values, possibly followed by padding with zeros;
+and `deserialize` consumes serialized values, possibly with extra ignored padding.
 The version bytes are not part of the raw serialized representation.
+
+For a size argument `N` greater than the serialized size `M` of `T`,
+`serialize<T, N>(x)` is `serialize<T, M>(x)` followed by `N-M` zero bytes;
+and `deserialize<T, N>(b)` is `deserialize<T, M>(slice<M>(b, 0))`, the bytes at
+index `M` and beyond are ignored and not checked.
 
 **Breaking and non-breaking changes.**
 A change from format version X to format version Y is **non-breaking** if and only if:
@@ -344,7 +346,7 @@ These rules have the following consequences:
   Two serialized values of the same type are equal if and only if the values they encode are equal,
   as long as the raw serialized representations involved are canonical.
 - Hashing is defined on the raw serialized representation, without the version bytes;
-  see [Hashing](#hashing).
+  see [Hashing](#serialization-and-hashing).
 
 **This CoIP proposes adding the version bytes `[0x00, 0x00]` to every value serialized by the current implementation.**
 Since this changes the output of `serialize`, it is itself a breaking change to the current, unversioned format.
@@ -352,7 +354,7 @@ Since this changes the output of `serialize`, it is itself a breaking change to 
 ### Invariants
 
 This section states properties that the serialization rules,
-`serialize`, `deserialize`, and `persistentHash` are required to satisfy.
+`serialize`, `deserialize`, and the byte-oriented hashing functions are required to satisfy.
 The rules in [Raw serialized representations](#raw-serialized-representations) are designed so that they hold.
 
 A **serializable type** is a Compact type that has a raw serialized representation.
@@ -363,6 +365,13 @@ Throughout this section, `T` is a serializable type,
 and so its serialized size is `N+2`.
 For a serialized value `b` of type `Bytes<N+2>`,
 `slice<N>(b, 2)` is its raw serialized representation without the version bytes.
+
+`N+2` is not valid as a Compact size parameter,
+in the invariants below it stands in for the Compact literal `M` such that `M` is equal to `N+2`.
+
+The invariants are stated for size argument `N+2`, by definition of serialization for larger sizes
+they extend to any larger size argument excpt that a serialized value with non-zero trailing bytes
+is accepted but not canonical.
 
 All of these invariants hold both for JavaScript execution and in circuit.
 Moreover, JavaScript execution and circuit execution of `serialize<T, N+2>` and `deserialize<T, N+2>` agree:
@@ -795,6 +804,10 @@ dependencies, if any?
 
 Provide a link to a reference implementation, if there is one, and describe any
 limitations.
+
+### Runtime Support
+
+Propose adding `serialize` and `deserialize` methods to descriptors.
 
 ## Rejected Ideas
 
