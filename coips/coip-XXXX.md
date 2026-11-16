@@ -252,18 +252,21 @@ this **is** the identity on `Bytes<N>`.
 
 #### Atomic Types
 
-**Boolean:** The raw serializated representation is `Bytes<1>`, a single-element byte vector.
+**Boolean:** This is a built in Compact type.
+The raw serialized representation is `Bytes<1>`, a single-element byte vector.
 `true` is serialized as `[1]` and `false` is serialized as `[0]`.
 Raw deserialization fails on any other byte vector than the canonical ones `[0x0]` and `[0x1]`.
 
 The ledger serialization has `{ tag: 'bytes', length: 1 }`.
+Ledger deserialization will reject non-canonical serialized values.
 
-There is currently no in-language casts between `Boolean` and `Bytes<1>` in either direction.
+There ar currently no in-language casts between `Boolean` and `Bytes<1>` in either direction.
 The raw serialization rule is captured by the Compact code `Bytes [b ? 1 : 0]`;
 and the raw deserialization rule is captured by the Compact code
 `(assert(b[0] <= 1, "deserialization failure"), b[0] == 1)`.
 
-**Uint<0..N>:** The raw serialized representation is a byte vector `Bytes<M>`,
+**Uint<0..N>:** These are built in Compact types.
+The raw serialized representation is a byte vector `Bytes<M>`,
 where `M` is the maximum of 1 and the number of bytes required to represent the maximum value `N-1`
 (so `M` is at least 1).
 The byte vector contains the little-endian encoding of the unsigned integer's value.
@@ -271,6 +274,7 @@ Raw deserialization fails if the little endian encoding represents an
 unsigned integer greater than or equal to `N`.
 
 The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above.
+Ledger deserialization will reject non-canonical serialized values.
 
 The cast from `Uint<0..N>` to `Bytes<M>` produces the raw serialized representation.
 The cast from `Bytes<M>` to `Uint<0..N>` deserializes the raw serialized representation.
@@ -278,15 +282,17 @@ The cast from `Bytes<M>` to `Uint<0..N>` deserializes the raw serialized represe
 It fails if little-endian encoded unsigned integer represented by the byte vector is greater than
 or equal to `N`.
 
-**Uint<N>:** Compact sized integer types `Uint<N>` are serialized exactly as
+**Uint<N>:** These are built in Compact types.
+Compact sized integer types `Uint<N>` are serialized exactly as
 the bounded unsigned integer type `Uint<0..M>` where `M` is `2^N`.
 
 So for instance, `Uint<8>` has the same raw serialized representation as `Uint<0..256>`,
 that is `Bytes<1>`;
 and `Uint<16>` is (little-endian) `Bytes<2>`; etc.
 
-**Field:** The raw serializated representation is a byte vector `Bytes<32>`.
-The byte vector contains the little-endian encoding of the native field's value.
+**Field:** This is a built in Compact type.
+The raw serialized representation is a byte vector `Bytes<32>`.
+The byte vector contains the canonical little-endian encoding of the native field's value.
 Raw deserialization converts a byte vector to an unsigned integer,
 and then reduces that number modulo the field order.
 
@@ -294,15 +300,43 @@ The ledger serialization has `{ tag: 'field' }`.
 This will accept a `Uint8Array` up to length 32 and deserialize it as
 an unsigned integer, reduced modulo the field order.
 
-There is a cast from `Field` to `Bytes<32>` that obeys these rules[^1].
+There are casts between `Field` and `Bytes<32>` that obeys these rules[^1].
 
-**Bytes<N>:** The raw serialized representation is the byte vector itself.
+**JubjubScalar:** This is a Compact standard library type.
+The raw serialized representation is a byte vector `Bytes<32>`.
+The byte vector contains the little-endian encoding of the Jubjub scalar's value.
+Raw deserialization converts a byte vector to an unsigned integer,
+and then reduces that number modulo the field order.
+
+The ledger serialization has `{ tag: 'field' }`.
+This will accept a `Uint8Array` up to length 32 and deserialize it as
+an unsigned integer, reduced modulo the field order.
+
+There is a cast between `JubjubScalar` and `Bytes<32>` that obeys these rules[^2].
+
+**Secp256k1Base:** 
+
+[The ledger stores v-1 as a 24-byte atom followed by an 8-byte atom.
+Ledger decoding range checks, it does not reduce by the field order.
+Event serialization writes a single little-endian vector, not split and not offset.
+Deserialization reduces modulo the field order.
+So does the Compact cast from `Bytes<32>`.
+In-circuit there are two encodings, the `to_bytes/from_bytes` encoding
+which agrees with event serialization, and the `public_input/private_input` encoding
+which agrees with the field encoding of the ledger encoding.
+
+To have the same encoding, we need to reconcile this difference.
+Ask the Crypto team, it will require changes to ZKIR.]
+
+**Bytes<N>:** These are built-in Compact types.
+The raw serialized representation is the byte vector itself.
 
 The ledger serialization has `{ tag: 'bytes', length: N }`.
 
 In Compact, the raw serialized representation of `b: Bytes<N>` is just `b` itself.
 
-**Enumeration Types:** The raw serialized representation of a value of a program-defined enumeration type
+**Enumeration Types:** These are program-defined Compact types.
+The raw serialized representation of a value an enumeration type
 is its zero-based element index in declaration order.
 It uses the same encoding as `Uint<0..N>`, where `N` is the number of enumeration elements.
 Specifically, it is a byte vector `Bytes<M>` where `M` is the maximum of 1 and
@@ -314,13 +348,14 @@ The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as a
 In Compact, the raw serialized representation of `e: T` where `T` is an enumeration type
 can be obtained by `e as Uint<0..N> as Bytes<M>` for `N` and `M` as above.
 Likewise the raw serialized representation `b: Bytes<M>` can be deserialized by
-`b as Bytes<M> as Uint<0..N>`.
+`b as as Uint<0..N> as T`.
 
-**Opaque<'Uint8Array'>:** The raw serialized representation is `Bytes<N>`
+**Opaque<'Uint8Array'>:** This is a built in Compact type.
+The raw serialized representation is `Bytes<N>`
 where `N` is the length of the `Uint8Array`.
 The byte vector contains the bytes of the `Uint8Array` in order.
 
-The ldeger serialization has `{ tag: 'compress' }`.
+The ledger serialization has `{ tag: 'compress' }`.
 This tag does not have a length property, but it is not needed for deserialization because
 "compress" values are allowed by the ledger to have trailing zeros.
 
@@ -389,50 +424,6 @@ we use `Bytes<N>` to mean that it is serialized as a byte vector (with the align
 
 Serialization is defined in terms of the serialization of **base types**.
 These include some of the Compact primitive types and standard library-defined types.
-
-#### Bytes<N>
-
-These are Compact primitive types.
-
-The ledger serialization is `Bytes<N>`, that is as a byte vector containing the bytes in order.
-As usual, trailing zeros are dropped and recovered on deserialization using the length.
-See `CompactTypeBytes`.
-
-#### Opaque<'Uint8Array'>
-
-This is a Compact primitive type.
-
-The ledger serialization of a JavaScript `Uint8Array` is as a byte vector containing the bytes of the `Uint8Array`,
-**without** trailing zeros dropped to be recovered on deserialization.
-It has an alignment tag of `compress`, **not** `bytes`.
-This means that the actual value (the full byte vector) is stored in the ledger,
-but when converting to a sequence of native field values in circuit,
-the Poseidon hashing algorithm is (currently) used to get a single native field value.
-See `CompactTypeOpaqueUint8Array`.
-
-#### Opaque<'string'>
-
-This is a Compact primitive type.
-
-The ledger serialization of a JavaScript `string` is as a byte vector containing the bytes of the UTF-8 encoding of the string,
-**without** trailing zeros dropped to be recovered on deserialization.
-It has an alignment tag of `compress`, **not** `bytes`.
-This means that the actual value (the UTF-8 encoding of the string) is stored in the ledger,
-but as for `Opaque<'Uint8Array'>` it is represented in circuit by a hash of the bytes.
-See `CompactTypeOpaqueString`.
-
-#### JubjubScalar
-
-This is a Compact standard library type.
-
-This is serialized in the ledger exactly as the type `Field`, with the alignment tag `field`.
-Note that on deserialization, the value represented by the byte vector is (1) reduced by the native field modulus (**wrong!**),
-and (2) allowed to be outside the range of `JubjubScalar`.
-The compiler is therefore required to ensure that every ledger-serialized `JubjubScalar` is in the correct range.
-It does this (currently) by prohibiting arithmetic on `JubjubScalar` and by checking the value is in range (and failing if not) on casts to `JubjubScalar`.
-See `CompactTypeJubjubScalar`.
-
-The event serialization format is `x as Bytes<32>`.
 
 #### Secp256k1Base, Secp256k1Scalar, Secp256r1Base, Secp256r1Scalar, Curve25519Base
 
@@ -538,11 +529,22 @@ Explain the design decisions that were made and the reasons behind them.
 Describe how the proposed solution affects existing systems, applications, and
 users.  Is it a breaking change?
 
+- The change to `serialize` and `deserialize` signatures is a breaking change.
+- The cast from `Bytes<32> to `Field` is a breaking change.
+
 ## Security Implications
 
 Analyze the potential security implications of the proposed change.  Are there
 any new attack vectors or vulnerabilities introduced?  How will they be
 mitigated.
+
+- The change to `Bytes<32>` to `Field` cast behavior is
+  security-relevant.  Contracts that failed before will now silently
+  contain collisions.  This would effect, e.g., a contract that turns
+  the result of `persistentHash` into a `Field` to use as a map key or
+  other identifier.  You should use the `Bytes<32>` value itself.
+- Casts from byte vectors to foreign field types (`JubjubScalar`, etc)
+  are also not injective ("one-to-one").
 
 ## How to Teach This
 
@@ -585,3 +587,8 @@ This CoIP is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE
 a value outside the range of `Field`.  This CoIP is proposing that we change that in the language
 definition.
 
+[^2]: The ledger serialization implemented by the Compact runtime will instead reduce the
+serialized value via the native BLS12-381 field order (**wrong!**) and will therefore produce
+values out of range.  The compiler therefore must ensure that `JubjubScalar` values are in range.
+It does this by prohibiting arithmetic on `JubjubScalar`
+and explicitly checking that the value is in range on casts to `JubjubScalar.`
