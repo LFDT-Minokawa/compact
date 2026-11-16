@@ -44,8 +44,8 @@ than contract types and opaque types.
 The ledger encoding and the byte-vector casts are required to agree with it.
 Standard-library serialized values carry major and minor version bytes,
 with defined rules for breaking and non-breaking changes.
-`persistentHash` is defined as a hash of the raw serialized representation,
-so hashes are stable across Compact releases.
+The standard library's byte-oriented hashing functions compute a hash of
+the raw serialized representation major version 1, so hashes are stable across Compact releases.
 
 The proposal changes the signatures of `serialize` and `deserialize`,
 and the semantics of casts from `Bytes` to `Field`.
@@ -59,16 +59,17 @@ Hashes of serialized Compact values are used as map keys, Merkle leaves, and com
 that persist in contract state across upgrades.
 Contract authors can build their own message formats by hand using `Bytes` casts.
 
-Each of these depends on a binary encoding of Compact values that is not specified.
+Each of these depends on binary encodings that are either unspecified or specified independently of each other.
 Off-chain decoders can only be written by reverse engineering the compiler's source code.
-A `persistentHash` is stable only as long as the undocumented encoding is unchanged.
+A standard-library byte-oriented hash function is stable only as long as the undocumented encoding is unchanged.
 There is no rule guaranteeing that a value written by one compiler version can be read by
 another compiler version.
 The existing encodings are separate implementations and already disagree for several types.
 
-This CoIP addresses these problems by proposing on specified, versioned serialized representation.
-The ledger encoding, the byte-vector casts, and `persistentHash` are defined in terms of this encoding.
-The rest of this section describes the three formats and how they relate.
+This CoIP addresses these problems by proposing one specified raw serialization format
+and versioned serialized values.
+The ledger encoding, the byte-vector casts, and `persistentHash` agree with this encoding.
+The rest of this section describes the three existing formats and how they relate.
 
 ### The public ledger serialization format
 
@@ -83,9 +84,9 @@ and out of Compact's control.
 Everything above them is under Compact's control:
 how Compact values are serialized into `AlignedValue`s,
 and how a contract's public state is laid out as `Cell`s in a `StateValue`.
-The ledger simply stores and retrieves whatever whatever it is given.
-This CoIP is concerned only with what the Compact compiler can control.
-Changes to the ledger's representations are out of scope.
+The ledger simply stores and retrieves whatever it is given.
+This CoIP is concerned only with how Compact values are serialized.
+Changes to the state layout and changes to ledger formats are out of scope.
 
 An `AlignedValue` is a FAB `Value`, a sequence of value atoms,
 paired with a FAB `Alignment`, a same-length sequence of alignment atoms describing them.
@@ -95,7 +96,7 @@ An alignment atom tells how to interpret the corresponding value atom.
 Compact uses three kinds of alignment atoms:
 - `{ tag: 'field' }` for a native field element,
 - `{ tag: 'bytes', length: N }` for a byte vector of length `N`, and
-- `{ tag: 'compress' }` for an arbitrary-length byte string that is represented  in circuit by a hash.
+- `{ tag: 'compress' }` for an arbitrary-length byte string that is represented  in circuit by a commitment.
 
 `field` and `bytes` value atoms are stored with trailing zero bytes dropped.
 
@@ -124,7 +125,7 @@ and happens whenever values are written into or read from the ledger.
 The [CoIP-3 events](https://github.com/LFDT-Minokawa/compact/blob/main/coips/coip-0003.md) proposal,
 which has been implemented,
 adds generic `serialize<T, #N>` and `deserialize<T, #N>` circuits to the standard library.
-CoIP-3 requires them to be define at least for the standard event types, and to be usable in circuit.
+CoIP-3 requires them to be defined at least for the standard event types, and to be usable in circuit.
 `emit` uses the same format to encode an event's payload.
 
 The format is a flat byte vector with no type information:
@@ -146,7 +147,7 @@ There is no specification other than the Compact compiler's code generation impl
 The format is not versioned, and there is no compatibility guarantee made between versions of Compact.
 It has a separate implementation from the ledger serialization format and is not required to agree with it.
 Where the two do agree, that is coincidental rather than guaranteed,
-and they currently disagree for everal types,
+and they currently disagree for several types,
 including the foreign field types, `Uint<0..1>`, and single-element enumerations.
 
 ### Casting to and from byte vectors
@@ -162,10 +163,10 @@ The available casts are:
   The byte vector is the little-endian encoding of the value.
   A cast to `Bytes<N>` fails if the value does not fit in `N` bytes,
   and a cast from `Bytes<N>` fails if the encoded value exceeds the target type's maximum value.
-- The foreign field types except `JubjubScalar`, to and from `Bytes<32>`, also little-endian.
+- The foreign field types to and from `Bytes<32>`, also little-endian.
   Unlike `Field` and `Uint`, a cast from `Bytes<32>` cannot fail.
   The encoded value is reduced modulo the corresponding field order.
-- `Curve25519Scalar` can additionally be cast to and from `Bytes<64>`.
+- `Bytes<64>` can additionally be cast to `Curve25519Scalar`.
 - Vectors and tuples of `N` byte-sized unsigned integers to and from `Bytes<N>`,
   where the conversion is element-by-element.
 
@@ -178,13 +179,13 @@ the cast currently agrees with the event serialization format because the implem
 of event serialization is in terms of the cast.
 It does not necessarily agree with the ledger serialization format;
 for example the two differ for the foreign field types.
-As with the other formats, there is no compatability guarantee between versions of Compact.
+As with the other formats, there is no compatibility guarantee between versions of Compact.
 
 ### A note on hashing
 
 The Compact standard library provides hashing functions.
 One of them is `persistentHash<T>`, which uses the SHA-256 algorithm.
-It's documentation reads:
+Its documentation reads:
 
 > This function is a non-circuit-optimised compression function from arbitrary values to a 256-bit bytestring.
 > It is guaranteed to persist between upgrades, and to consistently use the SHA-256 compression algorithm.
@@ -208,12 +209,12 @@ so a change in the format could silently invalidate that state.
 The same applies to the standard library functions `persistentCommit`, `keccak256`, and `sha512`,
 which hash the FAB serialization of the Compact value.
 
-None of these hashing functions can be applied to values whose type contains an opaque type,
+None of these hashing functions can be applied to values whose type contains an opaque type;
 the compiler rejects this statically.
 The on-chain runtime can compute such a hash, because it hashes the commitment to an
 opaque value rather than its bytes.
 However, ZKIR cannot reconstruct a `compress` atom from its in-circuit representation and so
-it cannot compute the same hash in circuit.
+it cannot compute the same commitment in circuit.
 
 ### A note on the in-circuit representation of the ledger serialization
 
@@ -636,7 +637,7 @@ mitigated.
   contain collisions.  This would effect, e.g., a contract that turns
   the result of `persistentHash` into a `Field` to use as a map key or
   other identifier.  You should use the `Bytes<32>` value itself.
-- Casts from byte vectors to foreign field types (`JubjubScalar`, etc)
+- Casts from byte vectors to foreign field types
   are also not injective ("one-to-one").
 
 ## How to Teach This
