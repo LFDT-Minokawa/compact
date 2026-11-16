@@ -31,63 +31,89 @@ Replaces: None
 
 There are three different binary serialization formats for Compact values:
 the public ledger encoding,
-the standard library event serialization format,
-and ad hoc casts between some types and Compact byte vectors.
+the standard library's event serialization format (`serialize` and `deserialize`),
+and `as` casts between some types and byte vectors.
 
 With the exception of some of the byte vector casts,
-these formats are currently considered inmplementation details.
-There is no official definition other than the implementation itself.
+these formats are currently considered implementation details with no specification.
 They are not versioned and can change between Compact releases.
 The three formats do not necessarily agree with each other.
 
-This CoIP proposes a single defined and versioned serialization format used to encode all Compact values.
+This CoIP specifies a single raw serialized representation for all Compact types other
+than contract types and opaque types.
+The ledger encoding and the byte-vector casts are required to agree with it.
+Standard-library serialized values carry major and minor version bytes,
+with defined rules for breaking and non-breaking changes.
+`persistentHash` is defined as a hash of the raw serialized representation,
+so hashes are stable across Compact releases.
+
+The proposal changes the signatures of `serialize` and `deserialize`,
+and the semantics of casts from `Bytes` to `Field`.
 
 ## Motivation
 
-Contract and DApp developers would like to use serialization for interoperability.
-[High-level motivation: why might a DApp want to serialize/deserialize Compact data?]
+Compact values are already communicated in serialized form.
+[Events](https://github.com/LFDT-Minokawa/compact/blob/main/coips/coip-0003.md)
+are emitted as byte vectors and decoded off-chain by indexers and wallets.
+Hashes of serialized Compact values are used as map keys, Merkle leaves, and commitments
+that persist in contract state across upgrades.
+Contract authors can build their own message formats by hand using `Bytes` casts.
 
-There are three different binary serialization formats.
+Each of these depends on a binary encoding of Compact values that is not specified.
+Off-chain decoders can only be written by reverse engineering the compiler's source code.
+A `persistentHash` is stable only as long as the undocumented encoding is unchanged.
+There is no rule guaranteeing that a value written by one compiler version can be read by
+another compiler version.
+The existing encodings are separate implementations and already disagree for several types.
+
+This CoIP addresses these problems by proposing on specified, versioned serialized representation.
+The ledger encoding, the byte-vector casts, and `persistentHash` are defined in terms of this encoding.
+The rest of this section describes the three formats and how they relate.
 
 ### The public ledger serialization format
 
 In the Midnight Network, a contract's public ledger state is a binary-encoded `StateValue`
 defined by the Midnight ledger's [on-chain runtime specification](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/onchain-runtime.md#values).
-In a `StateValue`, Compact values are held in individual `Cell`s that each contain a binary-encoded
-*Field-Aligned Binary* (FAB) `AlignedValue`.
-The FAB binary format is defined by the Midnight ledger's [Field-Aligned Binary specification](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md).
-The binary encoding of the on-chain runtime's `StateValue` and the ledger's FAB `AlignedValue` are determined by the ledger
+Compact values are held in individual `Cell`s within the `StateValue`,
+and each `Cell` contains a *Field-Aligned Binary* (FAB) `AlignedValue`
+as defined by the ledger's [Field-Aligned Binary specification](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md).
+
+The binary encodings of `StateValue` and `AlignedValue` are determined by the ledger
 and out of Compact's control.
+Everything above them is under Compact's control:
+how Compact values are serialized into `AlignedValue`s,
+and how a contract's public state is laid out as `Cell`s in a `StateValue`.
+The ledger simply stores and retrieves whatever whatever it is given.
+This CoIP is concerned only with what the Compact compiler can control.
+Changes to the ledger's representations are out of scope.
 
-However, the serialization of Compact typed values into FAB `AlignedValue`s is fully under Compact's control.
-The Compact compiler and runtime can determine their own serialization format,
-and the ledger will simply store and retrieve whatever serialized data it is given.
+An `AlignedValue` is a FAB `Value`, a sequence of value atoms,
+paired with a FAB `Alignment`, a same-length sequence of alignment atoms describing them.
+A value atom is a blob of bytes (in JavaScript, a `Uint8Array`).
+An alignment atom tells how to interpret the corresponding value atom.
 
-An `AlignedValue` is a sequence of pairs of `ValueAtom`s and `AlignmentAtoms`.
-A `ValueAtom` is a blob of bytes, in JavaScript it is a `Uint8Array`.
-An `AlignmentAtom` is a tag telling how to deserialize the `ValueAtom`.
+Compact uses three kinds of alignment atoms:
+- `{ tag: 'field' }` for a native field element,
+- `{ tag: 'bytes', length: N }` for a byte vector of length `N`, and
+- `{ tag: 'compress' }` for an arbitrary-length byte string that is represented  in circuit by a hash.
 
-The actual implementation of `AlignedValue` serialization and deserialization is in the Compact runtime,
+`field` and `bytes` value atoms are stored with trailing zero bytes dropped.
+
+Serialization into aligned values is implemented in the Compact runtime
 using so-called *descriptor* objects.
-Descriptors are JavaScript objects that have `toValue` and `alignment` function properties used for serialization as FAB `AlignedValue`s.
-`toValue` converts a Compact value's JavaScript representation into a FAB `Value`
-(an array of `ValueAtoms`, i.e., byte arrays).
-`alignment` converts a Compact value's JavaScript representation into a FAB `Alignment`
-(an array of alignment segments, but for Compact the segments are always alignment atoms).
-Together a descriptor's `toValue` and `alignment` properties can be used to convert a Compact value to a FAB `AlignedValue`
-by zipping together pairs of value atoms and alignment atoms.
+A descriptor has a `toValue` function that converts a Compact value's JavaScript representation into a FAB `Value`,
+and an `alignment` function that gives the type's FAB `Alignment`.
+Together, they produce an `AlignedValue`.
+A descriptor has a `fromValue` function that converts a FAB `Value` back into a JavaScript representation
+using the type's alignment.
 
-Descriptors also have a `fromValue` function property used for deserialization.
-`fromValue` converts a FAB `Value` (an array of value atoms) into the JavaScript representation of a Compact value,
-using the descriptor's alignment.
+This format is used for more than just ledger state.
+The standard library hashing functions hash a value's FAB representation.
+Public and private proof inputs are passed from JavaScript to the proof server in FAB form.
 
 The ledger serialization format is defined for all Compact values.
 There is no specification other than the Compact runtime's implementation of descriptors.
 It is not versioned, and there is no compatibility guarantee made between versions of the Compact runtime.
-
-**Note:** the encoding of a contract's public ledger state into an on-chain runtime `StateValue` containing individual `Cell`s
-is also fully under the Compact's control.
-Specifying that encoding is outside the scope of this CoIP.
 
 Compact code does not have explicit access to FAB `Value` serialization of Compact typed values.
 Serialization and deserialization is implicit,
@@ -97,43 +123,68 @@ and happens whenever values are written into or read from the ledger.
 
 The [CoIP-3 events](https://github.com/LFDT-Minokawa/compact/blob/main/coips/coip-0003.md) proposal,
 which has been implemented,
-adds generic `serialize<T,#N>` and `deserialize<T,#N>` circuits.
-These are required to be defined at least for all the standard event types defined in CoIP-3.
-They are additionally required by CoIP-3 to be able to be performed in circuit.
+adds generic `serialize<T, #N>` and `deserialize<T, #N>` circuits to the standard library.
+CoIP-3 requires them to be define at least for the standard event types, and to be usable in circuit.
+`emit` uses the same format to encode an event's payload.
 
-`serialize` and `deserialize` have been implemented for all Compact data types,
-though there are some current exceptions (e.g., foreign curve points) where they are intended to be but are not yet implemented.
+The format is a flat byte vector with no type information:
+each atomic value is encoded in a fixed number of bytes,
+and compound values are encoded by concatenating the encodings of their parts.
+`serialize<T, N>` converts a value of type `T` into a value of type `Bytes<N>`,
+where `N` must be at least the serialized size of `T`.
+If it is larger, the result is padded with zero bytes.
+`deserialize<T, N>` converts a value of type `Bytes<N>` into a value of type `T`,
+where `N` must be at least the serialized size of `T`.
+If it is larger, `deserialize` ignores any bytes beyond the serialized size of `T` and does not check them.
+
+The format is implemented for all Compact types except types containing contract types and opaque types.
 The implementation is by code generation in the compiler.
 The `expand-serialize` pass in [compiler/analysis-passes/expand-serialize.ss](https://github.com/LFDT-Minokawa/compact/blob/main/compiler/analysis-passes/expand-serialize.ss)
 generates an intermediate representation which is further compiled to JavaScript and ZKIR.
-`serialize` produces a flat Compact byte vector (`Bytes<N>`) containing the serialized representation.
 
-The serialization format is intended to be defined for all Compact values,
-though CoIP-3 does not require this.
 There is no specification other than the Compact compiler's code generation implementation.
-It is not versioned, and there is no compatibility guarantee made between versions of Compact.
-It is not required to be the same as the ledger serialization format, and it has a separate implementation.
-Where it does agree with the ledger serialization format, that agreement is coincidental and not something that is guaranteed.
+The format is not versioned, and there is no compatibility guarantee made between versions of Compact.
+It has a separate implementation from the ledger serialization format and is not required to agree with it.
+Where the two do agree, that is coincidental rather than guaranteed,
+and they currently disagree for everal types,
+including the foreign field types, `Uint<0..1>`, and single-element enumerations.
 
 ### Casting to and from byte vectors
 
 The Compact language also allows type casts using the keyword `as`,
-and some types support casting to and from Compact byte vectors (`Bytes<N>` objects).
-These casts are ad hoc and not necessarily defined for all types.
+and some types support casting to and from Compact byte vectors (`Bytes<N>`).
+These casts are defined in the [Compact Reference](https://github.com/LFDT-Minokawa/compact/blob/main/doc/compact-reference.mdx),
+but they are ad hoc: they exist only for some types, and they were not designed as a serialization format.
 
-The available casts are defined in the [Compact Reference](https://github.com/LFDT-Minokawa/compact/blob/main/doc/compact-reference.mdx).
-There is no compatibility guarantee made between versions of Compact.
+The available casts are:
+
+- `Field` and `Uint` types, to and from `Bytes<N>` for any non-zero `N`.
+  The byte vector is the little-endian encoding of the value.
+  A cast to `Bytes<N>` fails if the value does not fit in `N` bytes,
+  and a cast from `Bytes<N>` fails if the encoded value exceeds the target type's maximum value.
+- The foreign field types except `JubjubScalar`, to and from `Bytes<32>`, also little-endian.
+  Unlike `Field` and `Uint`, a cast from `Bytes<32>` cannot fail.
+  The encoded value is reduced modulo the corresponding field order.
+- `Curve25519Scalar` can additionally be cast to and from `Bytes<64>`.
+- Vectors and tuples of `N` byte-sized unsigned integers to and from `Bytes<N>`,
+  where the conversion is element-by-element.
+
+There are no direct casts between `Bytes` and `Boolean`, enumeration types, `JubjubScalar`,
+structure types, curve points, or opaque types.
+Some of these can be reached by casting through an intermediate value of `Field` or `Uint` type.
+
+Where a cast does exist and the target size is the type's serialized size,
+the cast currently agrees with the event serialization format because the implementation
+of event serialization is in terms of the cast.
+It does not necessarily agree with the ledger serialization format;
+for example the two differ for the foreign field types.
+As with the other formats, there is no compatability guarantee between versions of Compact.
 
 ### A note on hashing
 
 The Compact standard library provides hashing functions.
 One of them is `persistentHash<T>`, which uses the SHA-256 algorithm.
-In generated JavaScript code this works for all Compact types.
-In ZK proofs, however, it **does not** work for Compact types that contain `Opaque`-typed subparts.
-The reason is that `Opaque`-typed values are represented in circuit by a Poseidon hash of their value,
-and a SHA-256 hash of the Poseidon hash of the value will not agree with a SHA-256 hash of the value itself.
-
-The documentation for `persistentHash` reads:
+It's documentation reads:
 
 > This function is a non-circuit-optimised compression function from arbitrary values to a 256-bit bytestring.
 > It is guaranteed to persist between upgrades, and to consistently use the SHA-256 compression algorithm.
@@ -142,35 +193,77 @@ The documentation for `persistentHash` reads:
 This is unclear, and developers have interpreted it as meaning that hashing the same Compact typed value will
 always produce the same hash.
 This is **not** what is actually guaranteed.
-`persistentHash` is implemented by using the SHA-256 algorithm on the FAB serialization of the Compact data.
-Since the serialization of Compact data into FAB is **not stable**,
-the hash would change if Compact ever changed this serialization format.
+`persistentHash` applies SHA-256 to the FAB serialization of the Compact value:
+- `field` atoms as 32 little-endian bytes,
+- `bytes` atoms padded to their length, and
+- `compress` atoms replaced by a 32-byte commitment to their contents.
+
+Only the use of SHA-256 is guaranteed to persist.
+Since the serialization of Compact values into FAB is **not stable**,
+the hash of a given value would change if Compact ever changed this serialization format.
+
+Such hashes are typically stored in contract state as map keys, Merkle tree leaves, or commitments
+so a change in the format could silently invalidate that state.
+
+The same applies to the standard library functions `persistentCommit`, `keccak256`, and `sha512`,
+which hash the FAB serialization of the Compact value.
+
+None of these hashing functions can be applied to values whose type contains an opaque type,
+the compiler rejects this statically.
+The on-chain runtime can compute such a hash, because it hashes the commitment to an
+opaque value rather than its bytes.
+However, ZKIR cannot reconstruct a `compress` atom from its in-circuit representation and so
+it cannot compute the same hash in circuit.
 
 ### A note on the in-circuit representation of the ledger serialization
 
-ZKIR circuits operate on ledger serialized values.
-These are, however, represented as sequences of native field values and not as arrays of bytes.
-The ledger's Field-Aligned Binary specification defines [a translation](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-8/spec/field-aligned-binary.md#field-representation)
-from the binary encoding (an array of byte arrays) plus a sequence of alignment tags into the field representation.
-This encoding interprets the alignment tags to determine how to encode each byte array as a sequence of fields.
+ZKIR circuits operate on ledger serialized values,
+but they represent them as sequences of native field elements rather than as arrays of bytes.
+This is sometimes thought of as a fourth serialization format.
+It is not:
+it is a different *representation* of the FAB serialization,
+obtained from it by a fixed translation.
 
+The ledger's Field-Aligned Binary specification defines [this translation](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md#field-representation)
+from an `AlignedValue`, a sequence of value atoms together with their alignment atoms,
+into a sequence of field elements.
+Each value atom is translated according to its alignment atom:
+
+- a `field` atom becomes a single field element;
+- a `bytes` atom of length `N` becomes `ceiling(N/31)` field elements, each holding up to 31 bytes of it;
+- a `compress` atom becomes a single field element, a commitment to its contents.
+
+Compact chooses the alignment atoms, through its descriptors, but it has no other say in the translation.
+Once a Compact value has been serialized into FAB,
+its field representation is determined.
+Any change to Compact's FAB serialization therefore changes the field representation too,
+and specifying the FAB serialization specifies both.
+The translation is reversible for `field` and `bytes` atoms,
+but not for `compress` atoms, whose contents cannot be recovered from their commitment.
+
+The field representation is used wherever Compact values reach the proof server.
 JavaScript execution of a circuit collects the data necessary to construct a proof:
 private inputs including circuit inputs,
-and public inputs including Impact code that was executed.
-The data collected by JavaScript execution is FAB encoded.
-Before sending it to the proof server to construct a proof,
-the Midnight.js library converts it to the field encoding by interpreting the alignment tags.
+and public inputs including the Impact code that was executed.
+This data is FAB encoded,
+and the Midnight.js library translates it into the field representation before sending it to the proof server.
+`transientHash` also hashes this representation of its argument.
 
-This field encoding is under the control of the Compact toolchain, because it emits the alignment tags.
-However, ZKIR is a typed-language,
-and so the field encoding of ZKIR typed values must agree with what the separate ZKIR implementation expects.
+Because ZKIR is a typed language,
+the field representation of each ZKIR-typed value must also be the one that the separate ZKIR implementation expects.
 ZKIR has an implicit "decode" operation when it uses a field-encoded public or private input,
-which converts that field encoding into a native ZKIR encoding.
+which converts the field representation into ZKIR's native representation of the value.
+This constrains the alignments Compact can choose.
+For example, ZKIR expects a `Secp256k1Base` value `v` as two field elements,
+holding the low 192 bits and the high 64 bits of `v - 1`.
+Compact therefore serializes such a value into FAB as a 24-byte atom and an 8-byte atom containing `v - 1`,
+so that the translation produces exactly those two field elements.
+This is why the ledger serialization of the foreign field types differs from their event serialization.
 
-It is important to note that this encoding is mostly irrelevant to the ledger.
+It is important to note that the field representation is mostly irrelevant to the ledger.
 The Compact compiler and the ZKIR implementation need to agree on it, but the ledger does not know what it is.
-The exception is that the public inputs representing Impact code have a specific encoding as field elements
-in-circuit that the ledger relies on.
+The exception is that the public inputs representing Impact code have a specific field representation
+that the ledger relies on.
 
 ## Specification
 
