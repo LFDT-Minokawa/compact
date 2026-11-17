@@ -64,23 +64,14 @@ describe('[Bugs] Zero-bit fields use consistent one-byte alignment', () => {
 
         const generatedContract = getFileContent(`${outputDir}/contract/index.js`);
         expect(generatedContract).toContain('new __compactRuntime.CompactTypeUnsignedInteger(0n, 1)');
-        expect(getZkir(outputDir, 'foo1').version.major).toBe(2);
-        expect(getZkir(outputDir, 'foo2').version.major).toBe(2);
-        expect(getZkir(outputDir, 'foo3').version.major).toBe(2);
-    });
-
-    test('[Issue #588] persistentHash inputs match their v2 alignment', async () => {
-        const outputDir = createTempFolder();
-        const result = await compile([Arguments.SKIP_ZK, ATTESTATION, outputDir]);
-
-        expectCompilerResult(result).toCompileWithoutErrors();
-        expectFiles(result).thatGeneratedJSCodeIsValid();
-        expectPersistentHashAlignment(outputDir, 2);
+        expect(getZkir(outputDir, 'foo1').version.major).toBe(3);
+        expect(getZkir(outputDir, 'foo2').version.major).toBe(3);
+        expect(getZkir(outputDir, 'foo3').version.major).toBe(3);
     });
 
     test('[Issue #615] the reproduction compiles with the v3 backend', async () => {
         const outputDir = createTempFolder();
-        const result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, ATTESTATION, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, ATTESTATION, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
         expectFiles(result).thatGeneratedJSCodeIsValid();

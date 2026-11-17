@@ -59,9 +59,8 @@ export type NamedSignatureType = {
   readonly type: SignatureType;
 };
 
-/** One circuit as *declared* in a `contract T { }` block. `pure` is the declared keyword, not inferred purity. */
+/** One circuit as *declared* in a `contract T { }` block: a circuit with this signature and a proof. */
 export type InterfaceCircuitDeclaration = {
-  readonly pure: boolean;
   readonly argumentTypes: readonly SignatureType[];
   readonly resultType: SignatureType;
 };
@@ -80,6 +79,7 @@ export type ArgumentNames = {
  *  generated for it. Disjoint but not exhaustive: a circuit that only calls a host function is neither. */
 export type CircuitSignature = InterfaceCircuitDeclaration &
   ArgumentNames & {
+    readonly pure: boolean;
     readonly provable: boolean;
   };
 

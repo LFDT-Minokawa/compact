@@ -51,7 +51,7 @@ const PARENT_BLOCK_HASH = '0'.repeat(64);
 const CIRCUIT_ID = 'add';
 
 const DECLARATION: InterfaceDescriptor = {
-  [CIRCUIT_ID]: { pure: false, argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
+  [CIRCUIT_ID]: { argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
 };
 
 // FAB atoms are little-endian and minimal-length, so zero is the empty byte string.
@@ -142,7 +142,6 @@ const calleeModule = (options: { localState: boolean; hostInterfaces?: HostInter
   Contract: class {
     readonly provableCircuits = { [CIRCUIT_ID]: addCircuit(options.localState) };
   },
-  pureCircuits: {},
   expectedVk: { [CIRCUIT_ID]: verifierKeyHashOf(VERIFIER_KEY) },
   circuitSignatures: {
     [CIRCUIT_ID]: { pure: false, provable: true, argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },

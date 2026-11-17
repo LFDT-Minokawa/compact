@@ -38,7 +38,7 @@
                                        "grep/sed pipeline found more than one match for key ~a" key)
                               version-string))))
                       ;; List of keys.
-                      (define keys '("zkir-v2" "zkir-v3"))
+                      (define keys '("zkir-v3"))
 
                       #`'#,(map (lambda (key)
                                   (cons key (grep-for key)))

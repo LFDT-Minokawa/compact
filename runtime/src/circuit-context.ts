@@ -25,6 +25,7 @@ import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
 import { createLocalQueryContext } from './local-state.js';
 import { ContractModuleProvider, ContractStateProvider, HostInterfaceProvider, LocalStateProvider } from './providers.js';
+import { canonicalContractAddress } from './utils.js';
 
 export type CircuitId = string;
 
@@ -233,11 +234,7 @@ export type CircuitContextOptions = {
   /** The address of the contract defining the circuit being executed. */
   readonly contractAddress: ocrt.ContractAddress;
   /** The initial Zswap local state, for tracking shielded coin transfers. */
-  readonly coinPublicKeyOrZswapState:
-    | ocrt.CoinPublicKey
-    | EncodedCoinPublicKey
-    | ZswapLocalState
-    | EncodedZswapLocalState;
+  readonly coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState;
   /** The ledger state to execute against — most often a snapshot fetched from the chain. */
   readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
   /**
@@ -272,7 +269,7 @@ export type CircuitContextOptions = {
  */
 export const createCircuitContext = ({
   circuitId,
-  contractAddress,
+  contractAddress: suppliedAddress,
   coinPublicKeyOrZswapState,
   contractState,
   localState,
@@ -283,6 +280,7 @@ export const createCircuitContext = ({
   hostInterfaceProvider,
   crossContract,
 }: CircuitContextOptions): CircuitContext => {
+  const contractAddress = canonicalContractAddress(suppliedAddress);
   const callContext = createCallContext(
     circuitId,
     contractAddress,
@@ -561,9 +559,7 @@ export const queryLedgerState = (
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(
       program.map((op) =>
-        typeof op === 'object' && 'popeq' in op
-          ? { popeq: { ...op.popeq, result: reads[i++].content } }
-          : op,
+        typeof op === 'object' && 'popeq' in op ? { popeq: { ...op.popeq, result: reads[i++].content } } : op,
       ) as ocrt.Op<ocrt.AlignedValue>[],
     );
     if (res.events.length === 1 && res.events[0].tag === 'read') {
@@ -588,10 +584,7 @@ export const queryLedgerState = (
  * @param circuitContext The context for the currently executing circuit.
  * @param program The read-only query to run.
  */
-export const snapshotLedgerState = (
-  circuitContext: CircuitContext,
-  program: ocrt.Op<null>[],
-): ocrt.AlignedValue | undefined => {
+export const snapshotLedgerState = (circuitContext: CircuitContext, program: ocrt.Op<null>[]): ocrt.AlignedValue | undefined => {
   try {
     const res = circuitContext.callContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
     if (res.events.length === 1 && res.events[0].tag === 'read') {

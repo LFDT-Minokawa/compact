@@ -5,6 +5,223 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- The compiler's check that exported circuits cannot modify `sealed` ledger
+  fields now looks inside tuple and vector literals and the arguments of `map`
+  and `fold`, including `for` loops over a computed vector.  Fixes issue
+  [#932](https://github.com/LFDT-Minokawa/compact/issues/932).
+
+## [Toolchain 0.36.105, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- Compact JavaScript runtime now treats every hex spelling of a contract
+  address as one contract. `createCircuitContext` and `crossContractCall` used
+  to key per-contract state and the re-entrancy guard by the address as it was
+  spelled, so a call into a contract that was already executing was not refused
+  when the two spellings differed in case, and ran against a second copy of
+  that contract's state. Both now use the lowercase spelling.
+
+### Changed
+
+- `createCircuitContext` rejects a `contractAddress` that is not a contract
+  address with a `CompactError`.
+
+### Added
+
+- The Compact runtime exports `canonicalContractAddress`, which checks that a
+  value is a contract address and returns its lowercase spelling.
+
+## [Toolchain 0.36.104, language 0.28.0, runtime 0.21.101]
+
+**This change was already released as 0.36.1.**
+
+### Fixed
+
+- Fix for [issue #616](https://github.com/LFDT-Minokawa/compact/issues/616).
+  This was an upstream bug in the ZKIR key-generation binary, it is fixed by
+  updating our ZKIR dependency version 3.2.1 which contains the fix.
+
+- Fix for [issue #856](https://github.com/LFDT-Minokawa/compact/issues/856).
+  A partial fix was made but it contained a bug that still triggered a typecheck
+  failure.
+
+## [Toolchain 0.36.103, language 0.28.0, runtime 0.21.101]
+
+### Fixed
+
+- Compact JavaScript runtime now accepts a shielded coin whose value does not
+  fit in 64 bits. It used to reject one when it created or looked up the coin's
+  commitment, although `ShieldedCoinInfo.value` is a `Uint<128>`, so a circuit
+  that received, merged or sent such a coin through the standard library failed
+  before it could be proven.
+
+## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit calls
+  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth in
+  `[16, 32]`, or stores a default tree of such a depth in a `Map` with
+  `insertDefault()` or `insert()`.
+
+## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- Compact JavaScript runtime now keeps a leading U+FEFF when it reads an
+  `Opaque<'string'>` value. It used to drop the character as a byte order
+  mark, so the string no longer matched the bytes stored on the ledger, and a
+  circuit that returned it, wrote it back, compared it with another string or
+  used it as a map key could not be proven.
+
+## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
+
+### Changed
+
+- `zkir-v3-natives.ss` and `zkir-v3-library.compact` and the mechanism to pull them
+  within scope in `expand-modules-and-types` pass have been removed. They are now
+  simply included in `midnight-natives.ss` and `standard-library.compact`. This
+  changes the `sources` of generated sourcemap `contract/index.js.map` when a contract
+  uses a functionality that was previously in `zkir-v3-library.compact`.
+
+## [Toolchain 0.36.0, language 0.28.0, runtime 0.21.0]
+
+This release includes all changes for compiler versions in the range between
+0.35.100 and 0.36.0; language versions in the range between 0.27.100 and 0.28.0;
+and Compact runtime versions in the range between 0.20.100 and 0.21.0.
+
+## [Toolchain 0.35.114, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit
+  subtracts a foreign field value from itself, such as `k - k` for a
+  `Secp256k1Scalar` `k`, including when the two operands become the same
+  only after inlining.  Fixes issue
+  [#866](https://github.com/LFDT-Minokawa/compact/issues/866).
+
+## [Toolchain 0.35.113, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error on a cast to a foreign
+  field type (`Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base` or `Curve25519Scalar`) when the cast is a
+  constant, such as `(1 as Bytes<32>) as Secp256k1Base`, or when its result is
+  never used, such as a struct field that is never read.
+
+## [Toolchain 0.35.112, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error for `*` or `+` on
+  operands of a nominal `Uint` type whose result range equals the type's own
+  range, such as `x * y` where `x` and `y` have type `Bit` declared by
+  `new type Bit = Uint<1>`.  Fixes issue
+  [#881](https://github.com/LFDT-Minokawa/compact/issues/881).
+
+## [Toolchain 0.35.111, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- Casting `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type
+  is now reported as a type error instead of failing with an internal error.
+  Fixes issue [#880](https://github.com/LFDT-Minokawa/compact/issues/880).
+- Casting any field type other than `Field`, including `JubjubScalar`, to an
+  enum type is now reported as a type error instead of failing with an
+  internal error.
+- Casting any field type other than `Field` to `Boolean` is now always a type
+  error. These casts used to be accepted in pure circuits, and failed when
+  compiled to a ZK circuit.
+
+## [Toolchain 0.35.110, language 0.27.100, runtime 0.20.104]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.2.0-rc.2`.
+
+## [Toolchain 0.35.109, language 0.27.100, runtime 0.20.104]
+
+### Changed
+
+- Every circuit declared in a contract type must have a proof, since a
+  cross-contract call is matched by the ledger against the called circuit's
+  proof. Marking a circuit declaration in a contract type `pure` is now a
+  compile-time error, since a pure circuit has no proof.
+  A `contract implements` declaration is likewise rejected when the
+  implementing circuit is declared `pure`. The arguments of every cross-contract
+  call must be disclosed and the exemption for calls declared `pure` is gone with
+  the declarations.
+- `compact-runtime`: conformance of a resolved module checks that every declared
+  circuit is implemented by a provable circuit (the `Provability` check) and
+  nothing about purity. The `PureInterfaceCircuit` failure kind and the `Purity`
+  conformance check are removed, as are the `pure` field of
+  `InterfaceCircuitDeclaration` and the never-read `pureCircuits` field of
+  `Module` (with the `PureCircuit` and `PureCircuits` types); `CircuitSignature`
+  keeps its `pure` field as information. The compiler no longer emits `pure` for
+  the circuits of a contract type in `declaredInterfaces` or in
+  `contract-info.json`.
+
+### Fixed
+
+- An exported circuit whose only public effect is a cross-contract call on an
+  address that is not read from the ledger (for example, an argument) now gets
+  a ZKIR and a verifier key. Previously the call's claim was emitted without a
+  proof to cover it, so the circuit could not be submitted or called.
+- A program that declares a contract type no longer has to import
+  `CompactStandardLibrary` for its cross-contract calls to compile. The call's
+  claim is made on the library's `kernel`, and without the import the compiler
+  failed with an internal error once the calling circuit needed a proof.
+
+## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit needs a
+  default value of type `Curve25519Base`, `Curve25519Scalar`, or
+  `Curve25519Point`, such as in `none<Curve25519Point>()` or the unused side
+  of an `Either`.  Fixes issue
+  [#868](https://github.com/LFDT-Minokawa/compact/issues/868).
+
+## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
+
+### Fixed
+
+- A cross-contract call's proof now binds the callee circuit named at the call
+  site. The compiler now emits the entry-point hash as a constant of the call
+  site.  Contracts that make cross-contract calls must be recompiled to get the
+  fix.
+
+## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
+
+- Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).
+  When the witness-protect program encountered a tuple used as an array,
+  it used the first tuple value as a representative for all of the elements
+  of the the array, which when an atomic element is recognized as a Boolean
+  constant the actual value of which in some other elements might not have
+  the same Boolean value.
+
+## [Toolchain 0.35.105, language 0.27.0, runtime 0.20.102]
+
+### Removed
+
+- The ZKIR-v2 backend passes (`zkir-passes`) and the `--feature-zkir-v3` flag are
+  removed. The compiler now defaults to ZKIR-v3. Passing
+  `--feature-zkir-v3` is now an error. `--ledger-version` now always prints
+  the version of the `zkir-v3` dependency.
+  
+### Internal notes
+
+- For the devtool tests to pass, upon a final release of the toolchain,
+  the `tools/compact/output/compile/compact_help.txt` 
+  needs to be updated to drop `--feature-zkir-v3` flag.
+  
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
 ### Fixed

@@ -1030,13 +1030,10 @@
         [(tbytes ,src ,len) (format "Bytes<~s>" len)]
         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
          (format "contract ~a[~{~a~^, ~}]" contract-name
-           (map (lambda (elt-name pure-dcl type* type)
-                  (if pure-dcl
-                      (format "pure ~a(~{~a~^, ~}): ~a" elt-name
-                        (map format-type type*) (format-type type))
-                      (format "~a(~{~a~^, ~}): ~a" elt-name
-                        (map format-type type*) (format-type type))))
-             elt-name* pure-dcl* type** type*))]
+           (map (lambda (elt-name type* type)
+                  (format "~a(~{~a~^, ~}): ~a" elt-name
+                    (map format-type type*) (format-type type)))
+             elt-name* type** type*))]
         [(ttuple ,src ,type* ...)
          (format "[~{~a~^, ~}]" (map format-type type*))]
         [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -2202,16 +2199,15 @@
            (format "{tag: 'Vector', length: ~d, type: ~a}" (length s*) (car s*))]
           [else (format "{tag: 'Tuple', types: [~a]}" (comma-separated s*))]))
 
-      (define (format-interface-descriptor elt-name* pure-dcl* type** type*)
+      (define (format-interface-descriptor elt-name* type** type*)
         (format "{~a}"
           (comma-separated
-            (map (lambda (elt-name pure-dcl arg-type* result-type)
-                   (format "~a: {pure: ~a, argumentTypes: [~a], resultType: ~a}"
+            (map (lambda (elt-name arg-type* result-type)
+                   (format "~a: {argumentTypes: [~a], resultType: ~a}"
                      (format-javascript-string (symbol->string elt-name))
-                     (if pure-dcl "true" "false")
                      (comma-separated (map format-compact-type arg-type*))
                      (format-compact-type result-type)))
-                 elt-name* pure-dcl* type** type*))))
+                 elt-name* type** type*))))
 
       (define (format-compact-type type)
         (nanopass-case (Ltypescript Type) type
@@ -2256,7 +2252,7 @@
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "{tag: 'Contract', name: ~a, circuits: ~a}"
              (format-javascript-string (symbol->string contract-name))
-             (format-interface-descriptor elt-name* pure-dcl* type** type*))]
+             (format-interface-descriptor elt-name* type** type*))]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (assert cannot-happen)]
           [,tvar-name (assert cannot-happen)]
@@ -2498,7 +2494,7 @@
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (format "~a: ~a"
                    (format-javascript-string (symbol->string contract-name))
-                   (format-interface-descriptor elt-name* pure-dcl* type** type*))]))
+                   (format-interface-descriptor elt-name* type** type*))]))
             contract-type*)))
 
       ;; The per-circuit fingerprints computed in passes.ss after key generation. Empty for a build
@@ -3571,14 +3567,12 @@
      ;; all possible values are smaller than the native field modulus.
      (Expr expr level outer-pure?)]
     [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,expr)
-     (if (feature-zkir-v3)
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             (compact-stdlib "convertNumericToJubjubScalar")
-             "("
-             (Expr expr (precedence add1 comma) outer-pure?)
-             ")"))
-         (Expr expr level outer-pure?))]
+     (parenthesize level (precedence call)
+       (make-Qconcat
+         (compact-stdlib "convertNumericToJubjubScalar")
+         "("
+         (Expr expr (precedence add1 comma) outer-pure?)
+         ")"))]
     [(cast-to-field ,src ,ftype ,type ,expr)
      (assert cannot-happen)]
     [(cast-from-field ,src ,nat ,ftype ,expr)
@@ -3680,7 +3674,7 @@
      ;;     partialProofData,
      ;;     args: [<args>...]})
      (when outer-pure?
-       (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
+       (internal-errorf 'print-typescript "cross-contract call in pure circuit"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
         ;; Type checking already established this; re-checked so a declaration missing the circuit

@@ -33,7 +33,7 @@ import { missingHostFunctions } from './host.js';
 import { createLocalQueryContext } from './local-state.js';
 import { VerifierKeyHash, isVerifierKeyHash, verifierKeyHashOf } from './verifier-key-hash.js';
 import { emptyZswapLocalState, EncodedCoinPublicKey } from './zswap.js';
-import { assertIsContractAddress, fromHex } from './utils.js';
+import { canonicalContractAddress, fromHex } from './utils.js';
 import { CompactError } from './error.js';
 import { PartialProofData } from './proof-data.js';
 import { CompactTypeBytes, CompactTypeField, CompactTypeUnsignedInteger } from './compact-types.js';
@@ -659,28 +659,25 @@ export const crossContractCall = async ({
   interfaceName,
   declaration,
   calleeCircuitId,
-  calleeAddress,
+  calleeAddress: suppliedCalleeAddress,
   partialProofData: callerProofData,
   args,
 }: CrossContractCallOptions): Promise<any> => {
+  // 1. The call site names a circuit of the declared contract type.
+  assertDefined(
+    Object.hasOwn(declaration, calleeCircuitId) ? declaration[calleeCircuitId] : undefined,
+    `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`,
+  );
+
+  // 2. Address checks, then the provider itself.
+  const calleeAddress = canonicalContractAddress(suppliedCalleeAddress);
+  assertNotDefaultContractAddress(calleeAddress);
   const resolutionContext: ModuleResolutionContext = {
     calleeAddress,
     calleeCircuitId,
     interfaceName,
     callerAddress: circuitContext.callContext.contractAddress,
   };
-
-  // 1. A circuit the contract type declares `pure` has no verifier key and is never a deployed
-  //    operation, so there is nothing to call into.
-  const declared = Object.hasOwn(declaration, calleeCircuitId) ? declaration[calleeCircuitId] : undefined;
-  assertDefined(declared, `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`);
-  if (declared.pure) {
-    failResolution(resolutionContext, { kind: 'PureInterfaceCircuit' });
-  }
-
-  // 2. Address checks, then the provider itself.
-  assertIsContractAddress(calleeAddress);
-  assertNotDefaultContractAddress(calleeAddress);
   const moduleProvider = circuitContext.moduleProvider;
   if (moduleProvider === undefined) {
     failResolution(resolutionContext, { kind: 'ModuleProviderAbsent' });
@@ -742,7 +739,6 @@ export const crossContractCall = async ({
     calleeCallProofData.commCommData = commCommData;
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
-    callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
     // The caller's record pins the result the chain bound it to, beside the call it answers; the
     // callee's record (the trace entry above) holds the callee's own local transcript and host outputs.
     (callerProofData.calleeReturns ??= []).push({

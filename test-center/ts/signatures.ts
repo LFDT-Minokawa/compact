@@ -19,7 +19,7 @@
 // module itself exposes or encodes, not only against a pinned shape.
 
 const CALLEE = { tag: 'Contract', name: 'Callee', circuits: {
-  ping: { pure: false, argumentTypes: [{ tag: 'Uint', maxval: '255' }], resultType: { tag: 'Uint', maxval: '255' } },
+  ping: { argumentTypes: [{ tag: 'Uint', maxval: '255' }], resultType: { tag: 'Uint', maxval: '255' } },
 } };
 const COLOR = { tag: 'Enum', name: 'Color', elements: ['red', 'green', 'blue'] };
 const INNER = { tag: 'Struct', name: 'Inner', elements: [{ name: 'f', type: { tag: 'Field' } }] };

@@ -108,6 +108,12 @@ export type CompactContractConstructor<
     Contract extends CompactContract = CompactContract,
 > = new () => Contract;
 
+export type ContractConstructorArgs<Contract> = Contract extends {
+    initialState(context: any, ...args: infer Args): any;
+}
+    ? Args
+    : any[];
+
 /**
  * The host interfaces a fixture answers, keyed by interface id: the test's side of the
  * contract's `host` blocks.

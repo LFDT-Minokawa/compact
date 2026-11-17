@@ -403,7 +403,7 @@ describe('a callee circuit with only local effects', () => {
     const error = await resolutionError(chain.call(relayCall(relay, 'remember', [note(1)], account)));
     expect(error.failure).toEqual({ kind: 'NonconformantImplementation', circuitId: 'remember', check: 'Provability' });
     expect(error.message).toContain(
-      "through contract type 'Recall' could not be bound to an implementation: the resolved module does not implement the contract type: circuit 'remember' is declared impure but is not among the module's provable circuits.",
+      "through contract type 'Recall' could not be bound to an implementation: the resolved module does not implement the contract type: circuit 'remember' is not among the module's provable circuits, so it has no proof to match the call.",
     );
     expect(account.lookupCount(vault.address)).toEqual(0);
     expect(account.localState(vault.address)).toBeUndefined();

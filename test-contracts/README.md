@@ -37,7 +37,10 @@ This keeps compilation visible as part of the test suite while allowing runtime
 tests to type against generated `Contract` imports for hover and
 go-to-definition. Fixtures under a `slow/` path segment still run by default,
 but their compile work runs exclusively so expensive proving-key generation does
-not race other compiler jobs.
+not race other compiler jobs. Because a slow fixture can wait for other
+compiles before its own starts, its tests get 10 minutes for each compile it
+may wait behind instead of the usual `testTimeout`. That is at most
+`maxConcurrency` compiles, the number of tests Vitest runs at once.
 
 ## Shared Harness
 
@@ -58,14 +61,14 @@ import { defineCompileTest } from '@test/compact-test';
 export default defineCompileTest(import.meta.url);
 ```
 
-A fixture whose contract needs a non-default compiler mode declares the extra
+A fixture whose contract needs non-default compiler flags declares the extra
 flags with `compilerArgs`. They are passed ahead of the contract and output
 paths for every compiler invocation of that fixture, including the `yarn lint`
 artifact preparation run:
 
 ```ts
 export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
+    compilerArgs: ['--no-communications-commitment'],
 });
 ```
 
@@ -98,6 +101,15 @@ export default defineRuntimeTest<typeof Contract>(
         expect(Array.from(result)).toEqual([5]);
     },
 );
+```
+
+A contract whose constructor takes parameters receives them as the third
+argument of `createTestContract`, after the host interfaces:
+
+```ts
+const { contract, ctx } = await createTestContract(Contract, {}, [
+    [1n, 2n, 3n],
+]);
 ```
 
 The callback's second argument is the generated `pureCircuits` record. A
@@ -172,7 +184,8 @@ inside Vitest before importing the generated contract value.
 `yarn lint` prepares generated imports with `--skip-zk`; `yarn test` uses full
 compiler runs so compile tests still cover proving-key generation. Compile hang
 protection is owned by Vitest and CI through `testTimeout` in
-`vitest.config.ts`.
+`vitest.config.ts`, and through `slowCompileTimeoutMs` in
+`compact-test-orchestrator.test.ts` for `slow/` fixtures.
 
 ## The Linked Runtime
 

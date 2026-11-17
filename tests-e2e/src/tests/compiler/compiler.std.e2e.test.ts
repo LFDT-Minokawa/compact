@@ -19,7 +19,6 @@ import {
     compile,
     compilerDefaultOutput,
     createTempFolder,
-    ExitCodes,
     expectCompilerResult,
     expectFiles,
     buildPathTo,
@@ -29,38 +28,6 @@ import path from 'node:path';
 describe('[Std] Compiler', () => {
     const CONTRACTS_ROOT = buildPathTo('/std_lib/import');
     const contractsDir = createTempFolder();
-
-    test.each([
-        {
-            output: {
-                stderr: 'Exception: test_import_csl_quotes.compact line 16 char 1:\n  failed to locate file \"CompactStandardLibrary.compact\"',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Failure,
-            },
-            file: 'test_import_csl_quotes.compact',
-        },
-        {
-            output: {
-                stderr: 'Exception: test_import_std.compact line 16 char 1:\n  failed to locate file \"std.compact\"',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Failure,
-            },
-            file: 'test_import_std.compact',
-        },
-        {
-            output: {
-                stderr: 'Exception: test_include_std.compact line 16 char 1:\n  failed to locate file \"std.compact\": possibly replace include with import CompactStandardLibrary',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Failure,
-            },
-            file: 'test_include_std.compact',
-        },
-    ])(`should not be able to compile contract with invalid standard library: $file`, async ({ output, file }) => {
-        const result = await compile([Arguments.SKIP_ZK, file, contractsDir], CONTRACTS_ROOT);
-
-        expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
-        expectFiles(result).thatNoFilesAreGenerated();
-    });
 
     test(`should be able to compile contract with valid standard library: test_import_csl.compact`, async () => {
         const filePath = path.join(CONTRACTS_ROOT, 'test_import_csl.compact');

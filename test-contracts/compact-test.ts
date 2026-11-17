@@ -27,6 +27,7 @@ import type {
     CompileTestDefinition,
     CompileTestOptions,
     ContractCircuitContext,
+    ContractConstructorArgs,
     ContractHostInterfaces,
     GeneratedPureCircuits,
     RuntimeTestDefinition,
@@ -100,15 +101,20 @@ export async function createTestContract<
 >(
     Contract: Contract,
     hostInterfaces: ContractHostInterfaces = {},
+    constructorArgs: ContractConstructorArgs<
+        InstanceType<Contract>
+    > = [] as unknown as ContractConstructorArgs<InstanceType<Contract>>,
 ): Promise<TestContract<Contract>> {
     const contract = new Contract() as InstanceType<Contract>;
     const constructorResult = await contract.initialState(
         createConstructorContext('0'.repeat(64)),
+        ...constructorArgs,
     );
     const ctx = createCircuitContext({
         circuitId: 'constructor',
         contractAddress: dummyContractAddress(),
-        coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
+        coinPublicKeyOrZswapState:
+            constructorResult.currentZswapLocalState.coinPublicKey,
         contractState: constructorResult.currentContractState,
         hostInterfaceProvider: { resolve: (id) => hostInterfaces[id] },
     });

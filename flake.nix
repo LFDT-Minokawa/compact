@@ -23,27 +23,28 @@
   };
 
   inputs = {
-    zkir = {
-      # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
+    # fenix dropped x86_64-darwin in e659899 (2026-09-28); pin to a rev before that.
+    # This is the revision of the last good x86_64-darwin build on our CI.  There
+    # are newer revisions than this before 2026-09-28 but they are not known good.
+    # This freezes zkir-v3's Rust toolchain at whatever stable version that fenix
+    # revision pulled in.
+    fenix-zkir = {
+      url = "github:nix-community/fenix/c957e2d0e505ad7be04c7f2f2f3d7885fb9e242c";
       inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
     };
-    zkir-wasm = {
-      # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
-    };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
+      inputs.fenix.follows = "fenix-zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -62,9 +63,7 @@
 
   outputs = {
     self,
-    zkir,
     onchain-runtime-v4,
-    zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
     nixpkgs,
@@ -190,12 +189,6 @@
             src = ./test-center;
 
             nixDependenciesMap = {
-              "@midnightntwrk/zkir-v2" = let
-                pkg = zkir-wasm.packages.${system}.zkir-wasm;
-              in {
-                tarPath = "${pkg}/lib/midnight-zkir-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
-              };
               "@midnightntwrk/zkir-v3" = let
                 pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
               in {
@@ -217,7 +210,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.35.104"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.106"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -349,7 +342,7 @@
           '';
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
-            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir packages.zkir-v3-bin ]} \
+            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos packages.zkir-v3-bin ]} \
             compactc $@
           '';
 
@@ -362,10 +355,8 @@
               mkdir -p $out/bin $out/lib
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
-              cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
               cp ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/lib/zkir-v3
 
-              chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3
 
               touch $out/bin/compactc
@@ -383,7 +374,6 @@
                 chmod +x "$out/bin/$exe"
               done
             '' + (if isDarwin then ''
-              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
               install_name_tool -change ${inputs.zkir-v3.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir-v3"
             '' else "");
 
@@ -414,7 +404,6 @@
               Env = [
                 "PATH=${pkgs.lib.makeBinPath [
                   compactc
-                  zkir.packages.${system}.zkir
                   zkir-v3-bin
                 ]}"
               ];
@@ -423,7 +412,6 @@
               (nix2container.buildLayer {
                 deps = [
                   compactc
-                  zkir.packages.${system}.zkir
                   zkir-v3-bin
                 ];
               })
@@ -515,7 +503,6 @@
             meta.mainProgram = "compactc";
             paths = [
               packages.compactc
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
               packages.compact-vscode-extension
             ];
@@ -554,7 +541,6 @@
               packages.runtime.node-modules
               packages.test-center.package
               packages.test-center.node-modules
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
             shellHook = combined-shell-hook;
@@ -569,7 +555,6 @@
               pkgs.git
               packages.compactc
               pkgs.yarn
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
 
@@ -582,7 +567,6 @@
               packages.compactc
               packages.runtime.package
               pkgs.yarn
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
 
@@ -606,7 +590,6 @@
               packages.compactc
               packages.runtime.package
               packages.runtime.node-modules
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
               pkgs.nodejs
               pkgs.yarn
