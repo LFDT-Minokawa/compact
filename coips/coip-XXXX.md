@@ -970,49 +970,184 @@ as for tuples, building the structure with a structure creation expression.
 
 ## Rationale
 
-Explain the design decisions that were made and the reasons behind them.
+This proposal rests on four ideas.
+The specification follows from them.
+
+**The ledger serialization does not change.**
+Existing contract state is stored in the ledger serialization,
+and `persistentHash` and the other byte-oriented hashing functions currently hash it.
+The inputs to ZKIR circuits are also determined by it:
+values are passed to the proof server in the FAB field representation of their ledger serialization,
+and ZKIR decodes each type from that representation.
+Leaving the ledger serialization unchanged, and adopting it as the raw serialized representation,
+means that are no changes to stored ledger values, existing hashes,
+and the ZKIR implementation.
+Where the event serialization format disagreed with the ledger serialization,
+it is the event serialization format that changes.
+
+**The standard library API is unchanged.**
+`serialize<T, N>` and `deserialize<T, N>` keep their current signatures, including the size parameter.
+Changing them was considered but left out of this CoIP to limit its scope.
+
+**Serialization is efficient in circuit.**
+Every serializable type has a raw serialized size fixed by the type,
+so serialization and deserialization have a fixed shape in circuit.
+The rules for each type are chosen so that they can be implemented with a short sequence of ZKIR instructions.
+Where accepting non-canonical representations is cheaper in circuit than rejecting them,
+as for the field types, raw deserialization accepts them.
+
+**Casts between types and byte vectors match ZKIR where possible.**
+For the field types and the curve point types,
+casts to and from `Bytes` have the semantics of ZKIR's `to_bytes` and `from_bytes` instructions:
+little-endian encodings for the field types,
+and standard compressed encodings for the point types.
+These casts can therefore be implemented directly in circuit.
+Where these semantics differ from the raw serialized representation,
+the rule for each type says how the two are related.
 
 ## Backwards Compatibility
 
-Describe how the proposed solution affects existing systems, applications, and
-users.  Is it a breaking change?
+The proposal makes several changes that break backwards compatibility.
 
-- The cast from `Bytes<M>` to `Field` for `M` greater than or equal to 32 is a breaking change.
-- Writing the version bytes for 0.0 is a breaking change.
-- We are changing the event serialization of `Uint<0..1>` so it
-  now has raw serialized size 1, which is a breaking change.
-- The event serialization of the 8/24 foreign fields has changes (subtracting 1 in the field)
-- Changing emit to emit versioned events is a breaking change
-  (but we won't do this, we'll piggyback on the event version)
-  
-[If we add an appendix describing changes to the 0.0 format and
-where the change from hashing invariant does not hold for 0.0 or
-where hashes change with the change from 0.0 to 1.0, we need to mention:
+**Programs that use `serialize`/`deserialize`.**
+The serialized size of existing types grows by two, so calls to `serialize` and `deserialize`
+likely need their size bounds to be changed.
+Programs that had at least two bytes of padding in `serialize` or `deserialize` will still
+compile but the version bytes shift the serialized representation by two
+even if there were no other changes to the serialized representation.
+Bytes serialized by the current implementation won't deserialize with this proposal due to the
+missing version bytes.
 
-- the change in serialized representation of `Uint<0..1>`
+**Changes to the standard-library serialized representation of existing types.**
+Several existing types are proposed to be serialized differently.
+There are the following breaking changes:
 
-]
+- `Uint<0..1>` (equivalently `Uint<0>`) and single-element enumeration types.
+  Previously they were serialized as zero bytes, the proposal is that thier raw serialized representation
+  is one byte.  Inside compound types, this shifts subsequent elements or fields.
+- The non-`Curve25519Scalar` foreign fields.
+  Previously they were little-endian encodings of their unsigned value,
+  the proposal is to serialize `(v - 1) mod p` to match the ledger serialization.
+- `Curve25519Scalar`.
+  Previously it was a little-endian encoding of its unsigned value,
+  the proposal is to match the somewhat complicated ledger encoding.
+  Deserialization could not fail before, with the proposal it can if the structure is not correct.
+- `Field` deserialization.
+  Previously, representations of values greater than or equal to the field order failed,
+  the proposal is that they are reduced modulo the field order.
+
+There are also some non-breaking changes.
+
+- `JubjubScalar` is serializable.
+  Previously, it was not serializable due to a bug in the compiler.
+- The four curve point types are serializable.
+  Previously, serialization for them was unimplemented.
+
+**`Bytes<M>` to `Field` casts.**
+Previously these would fail for the encoding of out of range values.
+With the proposal they will reduce modulo the field order.
+For `M` < 32 nothing changes.
+Code that relied on the failure as a range check will now succeed.
+
+**The ledger and the Compact runtime.**
+The ledger serialization itself is unchanged.
+The proposal makes ledger deserialization stricter in two places:
+
+- `JubjubScalar` ledger deserialization will reject values between `r` (the Jubjub scalar field modulus)
+  and `p` (the native BLS12-381 field modulus).
+  Previously they were allowed and resulted in values outside the `JubjubScalar` range.
+  This was benign so long as the values were serialized into the ledger state by Compact code.
+- The proposal requires the point types to be validated to lie on the curve when deserialized
+  from the ledger.
+  This can cause existing ledger state to fail to deserialize, if invalid curve points were
+  written to it.
+
+**Deployed contracts that use `serialize`/`deserialize`.**
+The ZKIR representation of these circuits will change so their verifier keys will change
+when recompiled.
+This is a normal consequence of recompilation, but maintainers should be aware of it.
 
 ## Security Implications
 
-Analyze the potential security implications of the proposed change.  Are there
-any new attack vectors or vulnerabilities introduced?  How will they be
-mitigated.
+**Casts from byte vectors to field types are not injective.**
+This CoIP changes casts from `Bytes<M>` to `Field`, for `M` of 32 or more,
+to reduce the encoded integer modulo the field order rather than fail.
+Distinct byte vectors can therefore produce the same `Field` value,
+where previously one of them would have caused a run-time error.
+This affects, for example, a contract that casts the result of `persistentHash` to `Field`
+to use as a map key or other identifier;
+such a contract should use the `Bytes<32>` value itself.
+Casts from byte vectors to the foreign field types were already not injective.
 
-- The change to `Bytes<32>` to `Field` cast behavior is
-  security-relevant.  Contracts that failed before will now silently
-  contain collisions.  This would effect, e.g., a contract that turns
-  the result of `persistentHash` into a `Field` to use as a map key or
-  other identifier.  You should use the `Bytes<32>` value itself.
-- Casts from byte vectors to foreign field types
-  are also not injective ("one-to-one").
+**Deserialized values can have more than one serialized form.**
+Raw deserialization accepts non-canonical representations for the field types,
+and `deserialize` ignores bytes beyond the serialized size.
+A program that hashes, signs, or compares bytes it received,
+rather than the value it deserialized from them,
+can therefore accept two different byte vectors as representing the same value.
+Such a program should hash or compare the deserialized value, or its re-serialization;
+see [Deserialization and hashing](#deserialization-and-hashing).
+
+**Hashes do not depend on types.**
+`persistentHash` and the other byte-oriented hashing functions hash only the raw serialized representation,
+so values of different types with the same representation have the same hash.
+Programs that need hashes of different kinds of data to be distinct
+must include a domain separator in the data being hashed.
+
+**Deserialization no longer produces invalid values.**
+Raw deserialization and ledger deserialization reject points that are not on the curve
+(or, for `JubjubPoint` and `Curve25519Point`, not in the prime-order subgroup),
+and ledger deserialization of `JubjubScalar` rejects values that are not less than the Jubjub scalar field order.
+Previously, ledger deserialization in JavaScript could produce such values,
+on which JavaScript and circuit execution could disagree.
+Invalid points can still be introduced by other means,
+which are outside the scope of this CoIP:
+`constructJubjubPoint` does not validate its result,
+and points returned by witnesses are not validated.
 
 ## How to Teach This
 
-Explain how to teach users, including both new and experienced ones, how to use
-the CoIP in their own work.
+The central idea to teach is this:
+the byte-oriented hash of a Compact value is the hash of its raw serialized representation.
+For a value `x` of a serializable type `T` whose raw serialized size is `N`,
+`persistentHash<T>(x)` is the SHA-256 hash of the `N` bytes `slice<N>(serialize<T, N+2>(x), 2)`,
+and the same holds for `persistentCommit`, `keccak256`, and `sha512`.
+Anyone who can produce the raw serialized representation of a value,
+in Compact or in another language,
+can therefore compute its hash.
 
-Note that `persistentHash<Secp256k1Scalar>(x)` is not equal to `persistentHash<Bytes<32>>(x as Bytes<32>)`
+Most Compact programmers will notice no other change:
+the ledger serialization, the results of the byte-oriented hashing functions,
+and the payloads of standard events are all unchanged.
+The changes are visible to programmers who use `serialize` and `deserialize`,
+who cast between field or point types and byte vectors,
+or who decode Compact values outside Compact.
+
+**For Compact programmers using `serialize` and `deserialize`.**
+A serialized value now begins with two version bytes,
+so its size is two more than the raw serialized size of its type,
+and the size argument of `serialize` and `deserialize` must allow for this.
+The raw serialized representation of `x: T` is `slice<N>(serialize<T, N+2>(x), 2)`,
+where `N` is the raw serialized size of `T`,
+and this is exactly what `persistentHash<T>(x)` hashes.
+Code that hashes, signs, or compares serialized bytes received from elsewhere
+should do so on the deserialized value, or on its re-serialization,
+rather than on the received bytes.
+
+**For Compact programmers using casts to and from byte vectors.**
+Casts are not always the same as serialization.
+For the foreign field types and the point types, casts to `Bytes` use the standard encodings of those types,
+which differ from their raw serialized representations.
+In particular, for a value `x` of one of the foreign field types,
+`persistentHash<T>(x)` is not equal to `persistentHash<Bytes<32>>(x as Bytes<32>)`.
+Casts from byte vectors to `Field` now reduce modulo the field order instead of failing.
+
+**For implementers outside Compact.**
+Indexers, wallets, and other tools that decode Compact values,
+or that recompute hashes of them,
+should implement the rules in [Raw serialized representations](#raw-serialized-representations).
+Event payloads are raw serialized representations, without version bytes;
+their format is identified by the event version.
 
 ## Implementation
 
