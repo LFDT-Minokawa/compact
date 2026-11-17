@@ -572,6 +572,9 @@ The rules are type-directed.
 and [Compound types](#compound-types) gives a rule for each compound type
 in terms of the rules for their parts.
 
+A type alias, structural or nominal, has the raw serialized representation,
+raw deserialization, and ledger serialization of the type it is an alias for.
+
 **Agreement with the ledger serialization.**
 For a value `x` of type `T`,
 the **padded ledger bytes** of `x` are obtained from its ledger serialization as follows:
@@ -670,6 +673,23 @@ which is a different notion from canonical raw serialized representations.
 
 The cast from `Field` to `Bytes<32>` computes raw serialization.
 The cast from `Bytes<32>` to `Field` computes raw deserialization[^1].
+
+**Bytes<N>:** These are built-in Compact types, for any `N` from 0 up to the implementation's maximum byte-vector length.
+
+The raw serialized size is `N`.
+A value `b` is serialized as `b` itself.
+
+Raw deserialization produces its argument unchanged.
+It never fails.
+There are no non-canonical raw serialized representations.
+
+The ledger serialization has the alignment `{ tag: 'bytes', length: N }`.
+A value is represented by the value atom consisting of its bytes with trailing zero bytes removed;
+in particular, a value whose bytes are all zero, including the value of `Bytes<0>`,
+is represented by the empty value atom `[]`.
+
+No cast is needed:
+in Compact, the raw serialized representation of `b: Bytes<N>` is `b` itself.
 
 **JubjubScalar:** This is a Compact standard library type.
 Its values are the integers `0` to `r-1`,
@@ -784,22 +804,99 @@ since Compact has no operation that splits an integer at bit 204.
 Raw serialization of `x` is the unique canonical raw serialized representation
 that raw deserialization maps to `x`.
 
-**Bytes<N>:** These are built-in Compact types, for any `N` from 0 up to the implementation's maximum byte-vector length.
+**JubjubPoint:** This is a Compact standard library type.
+Its values are the points of the prime-order subgroup of the Jubjub embedded curve,
+each given by its affine coordinates `x` and `y`, which are `Field` values.
+The identity point is `(0, 1)`.
 
-The raw serialized size is `N`.
-A value `b` is serialized as `b` itself.
+The raw serialized size is 64.
+A point is serialized as the raw serialized representation of `x` as a `Field`,
+followed by that of `y` as a `Field`.
 
-Raw deserialization produces its argument unchanged.
-It never fails.
-There are no non-canonical raw serialized representations.
+Raw deserialization applies the raw deserialization of `Field` to the first 32 bytes and to the last 32 bytes,
+producing coordinates `x` and `y`.
+It fails unless `(x, y)` is a point on the Jubjub curve that lies in the prime-order subgroup,
+and otherwise produces that point.
+An accepted raw serialized representation is canonical if and only if both of its parts are canonical as `Field` representations.
 
-The ledger serialization has the alignment `{ tag: 'bytes', length: N }`.
-A value is represented by the value atom consisting of its bytes with trailing zero bytes removed;
-in particular, a value whose bytes are all zero, including the value of `Bytes<0>`,
-is represented by the empty value atom `[]`.
+The ledger serialization has the alignment `{ tag: 'field' }, { tag: 'field' }`.
+The two value atoms are the ledger serializations of `x` and `y` as `Field` values.
+Ledger deserialization is stricter than raw deserialization exactly where that of `Field` is,
+and also fails unless the resulting coordinates are those of a point in the prime-order subgroup.
 
-No cast is needed:
-in Compact, the raw serialized representation of `b: Bytes<N>` is `b` itself.
+This CoIP adds casts between `JubjubPoint` and `Bytes<32>`, which do not compute raw serialization and raw deserialization.
+The cast to `Bytes<32>` produces the compressed encoding of the point:
+the 32-byte little-endian encoding of `y`,
+with the least significant bit of `x` stored in the most significant bit of the last byte.
+The cast from `Bytes<32>` fails unless its argument is the compressed encoding of a point in the prime-order subgroup,
+and otherwise produces that point.
+In particular, it fails if the encoded `y` is not less than the field order,
+or if `x` would be 0 and the most significant bit of the last byte is set.
+
+**Secp256k1Point, Secp256r1Point:** These are Compact standard library types.
+For each type, the values are the points of the secp256k1 or secp256r1 curve,
+including the identity point.
+A point other than the identity is given by its affine coordinates `x` and `y`,
+which are `Secp256k1Base` or `Secp256r1Base` values respectively.
+The identity point has no affine coordinates.
+
+The raw serialized size is 96.
+A point other than the identity is serialized as the raw serialized representation of `x`,
+followed by that of `y`,
+followed by the raw serialized representation of `0` as a `Field`.
+The identity point is serialized as the raw serialized representation of `0` as the base field type, twice,
+followed by the raw serialized representation of `1` as a `Field`.
+
+Raw deserialization applies the raw deserialization of the base field type to the first 32 bytes and to the next 32 bytes,
+producing `x` and `y`.
+It interprets the last 32 bytes as a little-endian unsigned integer, the **identity flag**,
+and fails unless the identity flag is 0 or 1.
+If the identity flag is 1, it produces the identity point.
+If the identity flag is 0, it fails unless `(x, y)` is a point on the curve,
+and otherwise produces that point.
+An accepted raw serialized representation is canonical if and only if both base field parts are canonical
+and, when the identity flag is 1, both base field parts are the raw serialized representation of `0`.
+
+The ledger serialization has the alignment of the base field type, twice, followed by `{ tag: 'field' }`.
+The value atoms are the ledger serializations of the two base field parts,
+followed by the ledger serialization of the identity flag as a `Field`.
+Ledger deserialization is stricter than raw deserialization exactly where that of the base field type is,
+and has the same requirements on the identity flag and on `(x, y)`.
+
+This CoIP adds casts between these types and `Bytes<33>`, which do not compute raw serialization and raw deserialization.
+The cast to `Bytes<33>` produces the SEC1 compressed encoding of a point other than the identity,
+and 33 zero bytes for the identity point.
+The cast from `Bytes<33>` produces the identity point from 33 zero bytes.
+Otherwise it fails unless its argument is the SEC1 compressed encoding of a point on the curve,
+with the encoded `x` less than the field order,
+and produces that point.
+
+**Curve25519Point:** This is a Compact standard library type.
+Its values are the points of the prime-order subgroup of Curve25519 in its twisted Edwards form (the curve of Ed25519),
+each given by its affine coordinates `x` and `y`, which are `Curve25519Base` values.
+The identity point is `(0, 1)`.
+
+The raw serialized size is 64.
+A point is serialized as the raw serialized representation of `x`,
+followed by that of `y`.
+
+Raw deserialization applies the raw deserialization of `Curve25519Base` to the first 32 bytes and to the last 32 bytes,
+producing coordinates `x` and `y`.
+It fails unless `(x, y)` is a point on the curve that lies in the prime-order subgroup,
+and otherwise produces that point.
+An accepted raw serialized representation is canonical if and only if both of its parts are canonical as `Curve25519Base` representations.
+
+The ledger serialization has the alignment of `Curve25519Base`, twice.
+The value atoms are the ledger serializations of `x` and `y`.
+Ledger deserialization is stricter than raw deserialization exactly where that of `Curve25519Base` is,
+and also fails unless the resulting coordinates are those of a point in the prime-order subgroup.
+
+This CoIP adds casts between `Curve25519Point` and `Bytes<32>`, which do not compute raw serialization and raw deserialization.
+The cast to `Bytes<32>` produces the encoding of the point specified by RFC 8032.
+The cast from `Bytes<32>` fails unless its argument is the canonical RFC 8032 encoding of a point in the prime-order subgroup,
+and otherwise produces that point.
+In particular, it fails if the encoded `y` is not less than the field order,
+or if `x` would be 0 and the sign bit is set.
 
 **Enumeration types:** These are program-defined Compact types.
 For an enumeration type `E` with `N` elements,
@@ -823,155 +920,53 @@ and for `b: Bytes<M>`, raw deserialization is computed by `b as Uint<0..N> as E`
 
 #### Compound types
 
+The rules for compound types follow the same structure as the rules for atomic types.
 
-Key ideas:
+**Tuple types `[T1, ..., Tn]`:** These are built-in Compact types, for any `n` including 0.
 
-1. The serialized format is versioned with a pair of MAJOR / MINOR version bytes.
-   We will use semantic versioning (we need some thought to consider if and how we could add
-   new optional fields to a serialized representation).
-1. The ledger format and the event serialization format agree (except maybe: the ledger format does not have a version tag)
-1. Base types use the in-circuit `to_bytes`/`from_bytes` encoding.
-1. `as` casts to `Bytes` exist for all base types and they agree with serialization in the sense that
-    1. casting to `Bytes` produces the ledger encoding of the same value
-    1. round tripping from a type `T` to `Bytes` and back is the identity on `T`
-       (but not necessarily in the opposite directions,
-       e.g., casting from `Bytes` to a foreign field type reduces modulo the field modulus)
-  This allows Compact code to implement serialization and deserialization of parts of structures.
-1. Hashing (`persistentHash` but also the other hashing functions) will be explicitly defined as
-   hashing the serialized representation of a Compact value.
+The raw serialized size is the sum of the raw serialized sizes of `T1`, ..., `Tn`;
+in particular, the raw serialized size of `[]` is 0.
+A value `[x1, ..., xn]` is serialized as the concatenation,
+in order, of the raw serialized representations of `x1`, ..., `xn`.
 
-This design enables some implementation improvements, not mandated by this CoIP.
+Raw deserialization divides its argument into consecutive parts
+whose sizes are the raw serialized sizes of `T1`, ..., `Tn`, in order,
+and applies the raw deserialization of each `Ti` to the corresponding part.
+It fails if and only if any of these fails,
+and otherwise produces the tuple of the resulting values.
+An accepted raw serialized representation is canonical if and only if every part is canonical.
 
-- The descriptors can implement serialization in JS, instead of using code generated by the compiler.
-  If we want to guarantee that `serialize` agrees with the ledger encoding via `toValue`,
-  we can have `serialize` call `toValue` and then flatten.
-  If we want to guarantee that `deserialize` agrees with the ledger encoding via `fromValue`,
-  we can have `fromValue` flatten and then call `deserialize`.
-- The compiler can keep explicit `serialize` and `deserialize` instructions further into the backend,
-  rather than translating them into intermediate representation instructions early in the compiler.
-  The JS target can simply emit a call to a method of a type's descriptor.
-  The ZKIR target can implement serialization and deserializeion in-circuit for ZKIR types
-  by using `to_bytes`/`from_bytes`.
-- We can change the proof server to take FAB encoded values, rather then the FAB field encoding.
-  Then, for ZKIR-typed values, we do not necessarily have to convert it to the field encoding and then convert
-  that encoding to the native ZKIR encoding.
-  Because we've adopted the native ZKIR encoding for serializing ZKIR types into FAB,
-  we already have it available without the intermediate field encoding and decoding.
-  This removes the field encoding performed by Midnight.js,
-  in favor of letting the ZKIR language perform its own type-directed handling of FAB.
-  
-### Serialization Format Version 1.0
+The ledger serialization has the alignment formed by concatenating the alignments of `T1`, ..., `Tn`, in order.
+A value is represented by the concatenation, in order, of the value atoms representing `x1`, ..., `xn`.
+Ledger deserialization divides the value atoms in the same way,
+and is stricter than raw deserialization exactly where the ledger deserialization of some `Ti` is.
 
-This is draft text, outlining the current ledger format,
-the current event serialization format,
-and the `Bytes` serialization format where it exists.
-It then describes the proposed serialization format.
+For `x: [T1, ..., Tn]`, raw serialization can be computed in Compact element by element:
+if `s1`, ..., `sn` compute the raw serializations of `x[0]`, ..., `x[n-1]`,
+then `Bytes[...s1, ..., ...sn]` computes the raw serialization of `x`.
+Likewise, for a raw serialized representation `r`,
+raw deserialization can be computed by applying raw deserialization of each `Ti`
+to `slice<Si>(r, Oi)`, where `Si` is the raw serialized size of `Ti`
+and `Oi` is the sum of the raw serialized sizes of `T1`, ..., `T(i-1)`,
+and building the tuple of the results.
+This is possible whenever the raw serialization or raw deserialization of each element type can be computed in Compact.
 
-TODO: massage it into a forward-looking specification, relegate changes from the existing format to an appendix?
+**Vector types `Vector<N, T>`:** These are built-in Compact types.
+`Vector<N, T>` is the same type as the tuple type `[T, ..., T]` with `N` occurrences of `T`,
+and so it has the same raw serialized representation, raw deserialization, ledger serialization, and casts.
+In particular, its raw serialized size is `N` times that of `T`,
+and the raw serialized size of `Vector<0, T>` is 0.
 
-When describing the ledger serialization of a Compact type,
-we use `Field` to mean that it is serialized as a native field element (with the alignment atom tag 'field')
-we use `Bytes<N>` to mean that it is serialized as a byte vector (with the alignment atom tag 'bytes' and the length N).
+**Structure types:** These are program-defined Compact types and standard library types.
+A structure type whose fields, in declaration order, have types `T1`, ..., `Tn`
+has the raw serialized representation, raw deserialization, and ledger serialization
+of the tuple type `[T1, ..., Tn]`,
+applied to the tuple of its field values in declaration order.
+Field names are not represented.
+A generic structure type is serialized according to its instantiation.
 
-### Base types
-
-Serialization is defined in terms of the serialization of **base types**.
-These include some of the Compact primitive types and standard library-defined types.
-
-#### Secp256k1Base, Secp256k1Scalar, Secp256r1Base, Secp256r1Scalar, Curve25519Base
-
-These are Compact standard library types.
-These so-called "foreign fields" are all serialized in the same way.
-They have different maximum values, but they all fit in 32 bytes.
-They are encoded as little-endian numbers in 32 bytes, then split into four 8-byte limbs.
-Then they are serialized as a pair of byte vectors,
-where the first one is 24 bytes holding the first three (little endian) limbs
-and the second on is 8 bytes holding the last little endian limb.
-The ZKIR representation of these fields has 1 subtracted from the value (modulo the respective field order).
-For the benefit of ZKIR, we therefore serialize these by first subrtracting one,
-and add one (modulo the field order) on deserialization.
-The alignment tags are `Bytes<24>` and `Bytes<8>`, so ledger serialization will drop trailing zeros
-from each byte vector and recover them on deserialization.
-Deserialization checks that the serialized value is in range.
-It **does not** reduce by the field order like `Field` deserialization does.
-See the implementation of `ForeignField8_24`.
-
-Note that this encoding is the for the benefit of ZKIR.
-Remember, the ledger does not know nor care how we will interpret this `Bytes<24>`/`Bytes<8>` pair
-in either Compact or in ZKIR.
-
-The maximum values of each of these fields is larger than the native field size.
-If they were encoded as a single `Bytes<32>`, then they would be represented as a pair of
-native field in circuit in ZKIR private and public inputs,
-where the first one held the low 31 bytes and the last one held the high byte.
-By splitting them the way they are split, they will be represented instead as a pair of fields
-where the first one holds the low 24 bytes (3 limbs) and the last one holds the high 8 bytes (1 limb).
-It is then more efficient in circuit to extract the ZKIR limb representation from the field representation
-than if it has been simply `Bytes<32>`.
-
-The event serialization format is `x as Bytes<32>`.
-
-#### Curve25519Scalar
-
-This is a Compact standard library type.
-The maximum value of this foreign field is less than the maximum value of the native field.
-It fits in 253 bits (32 bytes without needing the three high bits, native fields need 255 bits).
-It is encoded as a little-endian number in 32 bytes (guaranteed to have zeros in the three high bit positions),
-then split into five limbs each consisting of 51 bits (255 bits total, guaranteed to have zeros in the two high bit positions of the last limb).
-Because the ledger can only serialize even numbers of bytes,
-the limbs are packed with the first four (little endian) limbs in a byte vector `Bytes<26>`
-(208 bits, where the low 204 are used), and the last (little endian) limb in a byte vector `Bytes<7>`
-(56 bytes, where the low 51 are used).
-Like the other foreign field types `Secp256k1Base`, etc., the in-circuit representation subtracts one modulo the field order.
-For the benefit of the ZKIR implementation, we perform that subtraction serialization
-and add one (modulo the field order) on deserialization.
-Deserialization checks that the serialized value is in range.
-See `CompactTypeCurve25519Scalar`.
-
-The event serialization format is `x as Bytes<32>`.
-
-#### JubjubPoint
-
-This is a Compact standard library type.
-Conceptually a pair of native field values.
-This is serialized in the ledger as a pair of serialized field values,
-the coordinates with x-coordinate first and y-coordinate second.
-See `CompactTypeJubjubPoint`.
-
-Event serialization is not yet implemented for this type.
-
-#### Curve25519Point
-
-This is a Compact standard library type.
-Conceptually a pair of `Curve25519Base` values.
-This is serialized exactly as the pair of coordinates, according to `Curve25519Base` above.
-That is, as four byte vectors `Bytes<24>`, `Bytes<8>`, `Bytes<24>`, `Bytes<8>`
-containing the little endian encoding of the coordinates in order X-coordinate first
-and Y-coordinate second, and where the serialized values have had one subtracted modulo the field order.
-See `CompactTypeCurve25519Point`.
-
-Event serialization is not yet implemented for this type.
-
-#### Secp256k1Point, Secp256r1Point
-
-These are Compact standard library types.
-Conceptually they are a pair of, respectively, `Secp256k1Base` and `Secp256r1Base` values.
-However, the "zero" (additive identity) point does not have affine X- and Y-coordinates.
-So there is also an "identity" flag in the serialized representation.
-For non-identity points, the serialized representation is the pair of base field coordinates with the
-X-coordinate first and the Y-coordinate second, followed by the serialization of a 0 native field value
-marking it as a non-identity point.
-This is given alignment tag `field`, but since it is only ever the value 0,
-the serialized representation is just the empty byte vector.
-Deserialization as a field produces the value 0 from this representation.
-For the identity point, the serialized representation is a pair of base field 0 values,
-followed by a 1 native field value.
-The base field is serialized as `Bytes<24>` followed by `Bytes<8>` as above.
-Because the serialized representation has one subtracted from it modulo the field order,
-these are vectors representing the maximum field value.
-See `CompactTypeSecp256k1Point` and `CompactTypeSecp256r1Point`.
-
-Event serialization is not yet implemented for these types.
+Raw serialization and raw deserialization can be computed in Compact field by field,
+as for tuples, building the structure with a structure creation expression.
 
 ## Rationale
 
