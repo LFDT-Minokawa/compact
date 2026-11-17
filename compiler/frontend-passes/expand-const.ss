@@ -16,7 +16,7 @@
 #!chezscheme
 
 ; expands a multi-variable const into multiple single-variable const
-(define-pass expand-const : Lnoinclude (ir) -> Lsingleconst ()
+(define-pass expand-const : Lflathost (ir) -> Lsingleconst ()
   (Const-Binding : Const-Binding (ir) -> Statement ()
     [(,src ,[pattern] ,[type] ,[expr])
      `(const ,src ,pattern ,type ,expr)])

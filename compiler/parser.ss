@@ -90,10 +90,12 @@
      enum
      fold
      for
+     host
      if
      implements
      include
      ledger
+     local
      map
      new
      of
@@ -104,8 +106,7 @@
      sealed
      slice
      struct
-     type
-     witness))
+     type))
 
   (define-keyword-group keywordDataTypes
     (TITLE "Built-in data type keywords.")
@@ -153,6 +154,7 @@
      void
      while
      with
+     witness ; the former witness declaration, retired in favor of host functions
      yield))
 
   (define (parser-keywords)
@@ -335,6 +337,7 @@
   (define string-literal (sat/what "a string" (lambda (x) (eq? (token-type x) 'string))))
 
   (define version-literal (sat/what "a version string" (lambda (x) (eq? (token-type x) 'version))))
+  (define interface-id-literal (sat/what "a host interface id" (lambda (x) (eq? (token-type x) 'interface-id))))
 
   (define (make-binop src expr1 op expr2)
     (with-output-language (Lparser Expression)
@@ -384,7 +387,12 @@
           ("A version literal takes the form nat.nat representing major and minor"
            "versions or nat.nat.nat representing major, minor, and bugfix versions."
            "Where version literals are allowed, a plain nat representing just the"
-           "major version is also allowed."))))
+           "major version is also allowed.")))
+      (interface-id-literal (interface-id)
+        (DESCRIPTION
+          ("A host interface id names a runtime-provided interface as namespace:package/name,"
+           "each part a kebab-case label, optionally followed by @ and a semantic version"
+           "such as 1.2.0 or 1.2.0-rc.1."))))
     (Compact (program)
       [program :: src (K* program-element) eof =>
        (lambda (src pelt* eof)
@@ -402,7 +410,7 @@
       [program-element-implements-declaration :: implements-declaration => values]
       [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
-      [program-element-witness-declaration :: witness-declaration => values]
+      [program-element-host-declaration :: host-declaration => values]
       [program-element-ledger-constructor :: constructor-definition => values]
       [program-element-circuit-definition :: circuit-definition => values]
       )
@@ -537,22 +545,39 @@
       [public-ledger-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD sealed) #f) (KEYWORD ledger) id #\: type #\; =>
        (lambda (src kwd-export? kwd-sealed? kwd id colon type semicolon)
          (with-output-language (Lparser Ledger-Declaration)
-           `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))])
-    (Witness-declaration (witness-declaration)
-      [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
-       (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
-         (with-output-language (Lparser Witness-Declaration)
-           `(witness ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
+           `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))]
+      [local-ledger-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD local) id #\: type #\; =>
+       (lambda (src kwd-export? kwd id colon type semicolon)
+         (with-output-language (Lparser Ledger-Declaration)
+           `(local-ledger-declaration ,src ,kwd-export? ,kwd ,id ,colon ,type ,semicolon)))])
+    (Host-declaration (host-declaration)
+      [host-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD host) interface-id #\{ (K* host-signature) #\} =>
+       (lambda (src kwd-export? kwd interface-id lbrace hsig* rbrace)
+         (with-output-language (Lparser Host-Declaration)
+           `(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,hsig* ...) ,rbrace)))])
+    (Host-signature (host-signature)
+      [host-signature :: src id simple-parameter-list #\: type #\; =>
+       (lambda (src id simple-param-list colon type semicolon)
+         (with-output-language (Lparser Host-Signature)
+           `(,src ,id ,simple-param-list (,colon ,type) ,semicolon)))])
     (Constructor (constructor-definition)
       [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
        (lambda (src kwd pattern-param-list blck)
          (with-output-language (Lparser Ledger-Constructor)
-           `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
+           `(constructor ,src ,kwd ,pattern-param-list ,blck)))]
+      [local-constructor :: src (KEYWORD local) (KEYWORD constructor) block =>
+       (lambda (src kwd kwd-constructor blck)
+         (with-output-language (Lparser Ledger-Constructor)
+           `(local-constructor ,src ,kwd ,kwd-constructor ,blck)))])
     (Circuit-definition (circuit-definition)
       [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
          (with-output-language (Lparser Circuit-Definition)
-           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
+           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))]
+      [local-circuit-definition :: src (OPT (KEYWORD export) #f) (KEYWORD local) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
+       (lambda (src kwd-export? kwd function-name generic-param-list? pattern-param-list colon type block)
+         (with-output-language (Lparser Circuit-Definition)
+           `(local-circuit ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
     (Structure-declaration (struct-declaration)
       [structure-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-id #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)

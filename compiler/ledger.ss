@@ -50,7 +50,7 @@
           (syntax-case x ()
             [class-name
              (identifier? #'class-name)
-             (unless (memq (syntax->datum #'class-name) '(read update write remove))
+             (unless (memq (syntax->datum #'class-name) '(read update write remove local-read))
                (syntax-error x "unrecognized class"))]
             [(class-name coin-idx recipient-idx)
              (identifier? #'class-name)
@@ -189,6 +189,28 @@
                                          adt-op-cond ...))
                                    radt-op*)
                                  radt-rt-op*))]
+                        ;; a typed operation whose vm-code is only the local-transcript pin; the
+                        ;; value comes from the runtime snippet (the local-read class)
+                        [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-op ...) (runtime-string ...))
+                         (begin
+                           (check-class #'class)
+                           (check-identifier #'op-name)
+                           (check-vm-code (syntax->datum #`(input-name ... #,@adt-formal*)) #'(vm-op ...))
+                           (for-each check-identifier #'(input-name ...))
+                           (for-each check-string #'(runtime-string ...))
+                           (loop clause*
+                                 (cons
+                                   (with-syntax ([(input-type ...) (map expand-type #'(input-type ...))]
+                                                 [result-type (expand-type #'result-type)]
+                                                 [(adt-op-cond ...) adt-op-cond*]
+                                                 [(discloses? ...) (map parse-disclosure #'(disclosure ...))]
+                                                 [runtime-code (expand-formatting-multiple #`(rtlib this input-name ... #,@adt-formal*) #'(runtime-string ...))])
+                                     #'(op-name class ((input-name input-type discloses?) ...)
+                                         result-type
+                                         ,(make-vm-code #'(vm-op ...) runtime-code)
+                                         adt-op-cond ...))
+                                   radt-op*)
+                                 radt-rt-op*))]
                         [(when (= tvar-name tvar-name^) clause)
                          (begin
                            (check-identifier #'tvar-name)
@@ -302,6 +324,8 @@
                                  (if (eq? (datum class) 'read)
                                      (cons (datum op-name) op*)
                                      op*)]
+                                [(when (expr ...) (function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...) (runtime-string ...)))
+                                 op*]
                                 [else (syntax-error clause)]))
                             '()
                             clause*)])
@@ -431,6 +455,8 @@
                    [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                     (emit-js-function (datum op-name) (datum (input-name ...)) #'(input-type ...) (datum result-type-string) (datum doc-string) cond-str)]
                    [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
+                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) cond-str)]
+                   [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...) (runtime-string ...))
                     (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) cond-str)]
                    [else (syntax-error clause)]))
                (syntax-case clause (when)

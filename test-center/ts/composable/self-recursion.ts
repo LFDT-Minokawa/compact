@@ -17,14 +17,12 @@
 // Skipped: `foo` -> `self.foo` re-enters a contract that is already executing.
 test.skip('self-recursion terminates and threads ledger state: foo(1) === 2', async () => {
   const chain = new TestChain();
-  const self = await chain.deploy({ module: contractCode, args: [], initialPrivateState: 0 });
+  const self = await chain.deploy({ module: contractCode, args: [] });
 
   // Wire `self` to its own address (one call transaction).
   await chain.call({
     module: contractCode,
     address: self.address,
-    witnesses: {},
-    privateState: 0,
     circuitId: 'set',
     args: [self.encodedAddress],
   });
@@ -34,8 +32,6 @@ test.skip('self-recursion terminates and threads ledger state: foo(1) === 2', as
   const { result } = await chain.call({
     module: contractCode,
     address: self.address,
-    witnesses: {},
-    privateState: 0,
     circuitId: 'foo',
     args: [1n],
   });
@@ -48,14 +44,12 @@ test.skip('self-recursion terminates and threads ledger state: foo(1) === 2', as
 
 test('self-recursion (foo -> self.foo) is rejected by the re-entrancy guard', async () => {
   const chain = new TestChain();
-  const self = await chain.deploy({ module: contractCode, args: [], initialPrivateState: 0 });
+  const self = await chain.deploy({ module: contractCode, args: [] });
 
   // Point `self` at its own address; `set` performs no cross-contract call.
   await chain.call({
     module: contractCode,
     address: self.address,
-    witnesses: {},
-    privateState: 0,
     circuitId: 'set',
     args: [self.encodedAddress],
   });
@@ -66,8 +60,6 @@ test('self-recursion (foo -> self.foo) is rejected by the re-entrancy guard', as
     chain.call({
       module: contractCode,
       address: self.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'foo',
       args: [1n],
     }),

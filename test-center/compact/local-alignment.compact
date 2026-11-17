@@ -1,0 +1,168 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The private-input alignment test's contract (test-center/ts/local-alignment.ts): each way a local
+// or host result reaches a circuit, under each control-flow construct a circuit can wrap it in.
+// Every circuit increments `log`, because only a circuit with a public operation is proved.
+
+import CompactStandardLibrary;
+
+host test:oracle/echo@1.0.0 {
+  echo(x: Uint<8>): Uint<8>;
+}
+
+export enum Kind { plain, marked }
+
+export struct Note {
+  kind: Kind;
+  tag: Bytes<4>;
+  amount: Uint<32>;
+}
+
+export ledger log: Counter;
+
+local n: Counter;
+local m: Map<Uint<8>, Uint<16>>;
+local q: List<Uint<8>>;
+local tree: MerkleTree<2, Bytes<4>>;
+
+local count(): Uint<64> {
+  return n.read();
+}
+
+local bump(): [] {
+  n.increment(1);
+}
+
+local twice(x: Uint<8>): Uint<16> {
+  return x * 2 as Uint<16>;
+}
+
+local find(k: Uint<8>): Maybe<Uint<16>> {
+  return m.member(k) ? some<Uint<16>>(m.lookup(k)) : none<Uint<16>>();
+}
+
+// a host call inside a local function, which crosses into the proof only through the return
+local noted(x: Uint<8>): Uint<8> {
+  const y = echo(x);
+  q.pushFront(y);
+  return y;
+}
+
+local pathFor(leaf: Bytes<4>): Maybe<MerkleTreePath<2, Bytes<4>>> {
+  return tree.findPathForLeaf(leaf);
+}
+
+local latest(tag: Bytes<4>): Note {
+  return Note { kind: n.read() > 3 ? Kind.marked : Kind.plain, tag: tag, amount: n.read() as Uint<32> };
+}
+
+local pair(): Vector<2, Uint<16>> {
+  return [twice(1), twice(2)];
+}
+
+circuit inner(): Uint<64> {
+  return count();
+}
+
+export circuit branch(a: Boolean, b: Boolean): Uint<64> {
+  log.increment(1);
+  if (a) {
+    if (b) {
+      return disclose(count());
+    } else {
+      bump();
+      return 1;
+    }
+  } else {
+    bump();
+    return 0;
+  }
+}
+
+export circuit shortCircuit(b: Boolean): [Boolean, Boolean] {
+  log.increment(1);
+  return disclose([b && count() > 0, b || count() > 0]);
+}
+
+export circuit choose(b: Boolean): Uint<64> {
+  log.increment(1);
+  return disclose(b ? count() : 7);
+}
+
+export circuit loops(): [Uint<16>, Vector<3, Uint<16>>] {
+  log.increment(1);
+  for (const i of 0..2) {
+    bump();
+  }
+  for (const v of [true, false, true]) {
+    if (v) {
+      bump();
+    }
+  }
+  return disclose([fold((acc: Uint<16>, x: Uint<8>): Uint<16> => acc + twice(x) as Uint<16>, 0 as Uint<16>, [1, 2, 3]), map(twice, [4, 5, 6])]);
+}
+
+export circuit nest(x: Uint<8>): [Uint<16>, Uint<8>] {
+  log.increment(1);
+  return disclose([twice(echo(x)), echo(noted(x))]);
+}
+
+export circuit viaInner(): Uint<64> {
+  log.increment(1);
+  return disclose(inner() + inner() as Uint<64>);
+}
+
+export circuit direct(b: Boolean, k: Uint<8>): Boolean {
+  log.increment(1);
+  if (b) {
+    m.insert(k, 1);
+  }
+  return disclose(b ? m.member(k) : false);
+}
+
+export circuit hosts(b: Boolean, x: Uint<8>): [Uint<8>, Uint<8>] {
+  log.increment(1);
+  return disclose([b ? echo(x) : 0, noted(x)]);
+}
+
+export circuit maybe(k: Uint<8>, put: Boolean): Maybe<Uint<16>> {
+  log.increment(1);
+  if (put) {
+    m.insert(k, 9);
+  }
+  return disclose(find(k));
+}
+
+export circuit check(): [] {
+  log.increment(1);
+  assert(count() < 1000, "too many");
+}
+
+// a path, a struct with a vector inside a `Maybe`, crosses into the proof, then a direct local
+// read whose argument the circuit computes from it runs only when the `&&` reaches it
+export circuit member(leaf: Bytes<4>, plant: Boolean): Boolean {
+  log.increment(1);
+  if (plant) {
+    tree.insert(leaf);
+  }
+  const p = pathFor(leaf);
+  return disclose(p.is_some && tree.checkRoot(merkleTreePathRoot<2, Bytes<4>>(p.value)));
+}
+
+export circuit shapes(tag: Bytes<4>): [Note, Vector<2, Uint<16>>] {
+  log.increment(1);
+  return disclose([latest(tag), pair()]);
+}

@@ -164,7 +164,6 @@ export interface ContractInfo {
     'language-version': string;
     'runtime-version': string;
     circuits: ContractInfoCircuit[];
-    witnesses: unknown[];
     contracts: unknown[];
     ledger: ContractInfoLedger[];
 }

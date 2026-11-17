@@ -240,9 +240,10 @@
      (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
-    [(witness ,src ,function-name (,[arg*] ...) ,[type])
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
+     (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
-     `(witness ,src ,function-name (,arg* ...) ,type)])
+     `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])
   (Type : Type (ir) -> Type ()
     [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op* adt-name -> adt-op*] ...) (,[adt-rt-op*] ...))
      `(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
@@ -267,10 +268,16 @@
     [(circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
      (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
-     `(circuit ,src ,function-name (,arg* ...) ,type ,stmt)])
+     `(circuit ,src ,function-name (,arg* ...) ,type ,stmt)]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
+     (for-each register-descriptor! (map arg->type arg*))
+     (maybe-register-descriptor! type)
+     `(local-circuit ,src ,function-name (,arg* ...) ,type ,stmt)])
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,[Stmt : expr src -> stmt])
-     `(constructor ,src (,arg* ...) ,stmt)])
+     `(constructor ,src (,arg* ...) ,stmt)]
+    [(local-constructor ,src ,[Stmt : expr src -> stmt])
+     `(local-constructor ,src ,stmt)])
   (Function : Function (ir) -> Function ()
     [(circuit ,src (,[arg*] ...) ,[type] ,[Stmt : expr src -> stmt])
      `(circuit ,src (,arg* ...) ,type ,stmt)])
@@ -313,8 +320,13 @@
             ...
             ,stmt))]
     [(return ,src ,expr) (Stmt expr src)]
+    [(foreach ,src ,var-name ,ledger-field-name ,[type] ,[stmt])
+     (register-descriptor! type)
+     `(foreach ,src ,var-name ,ledger-field-name ,type ,stmt)]
     [else (handle-expr ir statement-expression)])
   (Expr : Expression (ir) -> Expression ()
+    ;; a foreach is unit-valued and born in statement position, so Stmt owns it
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr) (assert cannot-happen)]
     [(if ,src ,[expr0] (quote ,src1 ,datum1) (quote ,src2 ,datum2))
      (guard (eq? datum1 #f) (eq? datum2 #t))
      `(not ,src ,expr0)]

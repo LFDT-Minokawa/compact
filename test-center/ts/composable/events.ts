@@ -20,11 +20,10 @@
 // (`copyCircuitContext` / `restoreCircuitContext`) and the events list.
 
 const deployPair = async (chain: TestChain) => {
-  const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+  const inner = await chain.deploy({ module: innerCode, args: [] });
   const outer = await chain.deploy({
     module: outerCode,
     args: [inner.encodedAddress],
-    initialPrivateState: 0,
   });
   return { inner, outer };
 };
@@ -38,8 +37,6 @@ describe('events thread across a cross-contract call', () => {
     const { context } = (await chain.call({
       module: outerCode,
       address: outer.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'outerEmit',
       args: [n],
     })) as { result: bigint; context: any };
@@ -69,8 +66,6 @@ describe('events thread across a cross-contract call', () => {
     const { context } = (await chain.call({
       module: innerCode,
       address: inner.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'innerEmit',
       args: [n],
     })) as { result: bigint; context: any };

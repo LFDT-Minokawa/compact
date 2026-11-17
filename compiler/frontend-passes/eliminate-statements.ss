@@ -48,10 +48,14 @@
     )
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,blck)
-     `(constructor ,src (,arg* ...) ,(circuit-body src blck))])
+     `(constructor ,src (,arg* ...) ,(circuit-body src blck))]
+    [(local-constructor ,src ,blck)
+     `(local-constructor ,src ,(circuit-body src blck))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,blck)
-     `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))])
+     `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))]
+    [(local-circuit ,src ,exported? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,blck)
+     `(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))])
   (Statement : Statement (ir tail) -> * (tail)
     [(statement-expression ,src ,expr) (cons (Expression expr) tail)]
     [(return ,src) 

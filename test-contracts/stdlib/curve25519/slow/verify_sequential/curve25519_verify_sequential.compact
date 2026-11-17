@@ -24,8 +24,8 @@ import CompactStandardLibrary;
 
 export ledger n: Uint<64>;
 
-witness sigOf(i: Uint<8>): Ed25519Signature;
-witness keyOf(i: Uint<8>): Curve25519Point;
+host test:oracle/sig-of@1.0.0 { sigOf(i: Uint<8>): Ed25519Signature; }
+host test:oracle/key-of@1.0.0 { keyOf(i: Uint<8>): Curve25519Point; }
 
 export circuit two(msg: Bytes<32>): [] {
     const a = ed25519Verify<32>(msg, sigOf(0), keyOf(0));

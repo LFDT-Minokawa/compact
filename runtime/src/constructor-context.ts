@@ -19,11 +19,7 @@ import { emptyZswapLocalState, EncodedCoinPublicKey, EncodedZswapLocalState } fr
 /**
  * Passed to the constructor of a contract. Used to compute the contract's initial ledger state.
  */
-export interface ConstructorContext<PS = any> {
-  /**
-   * The private state we would like to use to execute the contract's constructor.
-   */
-  initialPrivateState: PS;
+export interface ConstructorContext {
   /**
    * An initial (usually empty) Zswap local state to use to execute the contract's constructor.
    */
@@ -31,31 +27,22 @@ export interface ConstructorContext<PS = any> {
 }
 
 /**
- * Creates a new {@link ConstructorContext} with the given initial private state and an empty Zswap local state.
+ * Creates a new {@link ConstructorContext} with an empty Zswap local state.
  *
- * @param initialPrivateState The private state to use to execute the contract's constructor.
  * @param coinPublicKey The Zswap coin public key of the user executing the contract.
  */
-export const createConstructorContext = <PS>(
-  initialPrivateState: PS,
-  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
-): ConstructorContext<PS> => ({
-  initialPrivateState,
+export const createConstructorContext = (coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey): ConstructorContext => ({
   initialZswapLocalState: emptyZswapLocalState(coinPublicKey),
 });
 
 /**
  * The result of executing a contract constructor.
  */
-export interface ConstructorResult<PS = any> {
+export interface ConstructorResult {
   /**
    * The contract's initial ledger (public state).
    */
   currentContractState: ocrt.ContractState;
-  /**
-   * The contract's initial private state. Potentially different from the private state passed in {@link ConstructorContext}.
-   */
-  currentPrivateState: PS;
   /**
    * The contract's initial Zswap local state. Potentially includes outputs created in the contract's constructor.
    */

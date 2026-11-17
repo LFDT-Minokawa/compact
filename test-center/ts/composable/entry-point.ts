@@ -47,11 +47,10 @@ const substitutedCallerCode = async (): Promise<typeof callerCode> => {
 };
 
 const deployBoth = async (chain: TestChain) => {
-  const callee = await chain.deploy({ module: calleeCode, args: [1000n], initialPrivateState: 0 });
+  const callee = await chain.deploy({ module: calleeCode, args: [1000n] });
   const caller = await chain.deploy({
     module: callerCode,
     args: [callee.encodedAddress],
-    initialPrivateState: 0,
   });
   return { callee, caller };
 };
@@ -64,8 +63,6 @@ describe('cross-contract entry point binding', () => {
     const { result } = await chain.call({
       module: callerCode,
       address: caller.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'pay',
       args: [10n],
     });
@@ -86,8 +83,6 @@ describe('cross-contract entry point binding', () => {
     const { result } = await chain.call({
       module: substituted,
       address: caller.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'pay',
       args: [10n],
     });

@@ -28,8 +28,7 @@ import type {
     CompileTestOptions,
     ContractCircuitContext,
     ContractConstructorArgs,
-    ContractPrivateState,
-    ContractWitnesses,
+    ContractHostInterfaces,
     GeneratedPureCircuits,
     RuntimeTestDefinition,
     RuntimeTestOptions,
@@ -95,22 +94,20 @@ export function defineRuntimeTest<
 /**
  * Creates a generated Compact contract instance and circuit context for
  * runtime fixture assertions while preserving the generated contract type.
+ * `hostInterfaces` answers the contract's `host` blocks, keyed by interface id.
  */
 export async function createTestContract<
     Contract extends CompactContractConstructor,
 >(
     Contract: Contract,
-    witnesses: ContractWitnesses<Contract> = {} as ContractWitnesses<Contract>,
-    privateState: ContractPrivateState<
-        InstanceType<Contract>
-    > = undefined as ContractPrivateState<InstanceType<Contract>>,
+    hostInterfaces: ContractHostInterfaces = {},
     constructorArgs: ContractConstructorArgs<
         InstanceType<Contract>
     > = [] as unknown as ContractConstructorArgs<InstanceType<Contract>>,
 ): Promise<TestContract<Contract>> {
-    const contract = new Contract(witnesses) as InstanceType<Contract>;
+    const contract = new Contract() as InstanceType<Contract>;
     const constructorResult = await contract.initialState(
-        createConstructorContext(privateState, '0'.repeat(64)),
+        createConstructorContext('0'.repeat(64)),
         ...constructorArgs,
     );
     const ctx = createCircuitContext({
@@ -119,7 +116,7 @@ export async function createTestContract<
         coinPublicKeyOrZswapState:
             constructorResult.currentZswapLocalState.coinPublicKey,
         contractState: constructorResult.currentContractState,
-        privateState: constructorResult.currentPrivateState,
+        hostInterfaceProvider: { resolve: (id) => hostInterfaces[id] },
     });
 
     return {

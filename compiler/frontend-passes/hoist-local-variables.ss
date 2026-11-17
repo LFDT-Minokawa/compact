@@ -24,10 +24,14 @@
 (define-pass hoist-local-variables : Lnopattern (ir) -> Lhoisted ()
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,[blck])
-     `(constructor ,src (,arg* ...) ,blck)])
+     `(constructor ,src (,arg* ...) ,blck)]
+    [(local-constructor ,src ,[blck])
+     `(local-constructor ,src ,blck)])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,[blck])
-     `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)])
+     `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)]
+    [(local-circuit ,src ,exported? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,[blck])
+     `(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)])
   (Block : Block (ir) -> Block ()
     [(block ,src ,stmt* ...)
      (let ([vars (make-hashtable symbol-hash eq?)])

@@ -56,9 +56,14 @@
   (record-circuit! : Program-Element (ir) -> * (void)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! circuit-ht function-name expr)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (eq-hashtable-set! circuit-ht function-name expr)]
     [else (void)])
   (Program-Element : Program-Element (ir) -> Program-Element ()
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (process-circuit function-name)
+     ir]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (process-circuit function-name)
      ir]
     [else ir])

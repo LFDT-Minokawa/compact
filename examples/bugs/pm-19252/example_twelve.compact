@@ -15,7 +15,7 @@
 
 module T {
   module T1 {
-    export witness test2(a: Field): Field;
+    export host test:oracle/test2@1.0.0 { test2(a: Field): Field; }
   }
   
   import { test2 } from T1;

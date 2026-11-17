@@ -17,9 +17,10 @@
 
 (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
   ; impure circuits are those that might touch public state, emit an event,
-  ; call any witnesses, or call any other impure circuits (including via
-  ; cross-contract calls).  pure circuits are those that are not impure.  we
-  ; presently assume that all native circuits are pure.
+  ; call any native witnesses, local functions, or host functions, or call any
+  ; other impure circuits (including via cross-contract calls).  pure circuits are
+  ; those that are not impure.  we presently assume that all native circuits
+  ; are pure.
   (definitions
     (define-condition-type &impure-condition &condition
       make-impure-condition impure-condition?
@@ -27,7 +28,9 @@
       (src impure-condition-src)
       (reason impure-condition-reason))
     ; function-ht maps function names to one of:
-    ;   witness:               a witness
+    ;   native-witness:        a native witness
+    ;   local-circuit:         a local function
+    ;   host:                  a host function
     ;   an Lnodca Expression:  a circuit that has yet to be processed
     ;   inprocess-circuit:     a circuit that is being processed; used to detect cycles
     ;   pure-circuit:          a processed circuit, determined pure
@@ -47,12 +50,15 @@
         (let ([result (cdr a)])
           (cond
             [(eq? result 'pure-circuit) (void)]
-            [(eq? result 'witness)
-             (raise (make-impure-condition calling-function-name src
-                      (format "calls witness ~s" (id-sym function-name))))]
             [(eq? result 'native-witness)
              (raise (make-impure-condition calling-function-name src
                       (format "calls native witness ~s" (id-sym function-name))))]
+            [(eq? result 'local-circuit)
+             (raise (make-impure-condition calling-function-name src
+                      (format "calls local function ~s" (id-sym function-name))))]
+            [(eq? result 'host)
+             (raise (make-impure-condition calling-function-name src
+                      (format "calls host function ~s" (id-sym function-name))))]
             [(impure-condition? result) (raise-continuable result)]
             [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
             [else (assert cannot-happen)]))))
@@ -77,8 +83,10 @@
            (begin
              (id-pure?-set! function-name #t)
              'pure-circuit)))]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (eq-hashtable-set! function-ht function-name 'witness)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (eq-hashtable-set! function-ht function-name 'host)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (eq-hashtable-set! function-ht function-name 'local-circuit)]
     [,kdecl (void)]
     [,ldecl (void)]
     [,export-tdefn (void)]
@@ -111,7 +119,14 @@
   (Expression : Expression (ir function-name) -> Expression ()
     [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
      (raise (make-impure-condition function-name src
-              (format "accesses ledger field ~s" (id-sym ledger-field-name))))]
+              (format "accesses ~a field ~s"
+                      (if (id-local? ledger-field-name) "local" "ledger")
+                      (id-sym ledger-field-name))))]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     (raise (make-impure-condition function-name src
+              (format "iterates ~a field ~s"
+                      (if (id-local? ledger-field-name) "local" "ledger")
+                      (id-sym ledger-field-name))))]
     [(emit ,src ,type ,[expr])
      (nanopass-case (Lnodca Type) (de-alias type)
        [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)

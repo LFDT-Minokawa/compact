@@ -60,16 +60,20 @@
           [(kernel-declaration ,public-binding)
            (record-one! public-binding)]
           [(public-ledger-declaration ,pl-array ,lconstructor)
-           (let f ([pl-array pl-array])
-             (nanopass-case (Lwithpaths0 Public-Ledger-Array) pl-array
-               [(public-ledger-array ,pl-array-elt* ...)
-                (for-each
-                  (lambda (pl-array-elt)
-                    (nanopass-case (Lwithpaths0 Public-Ledger-Array-Element) pl-array-elt
-                      [,pl-array (f pl-array)]
-                      [,public-binding (record-one! public-binding)]))
-                  pl-array-elt*)]))]
+           (record-array! pl-array)]
+          [(local-ledger-declaration ,pl-array ,lconstructor)
+           (record-array! pl-array)]
           [else (void)]))
+      (define (record-array! pl-array)
+        (let f ([pl-array pl-array])
+          (nanopass-case (Lwithpaths0 Public-Ledger-Array) pl-array
+            [(public-ledger-array ,pl-array-elt* ...)
+             (for-each
+               (lambda (pl-array-elt)
+                 (nanopass-case (Lwithpaths0 Public-Ledger-Array-Element) pl-array-elt
+                   [,pl-array (f pl-array)]
+                   [,public-binding (record-one! public-binding)]))
+               pl-array-elt*)])))
       (define (lookup-ledger-binding ledger-field-name)
         (assert (hashtable-ref ledger-ht ledger-field-name #f))))
     (define (de-alias type)

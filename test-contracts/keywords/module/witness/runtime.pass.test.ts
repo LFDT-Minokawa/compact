@@ -22,7 +22,7 @@ export default defineRuntimeTest<typeof Contract>(
     import.meta.url,
     async (Contract) => {
         const { contract, ctx } = await createTestContract(Contract, {
-            secret: (context) => [context.privateState, 21n],
+            'test:oracle/secret@1.0.0': { secret: () => 21n },
         });
         const result = (await contract.circuits.module_witness(ctx)).result;
 

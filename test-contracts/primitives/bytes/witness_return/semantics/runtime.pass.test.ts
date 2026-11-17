@@ -21,10 +21,9 @@ import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
 export default defineRuntimeTest(import.meta.url, async () => {
     const { contract, ctx } = await createTestContract(Contract, {
-        bytes_witness: (context) => [
-            context.privateState,
-            Uint8Array.from([10, 20, 30, 40]),
-        ],
+        'test:oracle/bytes-witness@1.0.0': {
+            bytes_witness: () => Uint8Array.from([10, 20, 30, 40]),
+        },
     });
     const result = (await contract.circuits.bytes_witness_return_semantics(ctx))
         .result;

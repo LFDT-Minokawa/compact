@@ -15,9 +15,9 @@
 
 import CompactStandardLibrary;
 
-witness getDataToHash(): Field;
-witness getDataToCommit(): Field; 
-witness getCommitRandomness(): Field;
+host test:oracle/get-data-to-hash@1.0.0 { getDataToHash(): Field; }
+host test:oracle/get-data-to-commit@1.0.0 { getDataToCommit(): Field; } 
+host test:oracle/get-commit-randomness@1.0.0 { getCommitRandomness(): Field; }
 
 export ledger hash_with_disclosure: Field;
 export ledger commit_without_disclosure: Field;

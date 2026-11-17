@@ -24,7 +24,6 @@ export default defineRuntimeTest<typeof Contract>(
         const { contract, ctx } = await createTestContract(
             Contract,
             {},
-            undefined,
             [true, false],
         );
         const result = (

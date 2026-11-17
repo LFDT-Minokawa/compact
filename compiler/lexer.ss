@@ -41,7 +41,8 @@
           (streams)
           (only (field) field?)
           (rename (only (lparser) make-token) (make-token $make-token))
-          (only (version) make-version))
+          (only (version) make-version)
+          (interface-id))
 
   (define lexer
     (lambda (sfd file-content)
@@ -118,7 +119,29 @@
                (let ([?char-id (getc)])
                  (let ([f (lambda () else1 else2 ...)])
                    (state-case ?char-id (eof (f)) clause ... (else (f))))))]))
-        (define-state-case lex c
+        ;; the id after the `host` keyword is one token of its own shape, therefore the
+        ;; identifier `host` arms a one-token lexer mode that whitespace and comments keep
+        (define expect-interface-id? #f)
+        (define (lex)
+          (if expect-interface-id? (lex-after-host) (lex-token)))
+        (define-state-case lex-after-host c
+          [char-whitespace? (put-char sp c) (lex-whitespace)]
+          [#\/ (seen-slash)]
+          [interface-id-initial? (set! expect-interface-id? #f) (lex-interface-id c)]
+          [else (set! expect-interface-id? #f) (ungetc c) (lex-token)])
+        (module (lex-interface-id)
+          (define (interface-id)
+            (let ([text (get-buf)])
+              (unless (interface-id-parts text)
+                (source-errorf (current-src (- (string-length text)))
+                  "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch"
+                  text))
+              (return-token 'interface-id text)))
+          (define-state-case next c
+            [interface-id-char? (put-char sp c) (next)]
+            [else (ungetc c) (interface-id)])
+          (define (lex-interface-id c) (put-char sp c) (next)))
+        (define-state-case lex-token c
           [eof (return-eof)]
           [char-whitespace? (put-char sp c) (lex-whitespace)]
           [identifier-initial? (lex-identifier c)]
@@ -163,7 +186,9 @@
                   ; Pc: Punctuation, connector
                   (memq (char-general-category c) '(Mn Mc Nd Pc)))))
           (define (id)
-            (return-token 'id (string->symbol (get-buf))))
+            (let ([sym (string->symbol (get-buf))])
+              (when (eq? sym 'host) (set! expect-interface-id? #t))
+              (return-token 'id sym)))
           (define-state-case next c
             [identifier-subsequent? (lex-identifier c)]
             [else (ungetc c) (id)])

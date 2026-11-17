@@ -35,9 +35,8 @@
         [(nat-valued ,src ,tvar-name) tvar-name]
         [(type-valued ,src ,tvar-name) tvar-name]))
     )
-  (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
-    [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-     (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
+  (Program-Element : Program-Element (ir) -> Program-Element ()
+    [(host ,src ,exported? ,interface-id ,function-name (,arg* ...) ,type)
      (reject-duplicate! src "parameter name" (map arg->sym arg*))
      ir])
   (Module-Definition : Module-Definition (ir) -> Module-Definition ()
@@ -46,6 +45,10 @@
      ir])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,[blck])
+     (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
+     (reject-duplicate! src "parameter name" (map arg->sym arg*))
+     ir]
+    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,[blck])
      (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
      (reject-duplicate! src "parameter name" (map arg->sym arg*))
      ir])

@@ -24,8 +24,8 @@ import CompactStandardLibrary;
 
 export ledger n: Uint<64>;
 
-witness sigOf(i: Uint<8>): Secp256k1EcdsaSignature;
-witness keyOf(i: Uint<8>): Secp256k1Point;
+host test:oracle/sig-of@1.0.0 { sigOf(i: Uint<8>): Secp256k1EcdsaSignature; }
+host test:oracle/key-of@1.0.0 { keyOf(i: Uint<8>): Secp256k1Point; }
 
 export circuit two(d: Bytes<32>): [] {
     const a = secp256k1EcdsaVerify(d, sigOf(0), keyOf(0));

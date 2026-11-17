@@ -23,7 +23,7 @@ export default defineRuntimeTest<typeof Contract>(
     async (Contract) => {
         let calls = 30n;
         const { contract, ctx } = await createTestContract(Contract, {
-            secret: (context) => [context.privateState, (calls -= 10n)],
+            'test:oracle/secret@1.0.0': { secret: () => (calls -= 10n) },
         });
         const result = (
             await contract.circuits.disclose_unexported_circuit_parameters(ctx)

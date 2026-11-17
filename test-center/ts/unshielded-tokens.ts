@@ -46,7 +46,7 @@ const mapFindByKey = <K, V>(map: Map<K, V>, key: K): V | undefined => {
 
 test('mintUnshieldedToSelfTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -96,7 +96,7 @@ const sampleContractRecipient = () => ({
 
 test('mintUnshieldedToContractTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -135,7 +135,7 @@ const sampleUserRecipient = () => ({
 
 test('mintUnshieldedToUserTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -175,7 +175,7 @@ const sampleCompactUnshieldedCoinInfo = (rawTokenMinterAddress: runtime.Contract
 
 test('sendUnshieldedToSelfTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -214,7 +214,7 @@ test('sendUnshieldedToSelfTest', async () => {
 
 test('sendUnshieldedToContractTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -248,7 +248,7 @@ test('sendUnshieldedToContractTest', async () => {
 
 test('sendUnshieldedToUserTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -282,7 +282,7 @@ test('sendUnshieldedToUserTest', async () => {
 
 test('receiveUnshieldedTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -306,7 +306,7 @@ test('receiveUnshieldedTest', async () => {
 
 test('getUnshieldedBalanceTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
 
@@ -376,7 +376,7 @@ const shieldedTokenColor = (domainSep: Buffer, rawContractAddress: runtime.Contr
 
 test('mintShieldedToSelfTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
@@ -407,7 +407,7 @@ test('mintShieldedToSelfTest', async () => {
 
 test('mintShieldedToContractTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
@@ -434,7 +434,7 @@ test('mintShieldedToContractTest', async () => {
 
 test('mintShieldedToUserTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
@@ -461,7 +461,7 @@ test('mintShieldedToUserTest', async () => {
 
 test('receiveShieldedTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -481,7 +481,7 @@ test('receiveShieldedTest', async () => {
 
 test('sendShieldedToSelfTestWithChange', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -515,7 +515,7 @@ test('sendShieldedToSelfTestWithChange', async () => {
 
 test('sendShieldedToSelfTestNoChange', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -547,7 +547,7 @@ test('sendShieldedToSelfTestNoChange', async () => {
 
 test('sendShieldedToContractTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -582,7 +582,7 @@ test('sendShieldedToContractTest', async () => {
 
 test('sendShieldedToUserTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -617,7 +617,7 @@ test('sendShieldedToUserTest', async () => {
 
 test('sendImmediateShieldedToSelfTestNoChange', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -649,7 +649,7 @@ test('sendImmediateShieldedToSelfTestNoChange', async () => {
 
 test('sendImmediateShieldedToContractTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
@@ -681,7 +681,7 @@ test('sendImmediateShieldedToContractTest', async () => {
 
 test('sendImmediateShieldedToUserTest', async () => {
 
-  let [c, context] = await startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode);
 
   const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();

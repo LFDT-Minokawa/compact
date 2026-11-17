@@ -27,19 +27,23 @@ export ledger multiplier: Field;
 
 export ledger op_multiplier: Field;
 
-witness get_user_calculation_parameters_from_external_validation_source(
-          user_identifier_hash: Field,
-          initial_amount_value: Uint<64>,
-          scaling_factor_multiplier: Uint<64>,
-          offset_adjustment_value: Uint<64>
-          ): Uint<64>;
+host test:oracle/validation-source@1.0.0 {
+  get_user_calculation_parameters_from_external_validation_source(
+    user_identifier_hash: Field,
+    initial_amount_value: Uint<64>,
+    scaling_factor_multiplier: Uint<64>,
+    offset_adjustment_value: Uint<64>
+    ): Uint<64>;
+}
 
-witness retrieve_transaction_validation_context_and_authorization_flags(
-          transaction_reference_id: Field,
-          sender_account_identifier: Field,
-          receiver_account_identifier: Field,
-          operation_type_code: Uint<8>
-          ): [Boolean, Uint<64>];
+host test:oracle/authorization@1.0.0 {
+  retrieve_transaction_validation_context_and_authorization_flags(
+    transaction_reference_id: Field,
+    sender_account_identifier: Field,
+    receiver_account_identifier: Field,
+    operation_type_code: Uint<8>
+    ): [Boolean, Uint<64>];
+}
 
 circuit perform_complex_arithmetic_calculation_with_multiple_inputs(
           base_calculation_value: Uint<64>,

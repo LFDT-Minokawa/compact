@@ -264,7 +264,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 outputContract.thatCircuitIsNotExported('test').thatCircuitIsPureExported('test1');
             });
 
-            test('two circuits (both calling witness-like method)', async () => {
+            test('two circuits (both calling host-function-like method)', async () => {
                 const filePath = CONTRACTS_ROOT + 'example_ten.compact';
 
                 const outputDir = createTempFolder();
@@ -280,7 +280,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 outputContract.thatCircuitIsNotExported('test').thatCircuitIsImpureNoProofExported('test1');
             });
 
-            test('two circuits (both calling non-exported witness)', async () => {
+            test('two circuits (both calling non-exported host function)', async () => {
                 const filePath = CONTRACTS_ROOT + 'example_eleven.compact';
 
                 const outputDir = createTempFolder();
@@ -296,7 +296,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 outputContract.thatCircuitIsNotExported('test').thatCircuitIsImpureNoProofExported('test1');
             });
 
-            test('two circuits (both calling exported witness from module)', async () => {
+            test('two circuits (both calling exported host function from module)', async () => {
                 const filePath = CONTRACTS_ROOT + 'example_twelve.compact';
 
                 const outputDir = createTempFolder();

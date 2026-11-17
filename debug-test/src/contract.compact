@@ -32,7 +32,7 @@ constructor(difficulty: Uint<12>) {
 
 // private state handling
 
-witness compute(fst: Boolean, snd: Boolean): Boolean;
+host test:oracle/compute@1.0.0 { compute(fst: Boolean, snd: Boolean): Boolean; }
 
 // public transition functions
 

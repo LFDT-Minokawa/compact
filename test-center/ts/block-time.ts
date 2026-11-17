@@ -14,7 +14,7 @@
 // limitations under the License.
 
 test('Check block time functions', async () => {
-  const [c, context] = await startContract(contractCode, {}, 0);
+  const [c, context] = await startContract(contractCode);
   context.callContext.currentQueryContext.block = {
     ...context.callContext.currentQueryContext.block,
     secondsSinceEpoch: 1n,

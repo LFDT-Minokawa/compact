@@ -14,7 +14,7 @@
 // limitations under the License.
 
 module M {
-  witness secret(): Field;
+  host test:oracle/secret@1.0.0 { secret(): Field; }
 
   export circuit doubled_secret(): Field {
     return disclose(secret()) * 2;
@@ -23,7 +23,7 @@ module M {
 
 import { doubled_secret } from M;
 
-// A witness declared in a module is supplied by the contract's witnesses.
+// A host function declared in a module is answered by the host interfaces the contract is given.
 export circuit module_witness(): Field {
   return doubled_secret();
 }

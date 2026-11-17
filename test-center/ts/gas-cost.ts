@@ -14,7 +14,7 @@
 // limitations under the License.
 
 test('Check gas tracking works as expected', async () => {
-  const [c, context] = await startContract(contractCode, {}, 0);
+  const [c, context] = await startContract(contractCode);
   const gasCost = (await c.circuits.testGasCost(context)).gasCost;
   expect(gasCost).toBeDefined();
   expect(gasCost.computeTime > 0n).toBe(true);
@@ -24,7 +24,7 @@ test('Check gas tracking works as expected', async () => {
 })
 
 test('Gas bound works as expected', async () => {
-  const [c, context] = await startContract(contractCode, {}, 0);
+  const [c, context] = await startContract(contractCode);
   context.gasLimit = runtime.emptyRunningCost();
   await expect(c.circuits.testGasCost(context)).rejects.toThrowError();
 })

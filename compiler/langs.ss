@@ -20,9 +20,10 @@
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
-          make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
+          make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code vm-code-runtime
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
+          Lflathost unparse-Lflathost Lflathost-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -30,7 +31,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
+          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-reads-ledger? id-reads-ledger?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
@@ -40,7 +41,7 @@
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
           Lnoserialize unparse-Lnoserialize Lnoserialize-pretty-formats
-          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
+          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition? Lloweredemit-Ledger-Declaration?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -114,14 +115,21 @@
 
   (define-record-type vm-code
     (nongenerative)
-    (fields code))
+    ;; runtime is #f, or a procedure producing the JS expression for the op's value when the
+    ;; vm-code is only the local-transcript pin (the local-read class)
+    (fields code runtime)
+    (protocol
+      (lambda (new)
+        (case-lambda
+          [(code) (new code #f)]
+          [(code runtime) (new code runtime)]))))
 
   (define-language/pretty Lsrc
     (terminals
       (field (nat))
       (boolean (exported sealed pure-dcl nominal))
       (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-      (string (prefix mesg opaque-type file))
+      (string (prefix mesg opaque-type file interface-id))
       (datum (datum))
       (source-object (src))
       )
@@ -136,7 +144,7 @@
       ldecl
       lconstructor
       cdefn
-      wdecl
+      hdecl
       ecdecl
       cidecl
       structdef
@@ -169,16 +177,25 @@
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src exported? sealed? ledger-field-name type) =>
         (public-ledger-declaration exported? sealed? #f ledger-field-name #f type)
+      (local-ledger-declaration src exported? ledger-field-name type) =>
+        (local-ledger-declaration exported? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
-      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck))
+      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck)
+      (local-constructor src blck) => (local-constructor #f blck))
     (Circuit-Definition (cdefn)
       (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck) =>
         (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
+      (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck) =>
+        (local-circuit exported? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
       )
-    (Witness-Declaration (wdecl)
-      (witness src exported? function-name (type-param* ...) (arg* ...) type) =>
-        (witness exported? function-name (type-param* ...) (arg* 0 ...) 4 type)
+    (Host-Declaration (hdecl)
+      (host src exported? interface-id hsig* ...) =>
+        (host exported? interface-id #f hsig* ...)
+      )
+    (Host-Signature (hsig)
+      (src function-name (arg* ...) type) =>
+        (function-name (arg* 0 ...) 4 type)
       )
     (External-Contract-Declaration (ecdecl)
       (external-contract src exported? contract-name ecdecl-circuit* ...) =>
@@ -317,7 +334,17 @@
     (Include (incld)
       (- (include src file))))
 
-  (define-language/pretty Lsingleconst (extends Lnoinclude)
+  ;; expansion and the passes after it bind functions one declaration at a time, therefore
+  ;; `flatten-host-declarations` splits a host block into one declaration per signature
+  (define-language/pretty Lflathost (extends Lnoinclude)
+    (Host-Declaration (hdecl)
+      (- (host src exported? interface-id hsig* ...))
+      (+ (host src exported? interface-id function-name (arg* ...) type) =>
+           (host exported? interface-id function-name (arg* 0 ...) 4 type)))
+    (Host-Signature (hsig)
+      (- (src function-name (arg* ...) type))))
+
+  (define-language/pretty Lsingleconst (extends Lflathost)
     (Const-Binding (cbinding)
       (- (src pattern type expr)))
     (Statement (stmt)
@@ -334,7 +361,10 @@
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck))
+      (- (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck))
+      (+ (local-circuit src exported? function-name (type-param* ...) (arg* ...) type blck) =>
+           (local-circuit exported? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
     (Pattern-Argument (parg)
       (- (src pattern type)))
     (Statement (stmt)
@@ -364,11 +394,16 @@
   (define-language/pretty Lexpr (extends Lhoisted)
     (Ledger-Constructor (lconstructor)
       (- (constructor src (arg* ...) blck))
-      (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr)))
+      (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr))
+      (- (local-constructor src blck))
+      (+ (local-constructor src expr) => (local-constructor #f expr)))
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr))
+      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type blck))
+      (+ (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr) =>
+           (local-circuit exported? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
       ))
     (Argument (arg local))
     (Block (blck)
@@ -409,9 +444,9 @@
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-         (string (prefix mesg opaque-type file)))
+         (string (prefix mesg opaque-type file interface-id)))
       (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
-         (string (prefix mesg opaque-type file discloses))
+         (string (prefix mesg opaque-type file discloses interface-id))
          (procedure (result-type runtime-code))
          (vm-expr (vm-expr))
          (vm-code (vm-code))
@@ -461,7 +496,7 @@
       (+ (curve-secp256r1)))
     )
 
-  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
+  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-reads-ledger? id-reads-ledger?-set! id-prefix)
     (define id-prefix (make-parameter "%"))
     (define id-counter (make-parameter 0))
     (define-record-type id
@@ -476,6 +511,8 @@
     (module (id-exported? id-exported?-set!
              id-pure? id-pure?-set!
              id-sealed? id-sealed?-set!
+             id-local? id-local?-set!
+             id-reads-ledger? id-reads-ledger?-set!
              id-temp? id-temp?-set!)
       (define-syntax define-flag
         (syntax-rules ()
@@ -486,7 +523,11 @@
       (define-flag 0 id-exported? id-exported?-set!)
       (define-flag 1 id-sealed? id-sealed?-set!)
       (define-flag 2 id-pure? id-pure?-set!)
-      (define-flag 3 id-temp? id-temp?-set!))
+      (define-flag 3 id-temp? id-temp?-set!)
+      (define-flag 4 id-local? id-local?-set!)
+      ;; a local function whose closure reads the ledger, therefore localState() runs it only
+      ;; when given a ledger state; settled by check-local-callability
+      (define-flag 5 id-reads-ledger? id-reads-ledger?-set!))
     (define (make-source-id src sym) (make-id src sym))
     (define (make-temp-id src sym)
       (let ([id (make-id src sym)])
@@ -507,11 +548,11 @@
       (+ (len (len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (boolean (exported sealed pure-dcl nominal))
-         (string (prefix mesg opaque-type file discloses)))
-      (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
+         (string (prefix mesg opaque-type file discloses interface-id)))
+      (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind host-name))
          (boolean (pure-dcl nominal))
          (id (name var-name function-name ledger-field-name))
-         (string (mesg opaque-type file discloses))))
+         (string (mesg opaque-type file discloses interface-id))))
     (Program (p)
       (- (program src pelt* ...))
       (+ (program src ((export-name* name*) ...) ((struct-name* type*) ...) (unused-pelt* ...) (ecdecl* ...) (cidecl* ...) pelt* ...)
@@ -538,11 +579,17 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
       (+ (public-ledger-declaration src ledger-field-name type) =>
-           (public-ledger-declaration #f ledger-field-name #f type)))
+           (public-ledger-declaration #f ledger-field-name #f type))
+      (- (local-ledger-declaration src exported? ledger-field-name type))
+      (+ (local-ledger-declaration src ledger-field-name type) =>
+           (local-ledger-declaration #f ledger-field-name #f type)))
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr))
       (+ (circuit src function-name (arg* ...) type expr) =>
-           (circuit function-name (arg* 0 ...) 4 type #f expr)))
+           (circuit function-name (arg* 0 ...) 4 type #f expr))
+      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr))
+      (+ (local-circuit src function-name (arg* ...) type expr) =>
+           (local-circuit function-name (arg* 0 ...) 4 type #f expr)))
     (External-Contract-Declaration (ecdecl)
       (- (external-contract src exported? contract-name ecdecl-circuit* ...))
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
@@ -565,10 +612,12 @@
       (- (native src exported? function-name native-entry (type-param* ...) (arg* ...) type))
       (+ (native src function-name native-entry (arg* ...) type) =>
            (native function-name (arg* 0 ...) 4 type)))
-    (Witness-Declaration (wdecl)
-      (- (witness src exported? function-name (type-param* ...) (arg* ...) type))
-      (+ (witness src function-name (arg* ...) type) =>
-           (witness function-name (arg* 0 ...) 4 type)))
+    ;; the id is the binding and host-name the function's name within its interface, which the
+    ;; runtime dispatches on
+    (Host-Declaration (hdecl)
+      (- (host src exported? interface-id function-name (arg* ...) type))
+      (+ (host src function-name interface-id host-name (arg* ...) type) =>
+           (host function-name interface-id host-name (arg* 0 ...) 4 type)))
     (Structure-Definition (structdef)
       (- (struct src exported? struct-name (type-param* ...) arg* ...)))
     (Enum-Definition (enumdef)
@@ -651,10 +700,10 @@
       (len (len))
       (bits (bits))
       (maybe-bits (mbits))
-      (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
+      (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal host-name))
       (boolean (pure-dcl nominal))
       (id (name var-name function-name ledger-field-name))
-      (string (mesg opaque-type file discloses sugar))
+      (string (mesg opaque-type file discloses sugar interface-id))
       (datum (datum))
       (source-object (src))
       (procedure (result-type runtime-code))
@@ -667,27 +716,32 @@
     (Program-Element (pelt)
       cdefn
       ndecl
-      wdecl
+      hdecl
       ldecl
       lconstructor
       export-tdefn)
     (Circuit-Definition (cdefn)
       (circuit src function-name (arg* ...) type expr) =>
-        (circuit function-name (arg* 0 ...) 4 type #f expr))
+        (circuit function-name (arg* 0 ...) 4 type #f expr)
+      (local-circuit src function-name (arg* ...) type expr) =>
+        (local-circuit function-name (arg* 0 ...) 4 type #f expr))
     (Native-Declaration (ndecl)
       (native src function-name native-entry (arg* ...) type) =>
         (native function-name (arg* 0 ...) 4 type))
-    (Witness-Declaration (wdecl)
-      (witness src function-name (arg* ...) type) =>
-        (witness function-name (arg* 0 ...) 4 type))
+    (Host-Declaration (hdecl)
+      (host src function-name interface-id host-name (arg* ...) type) =>
+        (host function-name interface-id host-name (arg* 0 ...) 4 type))
     (Export-Type-Definition (export-tdefn)
       (export-typedef src type-name (tvar-name* ...) type) =>
         (export-typedef type-name (tvar-name* ...) #f type))
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src ledger-field-name type) =>
-        (public-ledger-declaration #f ledger-field-name #f type))
+        (public-ledger-declaration #f ledger-field-name #f type)
+      (local-ledger-declaration src ledger-field-name type) =>
+        (local-ledger-declaration #f ledger-field-name #f type))
     (Ledger-Constructor (lconstructor)
-      (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr))
+      (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr)
+      (local-constructor src expr)           => (local-constructor #f expr))
     (ADT-Runtime-Op (adt-rt-op)
       (ledger-op (arg* ...) result-type runtime-code) =>
         ledger-op)
@@ -739,6 +793,8 @@
       (>= src bits expr1 expr2)               => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
+      (foreach src var-name ledger-field-name type expr) =>
+        (foreach var-name ledger-field-name type #f expr)
       (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
@@ -835,7 +891,10 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src ledger-field-name type))
       (+ (public-ledger-declaration public-binding* ... lconstructor) =>
-           (public-ledger-declaration #f public-binding* ... #f lconstructor)))
+           (public-ledger-declaration #f public-binding* ... #f lconstructor))
+      (- (local-ledger-declaration src ledger-field-name type))
+      (+ (local-ledger-declaration public-binding* ... lconstructor) =>
+           (local-ledger-declaration #f public-binding* ... #f lconstructor)))
     (Public-Ledger-Binding (public-binding)
       (+ (src ledger-field-name type) => (ledger-field-name type)))
     (Expression (expr index)
@@ -864,7 +923,10 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration public-binding* ... lconstructor))
       (+ (public-ledger-declaration pl-array lconstructor) =>
-           (public-ledger-declaration #f pl-array #f lconstructor)))
+           (public-ledger-declaration #f pl-array #f lconstructor))
+      (- (local-ledger-declaration public-binding* ... lconstructor))
+      (+ (local-ledger-declaration pl-array lconstructor) =>
+           (local-ledger-declaration #f pl-array #f lconstructor)))
     (Public-Ledger-Array (pl-array)
       (+ (public-ledger-array pl-array-elt ...) => (pl-array-elt 0 ...)))
     (Public-Ledger-Array-Element (pl-array-elt)
@@ -935,22 +997,30 @@
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type expr))
       (+ (circuit src function-name (arg* ...) type stmt) =>
-         (circuit function-name (arg* 0 ...) 4 type #f stmt)))
+         (circuit function-name (arg* 0 ...) 4 type #f stmt))
+      (- (local-circuit src function-name (arg* ...) type expr))
+      (+ (local-circuit src function-name (arg* ...) type stmt) =>
+         (local-circuit function-name (arg* 0 ...) 4 type #f stmt)))
     (Ledger-Constructor (lconstructor)
       (- (constructor src (arg* ...) expr))
-      (+ (constructor src (arg* ...) stmt)       => (constructor (arg* 0 ...) #f stmt)))
+      (+ (constructor src (arg* ...) stmt)       => (constructor (arg* 0 ...) #f stmt))
+      (- (local-constructor src expr))
+      (+ (local-constructor src stmt)            => (local-constructor #f stmt)))
     (Function (fun)
       (- (circuit src (arg* ...) type expr))
       (+ (circuit src (arg* ...) type stmt)      => (circuit (arg* 0 ...) 4 type #f stmt)))
     (Expression (expr index)
       (- (let* src ([local* expr*] ...) expr)
-         (return src expr))
+         (return src expr)
+         (foreach src var-name ledger-field-name type expr))
       (+ (not src expr)                          => (not expr)
          (and src expr1 expr2)                   => (and expr1 4 expr2)
          (or src expr1 expr2)                    => (or expr1 3 expr2)
          (= src var-name expr)                   => (= var-name expr)))
     (Statement (stmt)
-      (+ (if src expr0 stmt1)                    => (if expr0 3 stmt1)
+      (+ (foreach src var-name ledger-field-name type stmt) =>
+           (foreach var-name ledger-field-name type #f stmt)
+         (if src expr0 stmt1)                    => (if expr0 3 stmt1)
          (if src expr0 stmt1 stmt2)              => (if expr0 3 stmt1 3 stmt2)
          (seq src stmt* ... stmt)                => (seq #f stmt* ... #f stmt)
          (const src local expr)                  => (const local #f expr)
@@ -959,22 +1029,42 @@
 
   (define-language/pretty Lposttypescript (extends Lloweredemit)
     (terminals
-      (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
+      (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal host-name)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (- (boolean (pure-dcl nominal)))
       (+ (boolean (pure-dcl)))
+      (- (string (mesg opaque-type file discloses sugar interface-id)))
+      (+ (string (mesg opaque-type file discloses sugar)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
       (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
-      (- export-tdefn))
+      (- export-tdefn
+         hdecl)
+      (+ wdecl))
     (Export-Type-Definition (export-tdefn)
       (- (export-typedef src type-name (tvar-name* ...) type)))
+    ;; `drop-ledger-runtime` reduces local functions and host functions to witness-shaped
+    ;; declarations and drops the local package, therefore the circuit pipeline never sees
+    ;; the local forms or the host forms: a witness is a bodiless function whose result the
+    ;; circuit takes as a prover-supplied input.
+    (Host-Declaration (hdecl)
+      (- (host src function-name interface-id host-name (arg* ...) type)))
+    (Witness-Declaration (wdecl)
+      (+ (witness src function-name (arg* ...) type) =>
+           (witness function-name (arg* 0 ...) 4 type)))
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration pl-array lconstructor)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src expr)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src function-name (arg* ...) type expr)))
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
     (Expression (expr index)
-      (- (elt-ref src expr elt-name nat)
+      (- (foreach src var-name ledger-field-name type expr)
+         (elt-ref src expr elt-name nat)
          (return src expr)
          (<= src bits expr1 expr2)
          (> src bits expr1 expr2)

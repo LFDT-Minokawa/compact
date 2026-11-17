@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 16 char 9:\s+parse error: found keyword "instanceof" \(which is reserved for future use\) looking for an\s+identifier/,
+        /line 16 char 37:\s+parse error: found keyword "instanceof" \(which is reserved for future use\) looking\s+for\s+a\s+host\s+signature\s+or\s+"}"/,
 });

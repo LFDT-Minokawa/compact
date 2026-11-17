@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Use contract A as return value from witness
+// Use contract A as return value from a host function
 
 import CompactStandardLibrary;
 
@@ -22,4 +22,4 @@ contract A {
   circuit down(x: Uint<16>): [];
 }
 
-witness bob(): A;
+host test:oracle/bob@1.0.0 { bob(): A; }

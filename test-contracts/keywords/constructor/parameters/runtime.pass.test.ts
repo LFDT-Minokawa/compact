@@ -25,7 +25,6 @@ export default defineRuntimeTest<typeof Contract>(
         const { contract, ctx } = await createTestContract(
             Contract,
             {},
-            undefined,
             [v],
         );
         const result = (await contract.circuits.constructor_parameters(ctx))

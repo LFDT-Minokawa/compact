@@ -13,7 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {vote$commit, vote$reveal, advance, set_topic, add_voter}
+export {vote$commit, vote$reveal, advance, set_topic, add_voter, public_key}
+export {PublicState, PrivateState, PermissibleVotes}
 
 import CompactStandardLibrary;
 
@@ -22,22 +23,34 @@ enum PrivateState { initial, committed, revealed, }
 enum PermissibleVotes { yes, no, }
 
 ledger authority: Bytes<32>;
-ledger state: PublicState;
+export ledger state: PublicState;
 ledger topic: Maybe<Opaque<"string">>;
-ledger tally_yes: Counter;
-ledger tally_no: Counter;
-ledger committed_votes: MerkleTree<10, Bytes<32>>;
-ledger eligible_voters: MerkleTree<10, Bytes<32>>;
-ledger committed: Set<Bytes<32>>;
-ledger revealed: Set<Bytes<32>>;
+export ledger tally_yes: Counter;
+export ledger tally_no: Counter;
+export ledger committed_votes: MerkleTree<10, Bytes<32>>;
+export ledger eligible_voters: MerkleTree<10, Bytes<32>>;
+export ledger committed: Set<Bytes<32>>;
+export ledger revealed: Set<Bytes<32>>;
 
-witness private$secret_key(): Bytes<32>;
-witness private$state(): PrivateState;
-witness private$state$advance(): [];
-witness private$vote$record(ballot: PermissibleVotes): [];
-witness private$vote(): PermissibleVotes;
-witness context$eligible_voters$path_of(pk: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>;
-witness context$committed_votes$path_of(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>;
+// the capsule secret: the voter's, or the authority's, identity
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
+
+// this voter's private record of the election
+export local voter_state: PrivateState;
+export local my_vote: Maybe<PermissibleVotes>;
+
+constructor(authority_pk: Bytes<32>) {
+  authority.write(disclose(authority_pk));
+}
+
+// off-chain searches of the public trees; the circuit checks the root
+local eligible_voter_path(pk: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>> {
+  return eligible_voters.findPathForLeaf(pk);
+}
+
+local committed_vote_path(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>> {
+  return committed_votes.findPathForLeaf(cm);
+}
 
 // Should probably be replaced with a builtin...
 circuit ballot_repr(ballot: PermissibleVotes): Bytes<32> {
@@ -45,30 +58,32 @@ circuit ballot_repr(ballot: PermissibleVotes): Bytes<32> {
 }
 
 circuit vote$commit(ballot: PermissibleVotes): [] {
-  assert(state.read() == PublicState.commit && private$state() == PrivateState.initial, "In illegal state for committing");
-  private$vote$record(ballot);
-  const sk = private$secret_key();
+  assert(state.read() == PublicState.commit && voter_state == PrivateState.initial, "In illegal state for committing");
+  my_vote = some<PermissibleVotes>(ballot);
+  const sk = secretKey();
   const com_nul = commitment_nullifier(sk);
   assert(!committed.member(com_nul), "Unexpected attempt to double use of nullifier");
   const pk = public_key(sk);
-  const path = disclose(context$eligible_voters$path_of(pk));
+  const path = disclose(eligible_voter_path(pk));
   assert(path.is_some &&
          eligible_voters.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(path.value))) &&
          pk == path.value.leaf, "Attempted to vote without authorization - need to add-voter");
   const cm = commit_with_sk(ballot_repr(ballot), sk);
   committed_votes.insert(cm);
   committed.insert(com_nul);
-  private$state$advance();
+  voter_state = PrivateState.committed;
 }
 
 circuit vote$reveal(): [] {
-  assert(state.read() == PublicState.reveal && private$state() == PrivateState.committed, "In illegal state for revealing");
-  const sk = private$secret_key();
+  assert(state.read() == PublicState.reveal && voter_state == PrivateState.committed, "In illegal state for revealing");
+  const sk = secretKey();
   const rev_nul = reveal_nullifier(sk);
   assert(!revealed.member(rev_nul), "Attempted to double vote");
-  const vote = private$vote();
+  const recorded = my_vote;
+  assert(recorded.is_some, "Must have voted to reveal");
+  const vote = recorded.value;
   const cm = commit_with_sk(ballot_repr(vote), sk);
-  const path = disclose(context$committed_votes$path_of(cm));
+  const path = disclose(committed_vote_path(cm));
   assert(path.is_some &&
          committed_votes.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(path.value))) &&
          cm == path.value.leaf, "Attempted to reveal incorrectly");
@@ -78,11 +93,11 @@ circuit vote$reveal(): [] {
     tally_no.increment(1);
   }
   revealed.insert(rev_nul);
-  private$state$advance();
+  voter_state = PrivateState.revealed;
 }
 
 circuit advance(): [] {
-  const sk = private$secret_key();
+  const sk = secretKey();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to advance state without authorization");
   assert(topic.read().is_some, "Attempted to start election without a topic");
@@ -100,7 +115,7 @@ circuit successor(state: PublicState): PublicState {
 }
 
 circuit set_topic(t: Opaque<"string">): [] {
-  const sk = private$secret_key();
+  const sk = secretKey();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to set topic without authorization");
   assert(state.read() == PublicState.setup, "Attempted to set topic after setup phase");
@@ -108,8 +123,8 @@ circuit set_topic(t: Opaque<"string">): [] {
 }
 
 circuit add_voter(pk: Bytes<32>): [] {
-  assert(!context$eligible_voters$path_of(pk).is_some, "Attempted to add a voter twice");
-  const sk = private$secret_key();
+  assert(!eligible_voter_path(pk).is_some, "Attempted to add a voter twice");
+  const sk = secretKey();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to add a voter without authorization");
   assert(state.read() == PublicState.setup, "Attempted to add a voter after setup phase");

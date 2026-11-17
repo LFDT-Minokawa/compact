@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 22 char 3:\s+potential witness-value disclosure must be declared but is not:[\s\S]*the return value of witness secret[\s\S]*the value returned from exported circuit disclose_vector_element_condition might\s+disclose the witness value/,
+        /line 22 char 3:\s+potential witness-value disclosure must be declared but is not:[\s\S]*the return value of host function secret[\s\S]*the value returned from exported circuit disclose_vector_element_condition might\s+disclose the witness value/,
 });

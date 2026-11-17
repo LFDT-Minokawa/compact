@@ -17,9 +17,10 @@ import CompactStandardLibrary;
 
 export ledger round: Counter;
 
-witness private_increment(): [];
+// this account's own count of its calls, kept off chain
+export local count: Counter;
 
 export circuit increment(): [] {
   round.increment(1);
-  private_increment();
+  count.increment(1);
 }

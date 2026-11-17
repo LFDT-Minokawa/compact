@@ -31,7 +31,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.compact",
-					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|emit|enum|fold|for|if|implements|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
+					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|emit|enum|fold|for|host|if|implements|include|ledger|local|map|new|of|pad|pragma|return|struct|type|pure|sealed|slice)\\b"
 				},
 				{
 					"name": "keyword.control.import.compact",
@@ -43,7 +43,7 @@
 				},
 				{
 					"name": "keyword.reserved.compact",
-					"match": "\\b(this|await|break|case|catch|class|continue|debugger|delete|do|extends|finally|function|in|instanceof|null|super|switch|throw|try|typeof|var|void|while|with|yield|implements|interface|package|private|protected|public|let|static)\\b"
+					"match": "\\b(this|await|break|case|catch|class|continue|debugger|delete|do|extends|finally|function|in|instanceof|null|super|switch|throw|try|typeof|var|void|while|with|witness|yield|implements|interface|package|private|protected|public|let|static)\\b"
 				}
 			]
 		},

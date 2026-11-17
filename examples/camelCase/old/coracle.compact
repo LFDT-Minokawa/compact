@@ -78,10 +78,10 @@ struct Board {
 }
 
 // Private State
-witness local_secret_key(): Bytes<32>;
-witness local_board(): Committable<Board>;
-witness local_set_board(board: Committable<Board>): [];
-witness fresh_nonce(): Field;
+host test:oracle/local-secret-key@1.0.0 { local_secret_key(): Bytes<32>; }
+host test:oracle/local-board@1.0.0 { local_board(): Committable<Board>; }
+host test:oracle/local-set-board@1.0.0 { local_set_board(board: Committable<Board>): []; }
+host test:oracle/fresh-nonce@1.0.0 { fresh_nonce(): Field; }
 
 // Public Keys
 export ledger red : Bytes<32>;

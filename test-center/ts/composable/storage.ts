@@ -31,8 +31,6 @@ const callOuter = (
   chain.call({
     module: outerCode,
     address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args,
   }) as unknown as Promise<{ result: any; context: any }>;
@@ -40,8 +38,8 @@ const callOuter = (
 describe('Contract values stored in Map<Field, Inner>', () => {
   test('register then read the stored contract value back out', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     await callOuter(chain, outer.address, 'register', 1n, inner.encodedAddress);
     expect((await callOuter(chain, outer.address, 'isRegistered', 1n)).result).toEqual(true);
@@ -52,9 +50,9 @@ describe('Contract values stored in Map<Field, Inner>', () => {
 
   test('distinct keys map to distinct contract values', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     await callOuter(chain, outer.address, 'register', 1n, innerA.encodedAddress);
     await callOuter(chain, outer.address, 'register', 2n, innerB.encodedAddress);
@@ -67,8 +65,8 @@ describe('Contract values stored in Map<Field, Inner>', () => {
 
   test('absent key is reported as not a member', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     await callOuter(chain, outer.address, 'register', 1n, inner.encodedAddress);
     expect((await callOuter(chain, outer.address, 'isRegistered', 99n)).result).toEqual(false);
@@ -78,8 +76,8 @@ describe('Contract values stored in Map<Field, Inner>', () => {
 describe('Contract values stored in List<Inner>', () => {
   test('enqueue then peek returns the contract value at the head', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     await callOuter(chain, outer.address, 'enqueue', inner.encodedAddress);
     const { result } = await callOuter(chain, outer.address, 'peek');
@@ -88,9 +86,9 @@ describe('Contract values stored in List<Inner>', () => {
 
   test('most-recently pushed contract value is at the head', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     await callOuter(chain, outer.address, 'enqueue', innerA.encodedAddress);
     await callOuter(chain, outer.address, 'enqueue', innerB.encodedAddress);
@@ -103,8 +101,8 @@ describe('Contract values stored in List<Inner>', () => {
 describe('Contract values stored in MerkleTree<2, Inner>', () => {
   test('a contract value can be inserted as a leaf and the tree fills', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
+    const outer = await chain.deploy({ module: outerCode, args: [] });
 
     // A depth-2 tree holds 4 leaves.
     expect((await callOuter(chain, outer.address, 'treeFull')).result).toEqual(false);

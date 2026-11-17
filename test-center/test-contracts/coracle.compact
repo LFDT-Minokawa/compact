@@ -78,10 +78,17 @@ struct Board {
 }
 
 // Private State
-witness local_secret_key(): Bytes<32>;
-witness local_board(): Committable<Board>;
-witness local_set_board(board: Committable<Board>): [];
-witness fresh_nonce(): Field;
+// The capsule secret: the player's identity, and the seed of their nonces
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
+// This player's board, with the nonce that opens its commitment
+export local board: Committable<Board>;
+// How many nonces this player has drawn, therefore each draw is fresh and replays in the fold
+local nonces: Counter;
+
+local fresh_nonce(): Field {
+  nonces.increment(1);
+  return transientHash<Vector<2, Bytes<32>>>([secretKey(), nonces.read() as Field as Bytes<32>]);
+}
 
 // Public Keys
 export ledger red : Bytes<32>;
@@ -179,7 +186,7 @@ export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinI
   receiveShielded(disclose(wager));
   receiveShielded(disclose(deposit));
 
-  const sk = local_secret_key();
+  const sk = secretKey();
   const n = disclose(fresh_nonce());
   const cb = Committable<Board>{n, b};
 
@@ -189,7 +196,7 @@ export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinI
     red = red_pk(sk);
     red_board = commit<Board>(disclose(cb));
     state = State.red_started;
-    local_set_board(cb);
+    board = cb;
     return Player.red;
   } else {
     pot.writeCoin(mergeCoinImmediate(pot, disclose(wager)), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
@@ -197,13 +204,13 @@ export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinI
     blue = blue_pk(sk);
     blue_board = commit<Board>(disclose(cb));
     state = State.blue_started;
-    local_set_board(cb);
+    board = cb;
     return Player.blue;
   }
 }
 
 export circuit guess(position: Field): [] {
-  const sk = local_secret_key();
+  const sk = secretKey();
   const player_is_red = is_red(disclose(sk), red);
   const player_is_blue = is_blue(disclose(sk), blue);
   assert(player_is_red || player_is_blue, "Not a player");
@@ -212,8 +219,8 @@ export circuit guess(position: Field): [] {
 
 // Red is still alive and makes a valid move
 circuit red_guess(my_guess: Field): [] {
-  const sk = local_secret_key();
-  const lb = local_board();
+  const sk = secretKey();
+  const lb = board;
 
   // Preconditions for Red
   assert(is_red(disclose(sk), red), "Not player Red");
@@ -232,8 +239,8 @@ circuit red_guess(my_guess: Field): [] {
 
 // Red is still alive and makes a valid move
 circuit blue_guess(my_guess: Field): [] {
-  const sk = local_secret_key();
-  const lb = local_board();
+  const sk = secretKey();
+  const lb = board;
 
   // Preconditions for Blue guess
   assert(is_blue(disclose(sk), blue), "Not player Blue");
@@ -248,7 +255,7 @@ circuit blue_guess(my_guess: Field): [] {
 }
 
 export circuit concede(): ShieldedCoinInfo {
-  const sk = local_secret_key();
+  const sk = secretKey();
   const player_is_red = is_red(disclose(sk), red);
   const player_is_blue = is_blue(disclose(sk), blue);
   assert(player_is_red || player_is_blue, "Not a player");
@@ -257,8 +264,8 @@ export circuit concede(): ShieldedCoinInfo {
 
 // Red is defeated and finishes the game
 circuit red_concede(): ShieldedCoinInfo {
-  const sk = local_secret_key();
-  const lb = local_board();
+  const sk = secretKey();
+  const lb = board;
 
   // Preconditions for Red
   assert(is_red(disclose(sk), red), "Not player Red");
@@ -273,15 +280,15 @@ circuit red_concede(): ShieldedCoinInfo {
 
   return sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     red_deposit.value
   ).sent;
 }
 
 // Blue is defeated and finishes the game
 circuit blue_concede(): ShieldedCoinInfo {
-  const sk = local_secret_key();
-  const lb = local_board();
+  const sk = secretKey();
+  const lb = board;
 
   // Preconditions for Blue guess
   assert(is_blue(disclose(sk), blue), "Not player Blue");
@@ -295,7 +302,7 @@ circuit blue_concede(): ShieldedCoinInfo {
 
   return sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     blue_deposit.value
   ).sent;
 }
@@ -306,7 +313,7 @@ struct WithdrawnCoins {
 }
 
 export circuit withdraw(): WithdrawnCoins {
-  const sk = disclose(local_secret_key());
+  const sk = disclose(secretKey());
   const player_is_red = is_red(disclose(sk), red);
   const player_is_blue = is_blue(disclose(sk), blue);
   assert(player_is_red || player_is_blue, "Not a player");
@@ -314,38 +321,38 @@ export circuit withdraw(): WithdrawnCoins {
 }
 
 circuit red_withdraw(): WithdrawnCoins {
-  const sk = local_secret_key();
+  const sk = secretKey();
 
   assert(is_red(disclose(sk), red), "Not player Red");
   assert(state == State.red_wins, "Red hasn't won");
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     pot.value
   ).sent;
   const deposit = sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     red_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};
 }
 
 circuit blue_withdraw(): WithdrawnCoins {
-  const sk = local_secret_key();
+  const sk = secretKey();
 
   assert(is_blue(sk, blue), "Not player Blue");
   assert(state == State.blue_wins, "Blue hasn't won");
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     pot.value
   ).sent;
   const deposit = sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     blue_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};

@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,23 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Exercises contract values flowing through witnesses: a witness can return
-// a contract value, and a witness can accept one as a parameter.
+// A caller without local state of its own, so the callee's capsule is the only one in play.
 
 import CompactStandardLibrary;
 
 contract Inner {
-  circuit add(value: Field): Field;
+  circuit visit(): Uint<64>;
+  circuit hasJoined(): Boolean;
 }
 
-witness chooseInner(): Inner;
+export ledger inner: Inner;
+export ledger lastCount: Uint<64>;
 
-witness inspectInner(i: Inner): Field;
-
-export circuit pickViaWitness(): Inner {
-  return disclose(chooseInner());
+constructor(i: Inner) {
+  inner = disclose(i);
 }
 
-export circuit inspectViaWitness(i: Inner): Field {
-  return disclose(inspectInner(i));
+export circuit visitOnce(): Uint<64> {
+  const c = inner.visit();
+  lastCount = c;
+  return c;
+}
+
+export circuit visitTwice(): Uint<64> {
+  inner.visit();
+  const c = inner.visit();
+  lastCount = c;
+  return c;
+}
+
+export circuit checkJoined(): Boolean {
+  return inner.hasJoined();
 }

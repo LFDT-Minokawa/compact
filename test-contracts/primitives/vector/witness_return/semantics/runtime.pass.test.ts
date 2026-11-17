@@ -21,7 +21,9 @@ import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
 export default defineRuntimeTest(import.meta.url, async () => {
     const { contract, ctx } = await createTestContract(Contract, {
-        vector_witness: (context) => [context.privateState, [5n, 6n, 7n, 8n]],
+        'test:oracle/vector-witness@1.0.0': {
+            vector_witness: () => [5n, 6n, 7n, 8n],
+        },
     });
     const result = (
         await contract.circuits.vector_witness_return_semantics(ctx)

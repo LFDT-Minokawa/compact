@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-witness secret(): Boolean;
+host test:oracle/secret@1.0.0 { secret(): Boolean; }
 
 // A Boolean read from a vector element is not assumed to equal the first
 // element, so the witness value returned in the else branch must be reported.

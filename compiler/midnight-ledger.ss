@@ -97,6 +97,10 @@
   (type-ref Maybe a)
   "Option<_>")
 
+(declare-ledger-type MerkleTreePath (n a)
+  (type-ref MerkleTreePath n a)
+  "MerkleTreePath<_>")
+
 ;; declare-ledger-adt adds an ADT declaration to the compiler's internal table of ADTs.
 ;; syntax:
 ;;   (declare-ledger-adt ADT-name (ADT-arg-name ...) description (initial-value init) clause ...)
@@ -1069,6 +1073,61 @@
      "      alignment: ${value_type}.alignment()"
      "    }"
      "  )?.value)"))
+  (function local-read root () MerkleTreeDigest
+    "Retrieves the root of the Merkle tree, pinning it in the local transcript. \
+    Only callable from local functions. \
+    MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript)."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)])))
+  (function local-read firstFree () Uint64
+    "Retrieves the first (guaranteed) free index in the Merkle tree, pinning it in the \
+    local transcript. Only callable from local functions."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (popeq [cached #t] [result (void)])))
+  (function local-read pathForLeaf ([index Field] [leaf value_type]) (MerkleTreePath nat value_type)
+    "Returns the Merkle path, given the knowledge that the specified leaf is at the given \
+    index, pinning the tree's root in the local transcript. It is an error to call this if \
+    the leaf is not at the index. Only callable from local functions. \
+    MerkleTreePath is defined in CompactStandardLibrary (compact-runtime from Typescript)."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)]))
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().pathForLeaf("
+     "    ${index},"
+     "    {"
+     "      value: ${value_type}.toValue(${leaf}),"
+     "      alignment: ${value_type}.alignment()"
+     "    }"
+     "  )?.value)"))
+  (function local-read findPathForLeaf ([leaf value_type]) (Maybe (MerkleTreePath nat value_type))
+    "Finds the path for a given leaf, pinning the tree's root in the local transcript. Be \
+    warned that this is O(n) and should be avoided for large trees; it is total in the \
+    state. Returns none when no such leaf exists. Only callable from local functions. \
+    Maybe and MerkleTreePath are defined in CompactStandardLibrary."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)]))
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().findPathForLeaf("
+     "    {"
+     "      value: ${value_type}.toValue(${leaf}),"
+     "      alignment: ${value_type}.alignment()"
+     "    }"
+     "  )?.value)"))
   (function remove resetToDefault () Void
     "Resets this Merkle tree to the empty Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
@@ -1232,6 +1291,61 @@
     ("${this}.asArray()[2].asMap().keys().map("
      "  (elem) => ${rtlib}CompactTypeMerkleTreeDigest.fromValue(elem.value)"
      ")[Symbol.iterator]()"))
+  (function local-read root () MerkleTreeDigest
+    "Retrieves the root of the Merkle tree, pinning it in the local transcript. \
+    Only callable from local functions. \
+    MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript)."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)])))
+  (function local-read firstFree () Uint64
+    "Retrieves the first (guaranteed) free index in the Merkle tree, pinning it in the \
+    local transcript. Only callable from local functions."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (popeq [cached #t] [result (void)])))
+  (function local-read pathForLeaf ([index Field] [leaf value_type]) (MerkleTreePath nat value_type)
+    "Returns the Merkle path, given the knowledge that the specified leaf is at the given \
+    index, pinning the tree's root in the local transcript. It is an error to call this if \
+    the leaf is not at the index. Only callable from local functions. \
+    MerkleTreePath is defined in CompactStandardLibrary (compact-runtime from Typescript)."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)]))
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().pathForLeaf("
+     "    ${index},"
+     "    {"
+     "      value: ${value_type}.toValue(${leaf}),"
+     "      alignment: ${value_type}.alignment()"
+     "    }"
+     "  )?.value)"))
+  (function local-read findPathForLeaf ([leaf value_type]) (Maybe (MerkleTreePath nat value_type))
+    "Finds the path for a given leaf, pinning the tree's root in the local transcript. Be \
+    warned that this is O(n) and should be avoided for large trees; it is total in the \
+    state. Returns none when no such leaf exists. Only callable from local functions. \
+    Maybe and MerkleTreePath are defined in CompactStandardLibrary."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (root)
+     (popeq [cached #t] [result (void)]))
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().findPathForLeaf("
+     "    {"
+     "      value: ${value_type}.toValue(${leaf}),"
+     "      alignment: ${value_type}.alignment()"
+     "    }"
+     "  )?.value)"))
   (function remove resetToDefault () Void
     "Resets this Merkle tree to the empty Merkle tree."
     ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])

@@ -27,8 +27,6 @@ const callOuter = (
   chain.call({
     module: outerCode,
     address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args,
   }) as unknown as Promise<{ result: any; context: any }>;
@@ -55,11 +53,10 @@ const rejection = async (call: Promise<unknown>): Promise<any> => {
 describe('cross-contract key agreement', () => {
   test('a call binds when the resolved module is the one deployed at the address', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const key = deployedKey(chain, inner.address, 'add');
@@ -74,12 +71,11 @@ describe('cross-contract key agreement', () => {
 
   test('two deployments of one contract are interchangeable', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [innerA.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // The harness keys by compiled contract, as a chain does, so identical code deployed twice has
@@ -93,11 +89,10 @@ describe('cross-contract key agreement', () => {
 
   test('a module for different code is rejected', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // Outer also has `add(Field): Field`, so it clears conformance and only the keys can tell it
@@ -117,18 +112,16 @@ describe('cross-contract key agreement', () => {
 
   test('a disagreement on a circuit other than the called one is caught', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const caller = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
     // An Outer stands in as the callee, since the overlap rule needs a callee carrying more than one
     // operation and Inner has exactly one.
     const callee = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
     await callOuter(chain, caller.address, 'setInner', callee.encodedAddress);
 
@@ -147,11 +140,10 @@ describe('cross-contract key agreement', () => {
 
   test('a module recording no fingerprint at all is rejected', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // The shape a module compiled with `skip-zk` has. There is a key on chain and nothing to
@@ -168,11 +160,10 @@ describe('cross-contract key agreement', () => {
 
   test('a recorded fingerprint that is not a digest is its own failure', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // Not a mismatch: there was nothing comparable to disagree with.
@@ -191,11 +182,10 @@ describe('cross-contract key agreement', () => {
 
   test('an operation deployed without a verifier key is rejected', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     chain.getContractStateOrThrow(inner.address).setOperation('add', new runtime.ContractOperation());

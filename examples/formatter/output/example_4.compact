@@ -23,7 +23,9 @@ export circuit ronan(): [] {
   return [];
 }
 
-witness caroline(): Field;
+host test:oracle/caroline@1.0.0 {
+  caroline(): Field;
+}
 
 export circuit Grendel(x: Field, y: Field, z: Field, d: Uint<32>): Field 
 

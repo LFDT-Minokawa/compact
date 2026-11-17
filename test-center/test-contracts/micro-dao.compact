@@ -25,8 +25,8 @@ export {Maybe, Either, ShieldedCoinInfo, QualifiedShieldedCoinInfo, MerkleTreePa
 // Current phase of voting - stored on-chaining
 export enum LedgerState { setup, commit, reveal, final, }
 
-// Current state of voter - stored off-chain
-export enum LocalState { initial, committed, revealed, }
+// Current state of voter - derived from the voter's local books for the current round
+export enum VoterState { initial, committed, revealed, }
 
 export struct Costs {
   seed_dust: Uint<64>,
@@ -56,44 +56,84 @@ constructor(organizer_secret_key: Bytes<32>, costs_param: Costs) {
   costs = disclose(costs_param);
 }
 
-witness local_secret_key(): Bytes<32>; // Secret key used to identify participant when performing an action
-witness local_state(): LocalState; // Current voter state
-witness local_advance_state(): []; // Function to advance local state after commiting or revealing a vote
-witness local_record_vote(vote: Boolean): [];
-witness local_vote_cast(): Maybe<Boolean>; // Returns vote for current round
-witness local_path_of_cm(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; // Returns Merkle proof of committed vote
+// The capsule secret identifies the participant when performing an action
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
+
+// This voter's private books, kept off chain and keyed by round, therefore nothing to reset between proposals
+export local ballots: Map<Uint<64>, Boolean>; // The ballot committed in a round
+export local revealed_rounds: Set<Uint<64>>; // The rounds whose ballot has been revealed
+
+/**
+ * The voter's state in the current round, derived from the books; readable by the DApp through `localState`
+ */
+export local voter_state(): VoterState {
+  const r = round.read();
+  if (revealed_rounds.member(r)) {
+    return VoterState.revealed;
+  } else if (ballots.member(r)) {
+    return VoterState.committed;
+  } else {
+    return VoterState.initial;
+  }
+}
+
+local record_vote(ballot: Boolean): [] {
+  ballots.insert(round.read(), ballot);
+}
+
+/**
+ * The ballot committed in the current round, if any
+ */
+local vote_cast(): Maybe<Boolean> {
+  const r = round.read();
+  if (ballots.member(r)) {
+    return some<Boolean>(ballots.lookup(r));
+  } else {
+    return none<Boolean>();
+  }
+}
+
+local mark_revealed(): [] {
+  revealed_rounds.insert(round.read());
+}
+
+/**
+ * The Merkle proof of a committed vote, found off chain in the public tree
+ */
+local path_of_cm(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>> {
+  return committed_votes.findPathForLeaf(cm);
+}
 
 /**
  * Commits to a vote without revealing its contents
  */
 circuit vote_commit(ballot: Boolean, votingCoin: ShieldedCoinInfo): [] {
-  assert(state == LedgerState.commit && local_state() == LocalState.initial, "In illegal state for committing");
+  assert(state == LedgerState.commit && voter_state() == VoterState.initial, "In illegal state for committing");
   assert((votingCoin.color == dao_voting_token()), "Expected own voting token to provided");
   assert((votingCoin.value == 1), "Expected only one voting token");
-  const sk = local_secret_key();
+  const sk = secretKey();
   const nullifier = commitment_nullifier(sk);
   assert(!committed_participants.member(nullifier), "Attempted to double commit a vote");
   receiveShielded(disclose(votingCoin));
   sendImmediateShielded(disclose(votingCoin), left<ZswapCoinPublicKey, ContractAddress>(ZswapCoinPublicKey{pad(32, "")}), 1); // Burn the token to prevent usage in the future
-  local_record_vote(ballot);
+  record_vote(ballot);
   const vote_commitment = commit_with_sk(ballot ? pad(32, "yes") : pad(32, "no"), sk);
   committed_votes.insert(vote_commitment);
   committed_participants.insert(nullifier);
-  local_advance_state();
 }
 
 /**
  * Reveals a previously commited vote.
  */
 circuit vote_reveal(): [] {
-  assert(state == LedgerState.reveal && local_state() == LocalState.committed, "In illegal state for revealing");
-  const sk = local_secret_key();
+  assert(state == LedgerState.reveal && voter_state() == VoterState.committed, "In illegal state for revealing");
+  const sk = secretKey();
   const rev_nul = reveal_nullifier(sk);
   assert(!revealed_participants.member(rev_nul), "Attempted to double vote");
-  const vote = local_vote_cast();
+  const vote = vote_cast();
   assert(vote.is_some, "Must have voted to reveal");
   const cm = commit_with_sk(vote.value ? pad(32, "yes") : pad(32, "no"), sk);
-  const path = disclose(local_path_of_cm(cm));
+  const path = disclose(path_of_cm(cm));
   assert(path.is_some &&
           committed_votes.checkRoot(path_root(path.value)) &&
           cm == path.value.leaf, "Attempted to reveal incorrectly");
@@ -103,7 +143,7 @@ circuit vote_reveal(): [] {
     no.increment(1);
   }
   revealed_participants.insert(rev_nul);
-  local_advance_state();
+  mark_revealed();
 }
 
 /**
@@ -113,7 +153,7 @@ circuit vote_reveal(): [] {
  * - from final to setup (if voting status allows)
  */
 circuit advance(): [] {
-  const sk = local_secret_key();
+  const sk = secretKey();
   const apk = public_key(sk);
   assert(!(state == LedgerState.setup), "Leave setup phase by setting the topic");
   assert(apk == organizer, "Attempted to advance state without authorization");
@@ -142,7 +182,7 @@ circuit successor(state: LedgerState): LedgerState {
  */
 circuit set_topic(topic_param: Opaque<"string">, beneficiary_param: ZswapCoinPublicKey, seedCoin: ShieldedCoinInfo): [] {
   assert(seedCoin.value == costs.seed_dust && seedCoin.color == nativeToken(), "Expected configured seed dust as seed");
-  const sk = local_secret_key();
+  const sk = secretKey();
   const apk = public_key(sk);
   assert(organizer == apk, "Attempted to set topic without authorization");
   assert(state == LedgerState.setup, "Attempted to set topic after setup phase");
@@ -177,7 +217,7 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
     dao_token_domain_separator(),
     disclose(amount),
     evolveNonce(0, disclose(coin.nonce)),
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey()))
   );
 }
 
@@ -185,7 +225,7 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
  * Let beneficiary cash out if voting was in favor of proposal
  */
 circuit cash_out(): ShieldedCoinInfo {
-  const addr = ownPublicKey();
+  const addr = disclose(ownPublicKey());
   assert(state == LedgerState.final &&
          beneficiary.is_some &&
          beneficiary.value == addr &&

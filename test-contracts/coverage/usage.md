@@ -2,7 +2,7 @@
 
 Scanned the **372 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 122
+## Not covered by any fixture — 119
 
 | name | group |
 |---|---|
@@ -122,9 +122,6 @@ Scanned the **372 fixtures** in `test-contracts/`.
 | `secp256r1PointY` | Native circuits and witnesses |
 | `curve25519PointX` | Native circuits and witnesses |
 | `curve25519PointY` | Native circuits and witnesses |
-| `ownPublicKey` | Native circuits and witnesses |
-| `createZswapInput` | Native circuits and witnesses |
-| `createZswapOutput` | Native circuits and witnesses |
 | `JubjubPoint` | Native types |
 | `serialize` | Inline entries |
 | `deserialize` | Inline entries |
@@ -291,7 +288,7 @@ Declared in `compiler sources — declare-event-type`.
 | `Unpaused` | **no fixture** | 0 |
 | `Misc` | **no fixture** | 0 |
 
-## Native circuits and witnesses — 2/27 covered
+## Native circuits and witnesses — 2/24 covered
 
 Declared in `compiler sources — declare-native-entry`.
 
@@ -321,9 +318,6 @@ Declared in `compiler sources — declare-native-entry`.
 | `secp256r1PointY` | **no fixture** | 0 |
 | `curve25519PointX` | **no fixture** | 0 |
 | `curve25519PointY` | **no fixture** | 0 |
-| `ownPublicKey` | **no fixture** | 0 |
-| `createZswapInput` | **no fixture** | 0 |
-| `createZswapOutput` | **no fixture** | 0 |
 
 ## Native types — 10/11 covered
 

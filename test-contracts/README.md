@@ -103,11 +103,11 @@ export default defineRuntimeTest<typeof Contract>(
 );
 ```
 
-A contract whose constructor takes parameters receives them as the fourth
-argument of `createTestContract`, after the witnesses and private state:
+A contract whose constructor takes parameters receives them as the third
+argument of `createTestContract`, after the host interfaces:
 
 ```ts
-const { contract, ctx } = await createTestContract(Contract, {}, undefined, [
+const { contract, ctx } = await createTestContract(Contract, {}, [
     [1n, 2n, 3n],
 ]);
 ```

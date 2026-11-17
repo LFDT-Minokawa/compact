@@ -17,8 +17,8 @@ import CompactStandardLibrary;
 
 export ledger count: Counter;
 
-witness get_a(): Uint<8>;
-witness get_b(): Uint<8>;
+host test:oracle/get-a@1.0.0 { get_a(): Uint<8>; }
+host test:oracle/get-b@1.0.0 { get_b(): Uint<8>; }
 
 export circuit less_than(): Boolean {
   count.increment(1);
