@@ -1,8 +1,8 @@
 # Compact language usage index
 
-Scanned the **372 fixtures** in `test-contracts/`.
+Scanned the **378 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 122
+## Not covered by any fixture — 121
 
 | name | group |
 |---|---|
@@ -89,7 +89,6 @@ Scanned the **372 fixtures** in `test-contracts/`.
 | `HistoricMerkleTree.insertHashIndex` | Ledger ADT operations |
 | `HistoricMerkleTree.insertIndexDefault` | Ledger ADT operations |
 | `HistoricMerkleTree.resetHistory` | Ledger ADT operations |
-| `ShieldedSpend` | Event types |
 | `ShieldedReceive` | Event types |
 | `ShieldedMint` | Event types |
 | `ShieldedBurn` | Event types |
@@ -137,10 +136,10 @@ Declared in `parser.ss — keywordDataTypes`.
 |---|---|---:|
 | `Boolean` | [`test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact:21`](../../test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact#L21) | 143 |
 | `Bytes` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 432 |
-| `Field` | [`test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact:16`](../../test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact#L16) | 445 |
+| `Field` | [`test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact:16`](../../test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact#L16) | 462 |
 | `Opaque` | [`test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact:16`](../../test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact#L16) | 4 |
 | `Uint` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 216 |
-| `Vector` | [`test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact:16`](../../test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact#L16) | 123 |
+| `Vector` | [`test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact:16`](../../test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact#L16) | 126 |
 
 ## Standard library circuits — 8/33 covered
 
@@ -273,13 +272,13 @@ Declared in `compiler sources — declare-ledger-adt`.
 | `HistoricMerkleTree.insertIndexDefault` | **no fixture** | 0 |
 | `HistoricMerkleTree.resetHistory` | **no fixture** | 0 |
 
-## Event types — 0/11 covered
+## Event types — 1/11 covered
 
 Declared in `compiler sources — declare-event-type`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `ShieldedSpend` | **no fixture** | 0 |
+| `ShieldedSpend` | [`test-contracts/keywords/constructor/cannot_emit_via_map/constructor_cannot_emit_via_map.compact:19`](../../test-contracts/keywords/constructor/cannot_emit_via_map/constructor_cannot_emit_via_map.compact#L19) | 2 |
 | `ShieldedReceive` | **no fixture** | 0 |
 | `ShieldedMint` | **no fixture** | 0 |
 | `ShieldedBurn` | **no fixture** | 0 |
