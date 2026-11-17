@@ -1327,29 +1327,33 @@ Returns true if the current block time is less than or equal to the given value.
 circuit blockTimeLte(time: Uint<64>): Boolean;
 ```
 
-### `serialize<T, #n>`
+### `serialize<T, #N>`
 
-Returns the canonical byte encoding for a Compact type `T`.
+Returns the byte encoding of a Compact value of type `T`, padded with zero bytes
+to a length of `N` if `N` is larger than the serialized size of `T`.
 
-`T` can be any type other than contract types and `Opaque` types.  `n` must be
-at least the serialized size of `T`.  If it is larger, the result is padded with
-zero bytes.
+`T` can be any type other than those containing contract types, `Opaque` types,
+or curve point types.  `N` must be at least the serialized size of `T`, which is
+two version bytes plus the size of the encoding of the value.  If `N` is larger,
+the result is padded with zero bytes.
 
 ```compact
-circuit serialize<T, #n> (x: T): Bytes<n>;
+circuit serialize<T, #N> (x: T): Bytes<N>;
 ```
 
-### `deserialize<T, #n>`
+### `deserialize<T, #N>`
 
-Reconstructs a value of Compact type `T` from its canonical byte encoding.
+Reconstructs a Compact value of type `T` from a byte encoding, optionally
+followed by arbitrary bytes.
 
-`T` can be any type other than contract types and `Opaque` types.  `n` must be
-at least the serialized size of `T`.  Trailing bytes beyond the serialized size
-of `T` are ignored and not checked.  Deserialization fails at runtime if the
-bytes are not the canonical encoding of a value of type `T`, or if there is a
-version mismatch (the bytes represent an older or newer version that the
-deserializer cannot deserialize).
+`T` can be any type other than those containing contract types, `Opaque` types,
+or curve point types.  `N` must be at least the serialized size of `T`.
+Trailing bytes beyond the serialized size of `T` are ignored and not checked.
+Deserialization fails at run time if the first two bytes are not the expected
+version bytes, or if the following bytes do not encode a value of type `T`.  For
+the foreign field types, an encoded integer that is not less than the field's
+order is reduced modulo the order rather than causing a failure.
 
 ```compact
-circuit deserialize<T, #n> (x: Bytes<n>): T;
+circuit deserialize<T, #N> (x: Bytes<N>): T;
 ```
