@@ -20,7 +20,6 @@ circuit spend(): Field {
   return 1 as Field;
 }
 
-// A call inside a tuple literal emits the event just like a direct call.
 constructor() {
   const t = [spend(), 2];
 }

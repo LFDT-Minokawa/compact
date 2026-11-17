@@ -20,7 +20,6 @@ circuit set(): Field {
   return 1 as Field;
 }
 
-// A call inside a tuple literal writes the sealed field just like a direct call.
 export circuit sealed_exported_circuit_cannot_mutate_via_tuple(): [] {
   const t = [set(), 2];
 }

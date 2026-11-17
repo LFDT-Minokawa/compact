@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 24 char 1:\s+exported circuits cannot modify sealed ledger fields but\s+sealed_exported_circuit_cannot_mutate_via_tuple calls \(directly or indirectly\) set, which\s+modifies sealed field c at line 19 char 3/,
+        /line 23 char 1:\s+exported circuits cannot modify sealed ledger fields but\s+sealed_exported_circuit_cannot_mutate_via_tuple calls \(directly or indirectly\) set, which\s+modifies sealed field c at line 19 char 3/,
 });

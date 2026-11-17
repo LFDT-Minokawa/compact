@@ -20,7 +20,6 @@ circuit spend(): Vector<2, Field> {
   return [1 as Field, 2 as Field];
 }
 
-// The vector passed to map comes from a call that emits the event.
 constructor() {
   const doubled = map((x: Field): Field => x + x, spend());
 }

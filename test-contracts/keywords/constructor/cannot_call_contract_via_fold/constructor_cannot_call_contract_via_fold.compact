@@ -17,7 +17,6 @@ contract Other {
   circuit values(): Vector<2, Field>;
 }
 
-// The vector passed to fold comes from a contract call.
 constructor(other: Other) {
   const sum = fold((acc: Field, x: Field): Field => acc + x,
                    0 as Field,

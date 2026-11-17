@@ -20,7 +20,6 @@ circuit values(): Vector<2, Field> {
   return [1 as Field, 2 as Field];
 }
 
-// The loop's vector comes from a call that writes the sealed field.
 export circuit sealed_exported_circuit_cannot_mutate_via_for(): [] {
   for (const x of values()) {
   }
