@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.108, language 0.28.100, runtime 0.21.103]
+
+### Fixed
+
+- The standard library circuit `jubjubSchnorrVerify` and the Compact runtime
+  function of the same name now accept one encoding of each signature, where
+  they used to accept eight. `JubjubSchnorrSignature.response` was a `Field`,
+  whose range is more than eight times the Jubjub scalar order, and the
+  verifier reduced it modulo that order, so `response + k * order` verified
+  for every `k` from 0 through 7. Anyone holding a valid signature could
+  therefore produce seven more valid signatures over the same message without
+  the signing key, and a contract that recorded a signature, or a hash of one,
+  to refuse its reuse did not recognise them.
+
+### Changed
+
+- `JubjubSchnorrSignature.response` now has type `JubjubScalar`. Previously
+  this type was `Field`. This is a **BREAKING CHANGE**: a contract that builds
+  a `JubjubSchnorrSignature` from a `Field` needs an `as JubjubScalar` cast,
+  and one that reads `response` as a `Field` needs an `as Field` cast. The
+  TypeScript type of `response` is still `bigint`, and a circuit now rejects
+  a `response` at or above the scalar order as a value that is not of its
+  argument type.
+
+- The Compact runtime function `jubjubSchnorrVerify` returns false for a
+  `response` at or above the Jubjub scalar order.
+
+- The circuit of `jubjubSchnorrVerify` has changed, so a contract that calls
+  it has different ZKIR and different prover and verifier keys when it is
+  recompiled.
+
+## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- The standard library circuits `secp256k1EcdsaVerify` and
+  `secp256r1EcdsaVerify` now return false wherever the verification algorithm
+  of FIPS 186-5 section 6.4.2 outputs "reject", where they used to fail in two
+  of those cases. A zero `s` failed on its inverse, and a signature
+  whose verification point `u1*G + u2*pk` is the identity, which the holder of
+  the private key can construct, failed on that point's x-coordinate. A
+  contract that branches on the result therefore could not reach its
+  invalid-signature branch. A circuit computes a verification even on a branch
+  that is not taken, where a signature read from a witness is all zeros, so a
+  circuit that verified a witness signature on only one branch could not be
+  proved when it took the other.
+
+### Changed
+
+- `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` reject a signature whose
+  `r` is zero, as step 1 of FIPS 186-5 section 6.4.2 requires.
+
+- The circuits of `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` have
+  changed, so a contract that calls either one has different ZKIR and
+  different prover and verifier keys when it is recompiled.
+
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
 ### Fixed

@@ -59,10 +59,6 @@ type EcdsaSuite = {
     hash: (msg: Uint8Array) => Uint8Array;
     /** True when the corpus applies a low-s rule the circuit does not. */
     enforcesLowS: boolean;
-    /** Vectors whose maths reaches the identity point, so the circuit fails. */
-    identityPointTcIds: ReadonlySet<number>;
-    /** Failure messages that count as an expected abort. */
-    abortMessages: string[];
     coverage: Coverage;
 };
 
@@ -72,13 +68,6 @@ export const SECP256K1_BITCOIN: EcdsaSuite = {
     curve: secp256k1,
     hash: sha256,
     enforcesLowS: true,
-    identityPointTcIds: new Set([386, 424, 425, 439, 440]),
-    abortMessages: [
-        // The verification point is the identity, which has no x-coordinate.
-        'cannot extract the x-coordinate of the secp256k1 identity point',
-        // `w = inv(s)` has no result for s = 0.
-        'secp256k1 scalar field has no inverse for 0',
-    ],
     coverage: {
         total: 463,
         driven: 244,
@@ -92,13 +81,6 @@ export const SECP256R1: EcdsaSuite = {
     curve: p256,
     hash: sha256,
     enforcesLowS: false,
-    identityPointTcIds: new Set([392, 428, 431, 445, 446]),
-    abortMessages: [
-        // The verification point is the identity, which has no x-coordinate.
-        'cannot extract the x-coordinate of the secp256r1 identity point',
-        // `w = inv(s)` has no result for s = 0.
-        'secp256r1 scalar field has no inverse for 0',
-    ],
     coverage: {
         total: 484,
         driven: 265,
@@ -252,23 +234,12 @@ function classifyEcdsa(suite: EcdsaSuite): Classified<EcdsaVector> {
                 );
             }
 
-            // The circuit aborts instead of returning a verdict when the
-            // verification point is the identity, or when s = 0 leaves `inv(s)`
-            // undefined. Both are `invalid` upstream, but neither yields a
-            // boolean to compare.
-            //
-            // s = 0 only reaches `inv` when r is in range: the argument
-            // type-check runs first, and an out-of-range r is rejected there,
-            // which the caller reads as an invalid signature.
+            // The circuit never aborts on a signature: a zero r or s and a
+            // verification point at the identity are `invalid`, as upstream.
             const scalarsInRange = sig.r < order && sig.s < order;
-            const aborts =
-                suite.identityPointTcIds.has(test.tcId) ||
-                (sig.s === 0n && scalarsInRange);
-            const expectation: Expectation = aborts
-                ? 'abort'
-                : expectedValid
-                  ? 'valid'
-                  : 'invalid';
+            const expectation: Expectation = expectedValid
+                ? 'valid'
+                : 'invalid';
 
             driven.push({
                 tcId: test.tcId,
@@ -303,11 +274,7 @@ export function runEcdsaKat(
         `${label} [${suite.name}]`,
         classifyEcdsa(suite),
         drive,
-        (error) =>
-            error instanceof Error &&
-            suite.abortMessages.some((message) =>
-                error.message.includes(message),
-            ),
+        () => false,
         notes,
     );
 }

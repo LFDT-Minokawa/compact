@@ -67,7 +67,7 @@ point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrver
 ```compact
 struct JubjubSchnorrSignature {
   announcement: JubjubPoint;
-  response: Field;
+  response: JubjubScalar;
 }
 ```
 
@@ -957,6 +957,12 @@ and a verification key (a [`JubjubPoint`](#jubjubpoint) on the embedded curve).
 Asserts that the verification key is not the identity (default) JubjubPoint, which is not permitted because it would make verification independent of the message.
 Returns true if the signature is valid; false otherwise.
 
+The `response` of a signature is a `JubjubScalar`, so each valid signature has
+exactly one accepted value.
+A contract that accepts a signed authorization only once should nevertheless
+include a nonce in the signed message and record that nonce, since a signer
+can sign the same message again with a different announcement.
+
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.
 
@@ -975,6 +981,11 @@ hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a public key
 (a [`Secp256k1Point`](#secp256k1point)).
 Asserts that the verification key is not the identity (default) Secp256k1Point, which is not permitted because it would make verification independent of the message hash.
 Returns true if the signature is valid; false otherwise.
+
+A signature that cannot be valid is rejected by returning false, never by failing:
+one whose `r` or `s` is zero, or whose verification point is the identity. A
+caller can therefore branch on the result, and a call on a branch that is not
+taken does not make the circuit unprovable.
 
 The circuit takes `msgHash` as given and does not constrain it to any message.
 The caller is expected to bind it to the actual message by hashing that message
@@ -1011,8 +1022,9 @@ Asserts that the verification key is not the identity (default) Secp256r1Point.
 Returns true if the signature is valid; false otherwise.
 
 As for [`secp256k1EcdsaVerify`](#secp256k1ecdsaverify), the circuit takes
-`msgHash` as given and does not constrain it to any message, and a wider digest
-is verified by passing its leading 32 bytes.
+`msgHash` as given and does not constrain it to any message, a wider digest
+is verified by passing its leading 32 bytes, and a signature that cannot be
+valid is rejected by returning false.
 
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.

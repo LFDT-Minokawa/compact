@@ -353,7 +353,7 @@ export circuit unshieldedBalanceLte(color: Bytes<32>, amount: Uint<128>): Boolea
 // Schnorr signature
 export struct JubjubSchnorrSignature {
   announcement: JubjubPoint,
-  response: Field,
+  response: JubjubScalar,
 }
 
 // Internal struct definition for hashing in jubjubSchnorrVerify
@@ -382,7 +382,7 @@ export circuit jubjubSchnorrVerify<#N>(
                     );
   const c = cNative as JubjubScalar;
 
-  const lhs = ecMulGenerator(response as JubjubScalar);
+  const lhs = ecMulGenerator(response);
   const rhs = ecAdd(announcement, ecMul(pk, c));
 
   return lhs == rhs;
@@ -425,6 +425,15 @@ circuit reverseBytes32(b: Bytes<32>): Bytes<32> {
 //   P  = u1*G + u2*pk
 //   valid iff P.x == r as 32-byte big-endian integers
 //
+// This is the verification algorithm of FIPS 186-5 section 6.4.2 from step 3 on,
+// with step 2, hashing the message, left to the caller.  Where the algorithm outputs
+// "reject" the circuit returns false, never fails: in step 1 for an `r` or `s` of
+// zero (the types exclude n and above), in step 6 for a P that is the identity, and
+// in step 9 for a P.x that differs from `r`.  A caller can therefore branch on the
+// result, and a call on a branch that is not taken does not make the circuit
+// unprovable.  The public key is not part of the algorithm: an identity key fails an
+// assertion, and the type excludes a point that is not on the curve.
+//
 // Both low-s and high-s signatures are accepted.  FIPS 186-5, the Digital Signature
 // Standard, constrains s only to the interval [1, n - 1] in section 6.4.2 (ECDSA
 // Signature Verification Algorithm) and imposes no low-s requirement; that rule
@@ -445,14 +454,23 @@ export circuit secp256k1EcdsaVerify(
                  sig: Secp256k1EcdsaSignature,
                  pk: Secp256k1Point
                  ): Boolean {
-  assert(pk != default<Secp256k1Point>, "Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key");
+  const identity: Secp256k1Point = default<Secp256k1Point>;
+  assert(pk != identity, "Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key");
   const z: Secp256k1Scalar = reverseBytes32(msgHash) as Secp256k1Scalar;
   const {r, s} = sig;
-  const w: Secp256k1Scalar = inv(s);
+  const zero: Secp256k1Scalar = default<Secp256k1Scalar>;
+  const one: Secp256k1Scalar = (1 as Field as Bytes<32>) as Secp256k1Scalar;
+  // `inv` has no result for 0, therefore a zero `s` is inverted as 1 and rejected in the result.
+  const w: Secp256k1Scalar = inv(s == zero ? one : s);
   const u1: Secp256k1Scalar = z * w;
   const u2: Secp256k1Scalar = r * w;
-  const point: Secp256k1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
-  return (secp256k1PointX(point) as Bytes<32>) as Secp256k1Scalar == r;
+  // A zero `u1` is multiplied as 1, therefore `u1G` is never the identity.
+  const u1G: Secp256k1Point = ecMulGenerator(u1 == zero ? one : u1);
+  const u2Pk: Secp256k1Point = ecMul(pk, u2);
+  const point: Secp256k1Point = u1 == zero ? u2Pk : ecAdd(u1G, u2Pk);
+  // The identity has no x-coordinate, therefore `u1G` stands in for it and it is rejected in the result.
+  const x: Secp256k1Scalar = (secp256k1PointX(point == identity ? u1G : point) as Bytes<32>) as Secp256k1Scalar;
+  return r != zero && s != zero && point != identity && x == r;
 }
 
 // Reverse the byte order of a Secp256k1Base.  Casting to Bytes<32> gives a little-endian
@@ -527,21 +545,32 @@ export struct Secp256r1EcdsaSignature {
 //   P  = u1*G + u2*pk
 //   valid iff P.x == r as 32-byte big-endian integers
 //
-// As for secp256k1, both low-s and high-s signatures are accepted; a caller that
-// uses a signature as a unique identifier MUST constrain `s <= n / 2` itself.
+// As for secp256k1, this is FIPS 186-5 section 6.4.2 from step 3 on, a signature the
+// algorithm rejects returns false, and both low-s and high-s signatures are accepted;
+// a caller that uses a signature as a unique identifier MUST constrain `s <= n / 2`
+// itself.
 export circuit secp256r1EcdsaVerify(
                  msgHash: Bytes<32>,
                  sig: Secp256r1EcdsaSignature,
                  pk: Secp256r1Point
                  ): Boolean {
-  assert(pk != default<Secp256r1Point>, "Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key");
+  const identity: Secp256r1Point = default<Secp256r1Point>;
+  assert(pk != identity, "Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key");
   const z: Secp256r1Scalar = reverseBytes32(msgHash) as Secp256r1Scalar;
   const {r, s} = sig;
-  const w: Secp256r1Scalar = inv(s);
+  const zero: Secp256r1Scalar = default<Secp256r1Scalar>;
+  const one: Secp256r1Scalar = (1 as Field as Bytes<32>) as Secp256r1Scalar;
+  // `inv` has no result for 0, therefore a zero `s` is inverted as 1 and rejected in the result.
+  const w: Secp256r1Scalar = inv(s == zero ? one : s);
   const u1: Secp256r1Scalar = z * w;
   const u2: Secp256r1Scalar = r * w;
-  const point: Secp256r1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
-  return (secp256r1PointX(point) as Bytes<32>) as Secp256r1Scalar == r;
+  // A zero `u1` is multiplied as 1, therefore `u1G` is never the identity.
+  const u1G: Secp256r1Point = ecMulGenerator(u1 == zero ? one : u1);
+  const u2Pk: Secp256r1Point = ecMul(pk, u2);
+  const point: Secp256r1Point = u1 == zero ? u2Pk : ecAdd(u1G, u2Pk);
+  // The identity has no x-coordinate, therefore `u1G` stands in for it and it is rejected in the result.
+  const x: Secp256r1Scalar = (secp256r1PointX(point == identity ? u1G : point) as Bytes<32>) as Secp256r1Scalar;
+  return r != zero && s != zero && point != identity && x == r;
 }
 
 // Ed25519 signature: the commitment point R and the response s.  The type of `s`

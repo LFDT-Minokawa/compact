@@ -28,7 +28,7 @@ import {
   Secp256r1Point,
 } from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
-import { CURVE25519_BASE_MODULUS, SECP256K1_BASE_MODULUS, SECP256R1_BASE_MODULUS } from './constants.js';
+import { CURVE25519_BASE_MODULUS, JUBJUB_SCALAR_MODULUS, SECP256K1_BASE_MODULUS, SECP256R1_BASE_MODULUS } from './constants.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
 /**
@@ -355,7 +355,8 @@ export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey:
  * - `pk`: verifying key (a JubJubPoint / EmbeddedGroupAffine)
  * - `sig`: signature as returned by {@link jubjubSchnorrSign}
  *
- * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
+ * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk` and `s` is
+ * below the JubJub scalar order, as a `JubjubScalar` is).
  */
 export function jubjubSchnorrVerify<A>(
   rtType: CompactType<A>,
@@ -376,6 +377,12 @@ export function jubjubSchnorrVerify<A>(
     ...rtType.toValue(msg),
   ];
   const c = convertNumericToJubjubScalar(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+
+  // In Compact `response` is a `JubjubScalar` but here it is a `bigint`, therefore a
+  // value at or above the scalar order, which is not a `JubjubScalar`, is rejected.
+  if (response >= JUBJUB_SCALAR_MODULUS) {
+    return false;
+  }
 
   const lhs = ecMulGenerator(response);
   const rhs = ecAdd(announcement, ecMul(verifyingKey, c));

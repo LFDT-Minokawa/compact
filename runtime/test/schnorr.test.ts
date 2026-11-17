@@ -41,4 +41,18 @@ describe('JubJub Schnorr (TypeScript)', () => {
 
     expect(runtime.jubjubSchnorrVerify(msgType, msg, pk, badSig)).toBe(false);
   });
+
+  test('verify rejects a response at or above the scalar order', () => {
+    const sk = runtime.jubjubSampleScalar();
+    const pk = runtime.jubjubSchnorrVerifyingKey(sk);
+    const msg = sampleMsg();
+
+    const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
+
+    // Every `response + k * order` below the native field modulus reduces to the same scalar.
+    for (let k = 1n; k < 8n; k++) {
+      const aliasSig = { ...sig, response: sig.response + k * runtime.JUBJUB_SCALAR_MODULUS };
+      expect(runtime.jubjubSchnorrVerify(msgType, msg, pk, aliasSig)).toBe(false);
+    }
+  });
 });
