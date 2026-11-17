@@ -13,15 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The same source as ../impure_without_v3, compiled with the v3 flag, which
-// is what supplies keccak256 for provable circuits.
-
-pragma language_version >= 0.25.0;
-
 import CompactStandardLibrary;
 
-export ledger digest: Bytes<32>;
+export ledger stored: Curve25519Scalar;
 
-export circuit keccak256_writes_ledger(value: Bytes<32>): [] {
-    digest = disclose(keccak256<Bytes<32>>(value));
+// A Curve25519Scalar survives a round trip through the ledger: the assignment
+// writes the two-atom encoding and the return reads it back.
+//
+// The scalar field is encoded differently from the base field, as 204 low
+// bits then 51 high bits.
+export circuit curve25519_scalar_roundtrip(value: Curve25519Scalar): Curve25519Scalar {
+    stored = disclose(value);
+    return stored;
 }

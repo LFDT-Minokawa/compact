@@ -17,6 +17,9 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 
+// How many tests Vitest runs at once.
+const maxConcurrency = 5;
+
 export default defineConfig({
     resolve: {
         alias: {
@@ -40,6 +43,15 @@ export default defineConfig({
         ],
         environment: 'node',
         reporters: ['./compact-test-fixture-reporter.ts'],
+        maxConcurrency,
+        // The orchestrator uses this to size slow fixture timeouts.
+        provide: { maxConcurrency },
         testTimeout: 300_000,
     },
 });
+
+declare module 'vitest' {
+    export interface ProvidedContext {
+        maxConcurrency: number;
+    }
+}

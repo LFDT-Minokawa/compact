@@ -706,7 +706,8 @@ the same name, with a signature whose types are identical to the one
 in the declaration, and with a proof (a circuit for which the compiler
 produces a verifier key).  A pure circuit has no proof, so an exported
 circuit that is pure, whether or not it is declared `pure`, does not
-satisfy any declaration.
+satisfy any declaration.  Neither does a circuit whose only impurity is
+calling witnesses, since it has no proof either.
 
 For example, any contract that exports `setAddAmount` and `addTo`
 circuits with signatures identical to those in the `Adder` declaration
@@ -751,21 +752,35 @@ a deployed contract or by returning a contract value from a witness
 function.
 
 To reiterate what was previously stated, a contract satisfies a
-contract type by exporting definitions with matching types and purity
-declarations for all the type's declared circuits, no matter whether a
-`contract implements` declaration appears in the code.  If such a
-declaration _is_ present, though, the compiler will verify it and
-reject the program with a compile-time error if the contract fails to
-export the circuits required by the contract type.  The contract can
-export additional circuits, as needed, as long as some subset of the
-exported circuits satifies the requirements of the contract type.
+contract type by exporting circuits with matching names and signatures,
+each with a proof, for all the type's declared circuits, no matter
+whether a `contract implements` declaration appears in the code.  If
+such a declaration _is_ present, though, the compiler checks each
+circuit declared in the contract type and rejects the program with a
+compile-time error if
+
+* the contract does not export a circuit with that name,
+* the exported circuit is declared `pure`, or
+* the exported circuit's signature differs from the declared one.
+
+The contract can export additional circuits, as needed, as long as
+some subset of the exported circuits satisfies the requirements of the
+contract type.
 
 :::info[Current limitations on contract types]
 
-The current Compact compiler imposes limitations on the circuits that
-can satisfy a contract type, disqualifying any circuits that call witnesses.
-It also imposes limitations on how the implementing code artifacts are
-found and loaded.
+A `contract implements` declaration checks names, signatures, and the
+`pure` modifier only.  The current Compact compiler does not check that
+each implementing circuit has a proof, so the declaration is accepted
+for a circuit that is pure without being declared `pure`, or whose only
+impurity is calling witnesses, even though the contract does not satisfy
+the contract type.  Nor does the compiler reject an implementing circuit
+that calls witnesses, which a cross-contract call does not currently
+support.  Both conditions are instead detected at run time, when the
+contract is called through the contract type.
+
+The current implementation also imposes limitations on how the
+implementing code artifacts are found and loaded.
 See [the section describing cross-contract call expressions](#cross-contract-calls)
 for full details.
 
@@ -2917,22 +2932,26 @@ a new implementation at an address does not require recompiling its callers.
 Before entering the callee, the runtime checks the resolved module against the
 caller's contract type and against the chain.
 The conformance check compares the circuit signatures the contract type declares
-against those the module provides, covering existence, purity, provability, arity,
+against those the module provides, covering existence, provability, arity,
 argument types and result types; a module that does not implement the contract
 type is reported as such.
+The check covers every circuit the contract type declares, not only the one being
+called, so a module with one non-conforming circuit cannot be called through that
+contract type at all.
 Key agreement follows, checking the called circuit's verifier key and every other
 circuit the two sides have in common.
 
 :::info[Current limitations on cross-contract calls]
 
-When computing the set of exported circuits for the purpose of
-determining whether a contract satisfies a contract type, the current
-compiler eliminates from consideration any circuits that call
-witnesses.  A called contract may define witness functions, and they
-may be called by other circuits, but they cannot be called directly or
-indirectly by the exported circuits that satisfy a contract type.
-This implies that every cross-contract call is to a circuit whose only
-access to private data is through the values given as its arguments.
+A circuit called through a contract value cannot currently call a
+witness, directly or indirectly.  The compiler does not enforce this,
+with or without a `contract implements` declaration; instead the call
+fails at run time if the called circuit invokes a witness.  A called
+contract may define witness functions, and they may be called by
+circuits that are not themselves called through a contract value.
+This implies that every successful cross-contract call is to a circuit
+whose only access to private data is through the values given as its
+arguments.
 
 If any cycles are present in the call graph of cross-contract calls,
 the call fails at run time: a re-entrancy guard in the runtime detects both direct
