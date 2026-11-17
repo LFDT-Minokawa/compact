@@ -314,17 +314,9 @@ The rules are chosen so that serialization and deserialization of field-based ty
 correspond to ZKIR's `ToBytes` and `FromBytes` instructions where possible.
 
 **Canonical and non-canonical representations.**
-Serialization always produces a canonical raw serialized representation,
-but deserialization of some atomic types accepts non-canonical ones.
-Deserialization of a field type accepts any byte vector of the right size
-and reduces the encoded integer modulo the field's order,
-rather than failing when the integer is not less than the order.
-Reduction is cheaper than rejection in circuit,
-and it makes deserialization agree with casts from `Bytes` to the field types.
-For the native `Field` type this requires changing the semantics of the existing cast,
-which currently fails;
-see [Backwards Compatibility](#backwards-compatibility).
-Deserialization of all other atomic types rejects non-canonical representations.
+Serialization always produces a canonical raw serialized representation.
+Deserialization of some atomic types also accepts non-canonical raw serialized representations.
+The rules for each atomic type say whether it has non-canonical representations, and what they are.
 The consequences for hashing are stated in [Deserialization and hashing](#deserialization-and-hashing).
 
 The rules in this section are normative.
@@ -348,15 +340,6 @@ The **serialized size** of a type `T` is two plus the size of its raw serialized
 | MAJOR | MINOR | RAW SERIALIZED REPRESENTATION ... |
 +-------+-------+-----------------------------------+
 ```
-
-`serialize` produces a serialized value, possibly followed by padding with zeros;
-and `deserialize` consumes serialized values, possibly with extra ignored padding.
-The version bytes are not part of the raw serialized representation.
-
-For a size argument `N` greater than the serialized size `M` of `T`,
-`serialize<T, N>(x)` is `serialize<T, M>(x)` followed by `N-M` zero bytes;
-and `deserialize<T, N>(b)` is `deserialize<T, M>(slice<M>(b, 0))`, the bytes at
-index `M` and beyond are ignored and not checked.
 
 **Breaking and non-breaking changes.**
 A change from format version X to format version Y is **non-breaking** if and only if:
@@ -397,10 +380,39 @@ These rules have the following consequences:
   Two serialized values of the same type are equal if and only if the values they encode are equal,
   as long as the raw serialized representations involved are canonical.
 - Hashing is defined on the raw serialized representation, without the version bytes;
-  see [Hashing](#serialization-and-hashing).
+  see [Serialization and hashing](#serialization-and-hashing).
 
 **This CoIP proposes adding the version bytes `[0x00, 0x00]` to every value serialized by the current implementation.**
 Since this changes the output of `serialize`, it is itself a breaking change to the current, unversioned format.
+
+### Standard library API
+
+The standard library provides two circuits for serialization:
+
+```compact
+circuit serialize<T, #N>(x: T): Bytes<N>;
+circuit deserialize<T, #N>(b: Bytes<N>): T;
+```
+
+`T` must be a serializable type,
+and `N` must be at least the serialized size `M` of `T`;
+otherwise the program is rejected at compile time.
+
+`serialize<T, N>(x)` is the serialized value of `x`
+followed by `N - M` zero bytes.
+
+`deserialize<T, N>(b)` reads a serialized value from the first `M` bytes of `b`.
+It fails if the version bytes are not the version of `T`,
+or if the rules for `T` reject the raw serialized representation.
+Otherwise it returns the value it encodes.
+The remaining `N - M` bytes of `b` are ignored and not checked.
+
+When `N` is equal to `M`, `serialize<T, N>` produces exactly a serialized value
+and `deserialize<T, N>` reads exactly a serialized value.
+`emit` serializes an event's payload in this way.
+An event payload is the serialized value of the event,
+including its version bytes and with no trailing bytes,
+so its size is the serialized size of the event't type.
 
 ### Invariants
 
@@ -437,18 +449,21 @@ For all values `x` of type `T`:
 deserialize<T, N+2>(serialize<T, N+2>(x)) == x
 ```
 
-`deserialize<T, N+2>(b)` fails if the version bytes of `b` are not the version of `T`,
-or if its raw serialized representation is rejected by the rules for `T`.
-Otherwise we say that `b` is **accepted** by `deserialize<T, N+2>`.
-
+A serialized value `b` of type `T` is **accepted** if `deserialize<T, N+2>(b)` does not fail.
 An accepted serialized value `b` is **canonical** for `T` if:
 
 ```
 serialize<T, N+2>(deserialize<T, N+2>(b)) == b
 ```
 
+A raw serialized representation `r` of type `T` is **canonical** if
+the serialized value consisting of the version bytes of `T` follwed by `r`
+is canonical.
+
 Every serialized value produced by `serialize<T, N+2>` is canonical.
-Some accepted serialized values are not:
+`deserialize<T, N+2>` accepts only the exact version of `T`,
+so an accepted argument's version bytes are the only possible ones.
+Some accepted serialized values are not canonical:
 the rules for some atomic types accept more than one raw serialized representation of the same value,
 for example a `Field` whose encoded integer is at least the field order.
 The rules for each atomic type say whether it has non-canonical representations.
@@ -826,8 +841,9 @@ Explain the design decisions that were made and the reasons behind them.
 Describe how the proposed solution affects existing systems, applications, and
 users.  Is it a breaking change?
 
-- The change to `serialize` and `deserialize` signatures is a breaking change.
 - The cast from `Bytes<32> to `Field` is a breaking change.
+- Writing the version bytes for 0.0 is a breaking change.
+- Changing emit to emit versioned events is a breaking change.
 
 ## Security Implications
 
