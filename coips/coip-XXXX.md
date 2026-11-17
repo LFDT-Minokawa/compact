@@ -361,22 +361,28 @@ For version 1.0, every type with a raw serialized representation has version 1.0
 
 **Writing version bytes.**
 `serialize<T, N>` writes the version of `T` as its version bytes,
-whatever the minor version of the compiler that produced it.
+whatever format version the program was compiled for.
 
 **Reading version bytes.**
 `deserialize<T, N>` fails unless its argument's version bytes are exactly the version of `T`.
 It then deserializes the raw serialized representation that follows.
 
-These rules have the following consequences:
+The **format version of a program** is the format version of the compiler that compiled it.
+The version rules have the following consequences:
 
-- A value of type `T` is readable by any compiler with the same major version that supports `T`,
-  whether that compiler is older or newer than the one that wrote it.
-  In particular, an older compiler can read values written by a newer one,
-  provided the value's type existed in the older version.
-- A compiler never reads a serialized value with a different major version.
+- The minor version of a serialized value depends only on its type,
+  not on the format version of the program that serialized it.
+- If two programs have format versions with the same major version, and if `T` is serializable
+  in both programs;
+  then `deserialize<T, N>` in either program accepts the bytes written by `serialize<T, N>`
+  in the other.
+  In particular, a program with an older format version can read values written by a program
+  with a newer format version, provided that the type is serializable in the older version.
+- `deserialize` in a program never reads a serialized value with a different major version.
   Supporting values written with an older major version,
   or migrating them, is outside the scope of this CoIP.
-- Because the version of a type is fixed, the serialized value for a given Compact value is unique.
+- Because the version of a type is fixed, the serialized value for a given Compact value is unique
+  with respect to its major version.
   Two serialized values of the same type are equal if and only if the values they encode are equal,
   as long as the raw serialized representations involved are canonical.
 - Hashing is defined on the raw serialized representation, without the version bytes;
@@ -412,7 +418,7 @@ and `deserialize<T, N>` reads exactly a serialized value.
 `emit` serializes an event's payload in this way.
 An event payload is the serialized value of the event,
 including its version bytes and with no trailing bytes,
-so its size is the serialized size of the event't type.
+so its size is the serialized size of the event's type.
 
 ### Invariants
 
@@ -433,8 +439,7 @@ For a serialized value `b` of type `Bytes<N+2>`,
 in the invariants below it stands in for the Compact literal `M` such that `M` is equal to `N+2`.
 
 The invariants are stated for size argument `N+2`, by definition of serialization for larger sizes
-they extend to any larger size argument except that a serialized value with non-zero trailing bytes
-is accepted but not canonical.
+they extend to any larger size argument.
 
 All of these invariants hold both for JavaScript execution and in circuit.
 Moreover, JavaScript execution and circuit execution of `serialize<T, N+2>` and `deserialize<T, N+2>` agree:
@@ -449,15 +454,15 @@ For all values `x` of type `T`:
 deserialize<T, N+2>(serialize<T, N+2>(x)) == x
 ```
 
-A serialized value `b` of type `T` is **accepted** if `deserialize<T, N+2>(b)` does not fail.
-An accepted serialized value `b` is **canonical** for `T` if:
+A serialized value `b` of type `T` is **accepted** if and only if `deserialize<T, N+2>(b)` does not fail.
+An accepted serialized value `b` is **canonical** for `T` if and only if:
 
 ```
 serialize<T, N+2>(deserialize<T, N+2>(b)) == b
 ```
 
-A raw serialized representation `r` of type `T` is **canonical** if
-the serialized value consisting of the version bytes of `T` follwed by `r`
+A raw serialized representation `r` of type `T` is **canonical** if and only if
+the serialized value consisting of the version bytes of `T` followed by `r`
 is canonical.
 
 Every serialized value produced by `serialize<T, N+2>` is canonical.
