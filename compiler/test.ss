@@ -59572,71 +59572,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
-        "    { \"op\": \"copy\", \"output\": \"%t.2\", \"val\": \"%t.0\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.3\", \"%t.4\"], \"val\": \"%t.1\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.5\", \"%t.6\"], \"val\": \"%quo.3\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%t.8\"], \"val\": \"%quo.5\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.9\", \"%t.10\"], \"val\": \"%quo.7\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.11\", \"%t.12\"], \"val\": \"%quo.9\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.13\", \"%t.14\"], \"val\": \"%quo.11\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.15\", \"%t.16\"], \"val\": \"%quo.13\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.17\", \"%t.18\"], \"val\": \"%quo.15\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.19\", \"%t.20\"], \"val\": \"%quo.17\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.21\", \"%t.22\"], \"val\": \"%quo.19\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.23\", \"%t.24\"], \"val\": \"%quo.21\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.25\", \"%t.26\"], \"val\": \"%quo.23\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.27\", \"%t.28\"], \"val\": \"%quo.25\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.29\", \"%t.30\"], \"val\": \"%quo.27\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.31\", \"%t.32\"], \"val\": \"%quo.29\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.33\", \"%t.34\"], \"val\": \"%quo.31\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.35\", \"%t.36\"], \"val\": \"%quo.33\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.37\", \"%t.38\"], \"val\": \"%quo.35\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.39\", \"%t.40\"], \"val\": \"%quo.37\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.41\", \"%t.42\"], \"val\": \"%quo.39\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.43\", \"%t.44\"], \"val\": \"%quo.41\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.45\", \"%t.46\"], \"val\": \"%quo.43\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.47\", \"%t.48\"], \"val\": \"%quo.45\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.49\", \"%t.50\"], \"val\": \"%quo.47\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.51\", \"%t.52\"], \"val\": \"%quo.49\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.53\", \"%t.54\"], \"val\": \"%quo.51\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.55\", \"%t.56\"], \"val\": \"%quo.53\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.57\", \"%t.58\"], \"val\": \"%quo.55\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.59\", \"%t.60\"], \"val\": \"%quo.57\", \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.61\", \"%t.62\"], \"val\": \"%quo.59\", \"bits\": 8 },"
-        "    { \"op\": \"copy\", \"output\": \"%t.63\", \"val\": \"%quo.61\" },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.64\", \"divisor\": \"%t.2\", \"modulus\": \"%t.63\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%t.65\", \"divisor\": \"%div.64\", \"modulus\": \"%t.62\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.66\", \"divisor\": \"%t.60\", \"modulus\": \"%t.58\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.67\", \"divisor\": \"%div.66\", \"modulus\": \"%t.56\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.68\", \"divisor\": \"%div.67\", \"modulus\": \"%t.54\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.69\", \"divisor\": \"%div.68\", \"modulus\": \"%t.52\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.70\", \"divisor\": \"%div.69\", \"modulus\": \"%t.50\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.71\", \"divisor\": \"%div.70\", \"modulus\": \"%t.48\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.72\", \"divisor\": \"%div.71\", \"modulus\": \"%t.46\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.73\", \"divisor\": \"%div.72\", \"modulus\": \"%t.44\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.74\", \"divisor\": \"%div.73\", \"modulus\": \"%t.42\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.75\", \"divisor\": \"%div.74\", \"modulus\": \"%t.40\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.76\", \"divisor\": \"%div.75\", \"modulus\": \"%t.38\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.77\", \"divisor\": \"%div.76\", \"modulus\": \"%t.36\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.78\", \"divisor\": \"%div.77\", \"modulus\": \"%t.34\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.79\", \"divisor\": \"%div.78\", \"modulus\": \"%t.32\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.80\", \"divisor\": \"%div.79\", \"modulus\": \"%t.30\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.81\", \"divisor\": \"%div.80\", \"modulus\": \"%t.28\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.82\", \"divisor\": \"%div.81\", \"modulus\": \"%t.26\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.83\", \"divisor\": \"%div.82\", \"modulus\": \"%t.24\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.84\", \"divisor\": \"%div.83\", \"modulus\": \"%t.22\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.85\", \"divisor\": \"%div.84\", \"modulus\": \"%t.20\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.86\", \"divisor\": \"%div.85\", \"modulus\": \"%t.18\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.87\", \"divisor\": \"%div.86\", \"modulus\": \"%t.16\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.88\", \"divisor\": \"%div.87\", \"modulus\": \"%t.14\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.89\", \"divisor\": \"%div.88\", \"modulus\": \"%t.12\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.90\", \"divisor\": \"%div.89\", \"modulus\": \"%t.10\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.91\", \"divisor\": \"%div.90\", \"modulus\": \"%t.8\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.92\", \"divisor\": \"%div.91\", \"modulus\": \"%t.6\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.93\", \"divisor\": \"%div.92\", \"modulus\": \"%t.4\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%div.94\", \"divisor\": \"%div.93\", \"modulus\": \"0x00\", \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"output\": \"%t.95\", \"divisor\": \"%div.94\", \"modulus\": \"0x00\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x22\", \"%t.65\", \"%t.95\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x20\", \"%t.0\", \"%t.1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x09\"] }"
         "  ]"
         "}"))
@@ -78849,7 +78785,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.299 () (Kernel)))
         (public-ledger-declaration ())
-        (circuit %ping.300 () (ty () ()) (= 1 () (emit 1 9 2 0)) ())
+        (circuit %ping.300 () (ty () ()) (= 1 () (emit 1 9 0)) ())
         (circuit %note.301 ((argument
                               (%tag.0 %tag.1)
                               (ty ((abytes 32))
@@ -78878,109 +78814,110 @@ groups than for single tests.
                                     (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= 1 (%t.241) (bytes->vector %tag.0))
-          (= 1 (%t.270 %t.271 %t.272 %t.273 %t.274 %t.275 %t.276 %t.277
-                %t.278 %t.279 %t.280 %t.281 %t.282 %t.283 %t.284 %t.285
-                %t.286 %t.287 %t.288 %t.289 %t.290 %t.291 %t.292 %t.293
-                %t.294 %t.295 %t.296 %t.297 %t.298 %t.239 %t.240)
+          (= 1 (%t.237) (bytes->vector %tag.0))
+          (= 1 (%t.268 %t.269 %t.270 %t.271 %t.272 %t.273 %t.274 %t.275
+                %t.276 %t.277 %t.278 %t.279 %t.280 %t.281 %t.282 %t.283
+                %t.284 %t.285 %t.286 %t.287 %t.288 %t.289 %t.290 %t.291
+                %t.292 %t.293 %t.294 %t.295 %t.296 %t.297 %t.298)
              (bytes->vector %tag.1))
-          (= 1 (%t.14 %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21)
+          (= 1 (%t.12 %t.13 %t.14 %t.15 %t.16 %t.17 %t.18 %t.19)
              (bytes->vector %data.2))
-          (= 1 (%t.25 %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34
-                %t.35 %t.36 %t.37 %t.38 %t.39 %t.40 %t.41 %t.42 %t.43 %t.44
-                %t.45 %t.46 %t.47 %t.48 %t.49 %t.50 %t.51 %t.52 %t.11 %t.12
-                %t.13)
+          (= 1 (%t.21 %t.22 %t.23 %t.24 %t.25 %t.26 %t.27 %t.28 %t.29 %t.30
+                %t.31 %t.32 %t.33 %t.34 %t.35 %t.36 %t.37 %t.38 %t.39 %t.40
+                %t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48 %t.49 %t.50
+                %t.11)
              (bytes->vector %data.3))
-          (= 1 (%t.56 %t.57 %t.58 %t.59 %t.60 %t.61 %t.62 %t.63 %t.64 %t.65
-                %t.66 %t.67 %t.68 %t.69 %t.70 %t.71 %t.72 %t.73 %t.74 %t.75
-                %t.76 %t.77 %t.78 %t.79 %t.80 %t.81 %t.82 %t.83 %t.22 %t.23
-                %t.24)
+          (= 1 (%t.52 %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59 %t.60 %t.61
+                %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69 %t.70 %t.71
+                %t.72 %t.73 %t.74 %t.75 %t.76 %t.77 %t.78 %t.79 %t.80 %t.81
+                %t.20)
              (bytes->vector %data.4))
-          (= 1 (%t.87 %t.88 %t.89 %t.90 %t.91 %t.92 %t.93 %t.94 %t.95 %t.96
-                %t.97 %t.98 %t.99 %t.100 %t.101 %t.102 %t.103 %t.104 %t.105
-                %t.106 %t.107 %t.108 %t.109 %t.110 %t.111 %t.112 %t.113
-                %t.114 %t.53 %t.54 %t.55)
+          (= 1 (%t.83 %t.84 %t.85 %t.86 %t.87 %t.88 %t.89 %t.90 %t.91 %t.92
+                %t.93 %t.94 %t.95 %t.96 %t.97 %t.98 %t.99 %t.100 %t.101
+                %t.102 %t.103 %t.104 %t.105 %t.106 %t.107 %t.108 %t.109
+                %t.110 %t.111 %t.112 %t.51)
              (bytes->vector %data.5))
-          (= 1 (%t.118 %t.119 %t.120 %t.121 %t.122 %t.123 %t.124 %t.125
-                %t.126 %t.127 %t.128 %t.129 %t.130 %t.131 %t.132 %t.133
-                %t.134 %t.135 %t.136 %t.137 %t.138 %t.139 %t.140 %t.141
-                %t.142 %t.143 %t.144 %t.145 %t.84 %t.85 %t.86)
+          (= 1 (%t.114 %t.115 %t.116 %t.117 %t.118 %t.119 %t.120 %t.121
+                %t.122 %t.123 %t.124 %t.125 %t.126 %t.127 %t.128 %t.129
+                %t.130 %t.131 %t.132 %t.133 %t.134 %t.135 %t.136 %t.137
+                %t.138 %t.139 %t.140 %t.141 %t.142 %t.143 %t.82)
              (bytes->vector %data.6))
-          (= 1 (%t.149 %t.150 %t.151 %t.152 %t.153 %t.154 %t.155 %t.156
-                %t.157 %t.158 %t.159 %t.160 %t.161 %t.162 %t.163 %t.164
-                %t.165 %t.166 %t.167 %t.168 %t.169 %t.170 %t.171 %t.172
-                %t.173 %t.174 %t.175 %t.176 %t.115 %t.116 %t.117)
+          (= 1 (%t.145 %t.146 %t.147 %t.148 %t.149 %t.150 %t.151 %t.152
+                %t.153 %t.154 %t.155 %t.156 %t.157 %t.158 %t.159 %t.160
+                %t.161 %t.162 %t.163 %t.164 %t.165 %t.166 %t.167 %t.168
+                %t.169 %t.170 %t.171 %t.172 %t.173 %t.174 %t.113)
              (bytes->vector %data.7))
-          (= 1 (%t.180 %t.181 %t.182 %t.183 %t.184 %t.185 %t.186 %t.187
-                %t.188 %t.189 %t.190 %t.191 %t.192 %t.193 %t.194 %t.195
-                %t.196 %t.197 %t.198 %t.199 %t.200 %t.201 %t.202 %t.203
-                %t.204 %t.205 %t.206 %t.207 %t.146 %t.147 %t.148)
+          (= 1 (%t.176 %t.177 %t.178 %t.179 %t.180 %t.181 %t.182 %t.183
+                %t.184 %t.185 %t.186 %t.187 %t.188 %t.189 %t.190 %t.191
+                %t.192 %t.193 %t.194 %t.195 %t.196 %t.197 %t.198 %t.199
+                %t.200 %t.201 %t.202 %t.203 %t.204 %t.205 %t.144)
              (bytes->vector %data.8))
-          (= 1 (%t.211 %t.212 %t.213 %t.214 %t.215 %t.216 %t.217 %t.218
-                %t.219 %t.220 %t.221 %t.222 %t.223 %t.224 %t.225 %t.226
-                %t.227 %t.228 %t.229 %t.230 %t.231 %t.232 %t.233 %t.234
-                %t.235 %t.236 %t.237 %t.238 %t.177 %t.178 %t.179)
+          (= 1 (%t.207 %t.208 %t.209 %t.210 %t.211 %t.212 %t.213 %t.214
+                %t.215 %t.216 %t.217 %t.218 %t.219 %t.220 %t.221 %t.222
+                %t.223 %t.224 %t.225 %t.226 %t.227 %t.228 %t.229 %t.230
+                %t.231 %t.232 %t.233 %t.234 %t.235 %t.236 %t.175)
              (bytes->vector %data.9))
-          (= 1 (%t.242 %t.243 %t.244 %t.245 %t.246 %t.247 %t.248 %t.249
-                %t.250 %t.251 %t.252 %t.253 %t.254 %t.255 %t.256 %t.257
-                %t.258 %t.259 %t.260 %t.261 %t.262 %t.263 %t.264 %t.265
-                %t.266 %t.267 %t.268 %t.269 %t.208 %t.209 %t.210)
+          (= 1 (%t.238 %t.239 %t.240 %t.241 %t.242 %t.243 %t.244 %t.245
+                %t.246 %t.247 %t.248 %t.249 %t.250 %t.251 %t.252 %t.253
+                %t.254 %t.255 %t.256 %t.257 %t.258 %t.259 %t.260 %t.261
+                %t.262 %t.263 %t.264 %t.265 %t.266 %t.267 %t.206)
              (bytes->vector %data.10))
           (= 1 %t.302
              (vector->bytes %t.11 %t.12 %t.13 %t.14 %t.15 %t.16 %t.17
-               %t.18 %t.19 %t.20 %t.21))
+               %t.18 %t.19))
           (= 1 %t.303
-             (vector->bytes %t.22 %t.23 %t.24 %t.25 %t.26 %t.27 %t.28
-              %t.29 %t.30 %t.31 %t.32 %t.33 %t.34 %t.35 %t.36 %t.37 %t.38
-              %t.39 %t.40 %t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48
-              %t.49 %t.50 %t.51 %t.52))
+             (vector->bytes %t.20 %t.21 %t.22 %t.23 %t.24 %t.25 %t.26
+              %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34 %t.35 %t.36
+              %t.37 %t.38 %t.39 %t.40 %t.41 %t.42 %t.43 %t.44 %t.45 %t.46
+              %t.47 %t.48 %t.49 %t.50))
           (= 1 %t.304
-             (vector->bytes %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59
-              %t.60 %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69
-              %t.70 %t.71 %t.72 %t.73 %t.74 %t.75 %t.76 %t.77 %t.78 %t.79
-              %t.80 %t.81 %t.82 %t.83))
+             (vector->bytes %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57
+              %t.58 %t.59 %t.60 %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67
+              %t.68 %t.69 %t.70 %t.71 %t.72 %t.73 %t.74 %t.75 %t.76 %t.77
+              %t.78 %t.79 %t.80 %t.81))
           (= 1 %t.305
-             (vector->bytes %t.84 %t.85 %t.86 %t.87 %t.88 %t.89 %t.90
-              %t.91 %t.92 %t.93 %t.94 %t.95 %t.96 %t.97 %t.98 %t.99 %t.100
-              %t.101 %t.102 %t.103 %t.104 %t.105 %t.106 %t.107 %t.108
-              %t.109 %t.110 %t.111 %t.112 %t.113 %t.114))
+             (vector->bytes %t.82 %t.83 %t.84 %t.85 %t.86 %t.87 %t.88
+              %t.89 %t.90 %t.91 %t.92 %t.93 %t.94 %t.95 %t.96 %t.97 %t.98
+              %t.99 %t.100 %t.101 %t.102 %t.103 %t.104 %t.105 %t.106
+              %t.107 %t.108 %t.109 %t.110 %t.111 %t.112))
           (= 1 %t.306
-             (vector->bytes %t.115 %t.116 %t.117 %t.118 %t.119 %t.120
-              %t.121 %t.122 %t.123 %t.124 %t.125 %t.126 %t.127 %t.128
-              %t.129 %t.130 %t.131 %t.132 %t.133 %t.134 %t.135 %t.136
-              %t.137 %t.138 %t.139 %t.140 %t.141 %t.142 %t.143 %t.144
-              %t.145))
+             (vector->bytes %t.113 %t.114 %t.115 %t.116 %t.117 %t.118
+              %t.119 %t.120 %t.121 %t.122 %t.123 %t.124 %t.125 %t.126
+              %t.127 %t.128 %t.129 %t.130 %t.131 %t.132 %t.133 %t.134
+              %t.135 %t.136 %t.137 %t.138 %t.139 %t.140 %t.141 %t.142
+              %t.143))
           (= 1 %t.307
-             (vector->bytes %t.146 %t.147 %t.148 %t.149 %t.150 %t.151
-              %t.152 %t.153 %t.154 %t.155 %t.156 %t.157 %t.158 %t.159
-              %t.160 %t.161 %t.162 %t.163 %t.164 %t.165 %t.166 %t.167
-              %t.168 %t.169 %t.170 %t.171 %t.172 %t.173 %t.174 %t.175
-              %t.176))
+             (vector->bytes %t.144 %t.145 %t.146 %t.147 %t.148 %t.149
+              %t.150 %t.151 %t.152 %t.153 %t.154 %t.155 %t.156 %t.157
+              %t.158 %t.159 %t.160 %t.161 %t.162 %t.163 %t.164 %t.165
+              %t.166 %t.167 %t.168 %t.169 %t.170 %t.171 %t.172 %t.173
+              %t.174))
           (= 1 %t.308
-             (vector->bytes %t.177 %t.178 %t.179 %t.180 %t.181 %t.182
-              %t.183 %t.184 %t.185 %t.186 %t.187 %t.188 %t.189 %t.190
-              %t.191 %t.192 %t.193 %t.194 %t.195 %t.196 %t.197 %t.198
-              %t.199 %t.200 %t.201 %t.202 %t.203 %t.204 %t.205 %t.206
-              %t.207))
+             (vector->bytes %t.175 %t.176 %t.177 %t.178 %t.179 %t.180
+              %t.181 %t.182 %t.183 %t.184 %t.185 %t.186 %t.187 %t.188
+              %t.189 %t.190 %t.191 %t.192 %t.193 %t.194 %t.195 %t.196
+              %t.197 %t.198 %t.199 %t.200 %t.201 %t.202 %t.203 %t.204
+              %t.205))
           (= 1 %t.309
-             (vector->bytes %t.208 %t.209 %t.210 %t.211 %t.212 %t.213
-              %t.214 %t.215 %t.216 %t.217 %t.218 %t.219 %t.220 %t.221
-              %t.222 %t.223 %t.224 %t.225 %t.226 %t.227 %t.228 %t.229
-              %t.230 %t.231 %t.232 %t.233 %t.234 %t.235 %t.236 %t.237
-              %t.238))
+             (vector->bytes %t.206 %t.207 %t.208 %t.209 %t.210 %t.211
+              %t.212 %t.213 %t.214 %t.215 %t.216 %t.217 %t.218 %t.219
+              %t.220 %t.221 %t.222 %t.223 %t.224 %t.225 %t.226 %t.227
+              %t.228 %t.229 %t.230 %t.231 %t.232 %t.233 %t.234 %t.235
+              %t.236))
           (= 1 %t.310
-             (vector->bytes %t.239 %t.240 %t.241 %t.242 %t.243 %t.244
-              %t.245 %t.246 %t.247 %t.248 %t.249 %t.250 %t.251 %t.252
-              %t.253 %t.254 %t.255 %t.256 %t.257 %t.258 %t.259 %t.260
-              %t.261 %t.262 %t.263 %t.264 %t.265 %t.266 %t.267 %t.268
-              %t.269))
+             (vector->bytes %t.237 %t.238 %t.239 %t.240 %t.241 %t.242
+              %t.243 %t.244 %t.245 %t.246 %t.247 %t.248 %t.249 %t.250
+              %t.251 %t.252 %t.253 %t.254 %t.255 %t.256 %t.257 %t.258
+              %t.259 %t.260 %t.261 %t.262 %t.263 %t.264 %t.265 %t.266
+              %t.267))
           (= 1 %t.311
-             (vector->bytes 0 0 %t.270 %t.271 %t.272 %t.273 %t.274 %t.275
-              %t.276 %t.277 %t.278 %t.279 %t.280 %t.281 %t.282 %t.283
-              %t.284 %t.285 %t.286 %t.287 %t.288 %t.289 %t.290 %t.291
-              %t.292 %t.293 %t.294 %t.295 %t.296 %t.297 %t.298))
+             (vector->bytes %t.268 %t.269 %t.270 %t.271 %t.272 %t.273
+              %t.274 %t.275 %t.276 %t.277 %t.278 %t.279 %t.280 %t.281
+              %t.282 %t.283 %t.284 %t.285 %t.286 %t.287 %t.288 %t.289
+              %t.290 %t.291 %t.292 %t.293 %t.294 %t.295 %t.296 %t.297
+              %t.298))
           (= 1 ()
-             (emit 1 10 290 %t.302 %t.303 %t.304 %t.305 %t.306 %t.307
+             (emit 1 10 288 %t.302 %t.303 %t.304 %t.305 %t.306 %t.307
                %t.308 %t.309 %t.310 %t.311))
           ())))
     )
@@ -78996,28 +78933,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.34 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (witness %bar.35 ()
+        (witness %bar.1 ()
              (ty ((abytes 32))
                  ((tunsigned 255)
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (circuit %foo.36 ()
+        (circuit %foo.2 ()
              (ty () ())
-          (= 1 (%t.0 %t.1) (call %bar.35))
-          (= 1 (%t.4) (bytes->vector %t.0))
-          (= 1 (%t.5 %t.6 %t.7 %t.8 %t.9 %t.10 %t.11 %t.12 %t.13 %t.14 %t.15
-                %t.16 %t.17 %t.18 %t.19 %t.20 %t.21 %t.22 %t.23 %t.24 %t.25
-                %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.2 %t.3)
-             (bytes->vector %t.1))
-          (= 1 %t.37 (vector->bytes %t.2 %t.3 %t.4))
-          (= 1 %t.38
-             (vector->bytes 0 0 %t.5 %t.6 %t.7 %t.8 %t.9 %t.10 %t.11 %t.12
-              %t.13 %t.14 %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21 %t.22
-              %t.23 %t.24 %t.25 %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32
-              %t.33))
-          (= 1 () (emit 1 0 34 %t.37 %t.38))
+          (= 1 (%t.3 %t.4) (call %bar.1))
+          (= 1 () (emit 1 0 32 %t.3 %t.4))
           ())))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
@@ -79063,258 +78989,48 @@ groups than for single tests.
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
-    (output-file "compiler/testdir/contract/index.js"
-      `(
-        "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-         ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(34);"
+        "export type S = { F: bigint };"
         ""
-        "const _descriptor_1 = new __compactRuntime.CompactTypeBytes(32);"
-        ""
-        "const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
-        ""
-        "const _descriptor_3 = __compactRuntime.CompactTypeBoolean;"
-        ""
-        "class _Either_0 {"
-        "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_1.alignment().concat(_descriptor_1.alignment()));"
-        "  }"
-        "  fromValue(value_0) {"
-        "    return {"
-        "      is_left: _descriptor_3.fromValue(value_0),"
-        "      left: _descriptor_1.fromValue(value_0),"
-        "      right: _descriptor_1.fromValue(value_0)"
-        "    }"
-        "  }"
-        "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_1.toValue(value_0.left).concat(_descriptor_1.toValue(value_0.right)));"
-        "  }"
+        "export type Witnesses<PS> = {"
+        "  bar(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
         "}"
         ""
-        "const _descriptor_4 = new _Either_0();"
-        ""
-        "const _descriptor_5 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
-        ""
-        "class _ContractAddress_0 {"
-        "  alignment() {"
-        "    return _descriptor_1.alignment();"
-        "  }"
-        "  fromValue(value_0) {"
-        "    return {"
-        "      bytes: _descriptor_1.fromValue(value_0)"
-        "    }"
-        "  }"
-        "  toValue(value_0) {"
-        "    return _descriptor_1.toValue(value_0.bytes);"
-        "  }"
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
         "}"
         ""
-        "const _descriptor_6 = new _ContractAddress_0();"
-        ""
-        "class _UserAddress_0 {"
-        "  alignment() {"
-        "    return _descriptor_1.alignment();"
-        "  }"
-        "  fromValue(value_0) {"
-        "    return {"
-        "      bytes: _descriptor_1.fromValue(value_0)"
-        "    }"
-        "  }"
-        "  toValue(value_0) {"
-        "    return _descriptor_1.toValue(value_0.bytes);"
-        "  }"
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
         "}"
         ""
-        "const _descriptor_7 = new _UserAddress_0();"
-        ""
-        "class _Either_1 {"
-        "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_6.alignment().concat(_descriptor_7.alignment()));"
-        "  }"
-        "  fromValue(value_0) {"
-        "    return {"
-        "      is_left: _descriptor_3.fromValue(value_0),"
-        "      left: _descriptor_6.fromValue(value_0),"
-        "      right: _descriptor_7.fromValue(value_0)"
-        "    }"
-        "  }"
-        "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_6.toValue(value_0.left).concat(_descriptor_7.toValue(value_0.right)));"
-        "  }"
+        "export type PureCircuits = {"
         "}"
         ""
-        "const _descriptor_8 = new _Either_1();"
-        ""
-        "class _Maybe_0 {"
-        "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_8.alignment());"
-        "  }"
-        "  fromValue(value_0) {"
-        "    return {"
-        "      is_some: _descriptor_3.fromValue(value_0),"
-        "      value: _descriptor_8.fromValue(value_0)"
-        "    }"
-        "  }"
-        "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_8.toValue(value_0.value));"
-        "  }"
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
         "}"
         ""
-        "const _descriptor_9 = new _Maybe_0();"
-        ""
-        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
-        ""
-        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
-        ""
-        "export class Contract {"
-        "  witnesses;"
-        "  constructor(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
-        "    }"
-        "    const witnesses_0 = args_0[0];"
-        "    if (typeof(witnesses_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
-        "    }"
-        "    if (typeof(witnesses_0.bar) !== 'function') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named bar');"
-        "    }"
-        "    this.witnesses = witnesses_0;"
-        "    this.circuits = {"
-        "      foo: async (...args_1) => {"
-        "        if (args_1.length !== 1) {"
-        "          throw new __compactRuntime.CompactError(`foo: expected 1 argument (as invoked from Typescript), received ${args_1.length}`);"
-        "        }"
-        "        const contextOrig_0 = args_1[0];"
-        "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
-        "          __compactRuntime.typeError('foo',"
-        "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'testfile.compact line 4 char 1',"
-        "                                     'CircuitContext',"
-        "                                     contextOrig_0)"
-        "        }"
-        "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
-        "        const partialProofData = {"
-        "          input: { value: [], alignment: [] },"
-        "          output: undefined,"
-        "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
-        "        };"
-        "        const result_0 = await this._foo_0(context, partialProofData);"
-        "        partialProofData.output = { value: [], alignment: [] };"
-        "        __compactRuntime.finalizeCallProofData(context, partialProofData);"
-        "        return { result: result_0, context: context, gasCost: context.callContext.currentGasCost };"
-        "      }"
-        "    };"
-        "    this.impureCircuits = { foo: this.circuits.foo };"
-        "    this.provableCircuits = { foo: this.circuits.foo };"
-        "  }"
-        "  async initialState(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 1 argument (as invoked from Typescript), received ${args_0.length}`);"
-        "    }"
-        "    const constructorContext_0 = args_0[0];"
-        "    if (typeof(constructorContext_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
-        "    }"
-        "    if (!('initialPrivateState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
-        "    }"
-        "    if (!('initialZswapLocalState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
-        "    }"
-        "    if (typeof(constructorContext_0.initialZswapLocalState) !== 'object') {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript) to be an object`);"
-        "    }"
-        "    const state_0 = new __compactRuntime.ContractState();"
-        "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
-        "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
-        "    state_0.setOperation('foo', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data, privateState: constructorContext_0.initialPrivateState});"
-        "    const partialProofData = {"
-        "      input: { value: [], alignment: [] },"
-        "      output: undefined,"
-        "      publicTranscript: [],"
-        "      privateTranscriptOutputs: []"
-        "    };"
-        "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
-        "    return {"
-        "      currentContractState: state_0,"
-        "      currentPrivateState: context.callContext.currentPrivateState,"
-        "      currentZswapLocalState: context.callContext.currentZswapLocalState"
-        "    }"
-        "  }"
-        "  _bar_0(context, partialProofData) {"
-        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);"
-        "    const [nextPrivateState_0, result_0] = this.witnesses.bar(witnessContext_0);"
-        "    context.callContext.currentPrivateState = nextPrivateState_0;"
-        "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
-        "      __compactRuntime.typeError('bar',"
-        "                                 'return value',"
-        "                                 'testfile.compact line 2 char 1',"
-        "                                 'Bytes<32>',"
-        "                                 result_0)"
-        "    }"
-        "    partialProofData.privateTranscriptOutputs.push({"
-        "      value: _descriptor_1.toValue(result_0),"
-        "      alignment: _descriptor_1.alignment()"
-        "    });"
-        "    return result_0;"
-        "  }"
-        "  async _foo_0(context, partialProofData) {"
-        "    let t_0;"
-        "    return __compactRuntime.queryLedgerState(context,"
-        "                                             partialProofData,"
-        "                                             ["
-        "                                              { push: { storage: false,"
-        "                                                        value: __compactRuntime.StateValue.newArray()"
-        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_11.toValue(1n),"
-        "                                                                                                                  alignment: _descriptor_11.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                                                                                                                                            alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue((t_0 = [new Uint8Array([0, 0]),"
-        "                                                                                                                                                                                                                                                                                                                                           { nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                               this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                           partialProofData) }],"
-        "                                                                                                                                                                                                                                                                                                                                    Uint8Array.from([...Array.from(t_0[0],"
-        "                                                                                                                                                                                                                                                                                                                                                                   BigInt),"
-        "                                                                                                                                                                                                                                                                                                                                                     ...Array.from(t_0[1].nullifier,"
-        "                                                                                                                                                                                                                                                                                                                                                                   BigInt)],"
-        "                                                                                                                                                                                                                                                                                                                                                    Number))),"
-        "                                                                                                                                                                                                                                                                                                      alignment: _descriptor_0.alignment() }))"
-        "                                                                 .encode() } },"
-        "                                              'log']);"
-        "  }"
+        "export type Ledger = {"
         "}"
-        "export function ledger(stateOrChargedState) {"
-        "  const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
-        "  const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
-        "  const context = {"
-        "    callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
-        "    costModel: __compactRuntime.CostModel.initialCostModel()"
-        "  };"
-        "  const partialProofData = {"
-        "    input: { value: [], alignment: [] },"
-        "    output: undefined,"
-        "    publicTranscript: [],"
-        "    privateTranscriptOutputs: []"
-        "  };"
-        "  return {"
-        "  };"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
         "}"
-        "const _emptyContext = {"
-        "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
-        "};"
-        "const _dummyContract = new Contract({ bar: (...args) => undefined });"
-        "export const pureCircuits = {};"
-        "export const expectedVk = {};"
         ""
-        "export const circuitSignatures = {"
-        "  'foo': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Tuple', types: []}},"
-        "};"
-        ""
-        "export const declaredInterfaces = {};"
-        ""
-        "//# sourceMappingURL=index.js.map"))
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 
   (test

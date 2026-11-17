@@ -108,7 +108,7 @@
     ;; error if the serialized form of `type` occupies more than `len` bytes.  If
     ;; it occupies less than `len` bytes, 0 bytes are added at the end to bring the
     ;; length up to `len` bytes.
-    (define (build-serialize src type expr len?)
+    (define (build-serialize src versioned? type expr len?)
       (define (bytes-or-tuple-arg as-bytes? nbytes expr)
         (if as-bytes?
             expr
@@ -245,10 +245,14 @@
             [,tvar-name (assert cannot-happen)]
             [(tunknown) (assert cannot-happen)])))
       ;; Serialize a pair of version bytes and then the raw serialized representation.
-      (let ([type^ (with-output-language (Lnoserialize Type)
-                     `(ttuple ,src (tbytes ,src 2) ,type))]
-            [expr^ (with-output-language (Lnoserialize Expression)
-                     `(tuple ,src (single ,src (quote ,src ,version)) (single ,src ,expr)))])
+      (let-values ([(type^ expr^)
+                    (if (not versioned?)
+                        (values type expr)
+                        (values
+                          (with-output-language (Lnoserialize Type)
+                            `(ttuple ,src (tbytes ,src 2) ,type))
+                          (with-output-language (Lnoserialize Expression)
+                            `(tuple ,src (single ,src (quote ,src ,version)) (single ,src ,expr)))))])
         (go type^ expr^ '() '() '() 0 '()
           (lambda (rx* rt* re* n rta*)
             (when (and len? (> n len?))
@@ -406,10 +410,10 @@
     )
   (Expression : Expression (ir) -> Expression ()
     [(emit ,src ,[type] ,[expr])
-     (let-values ([(n expr) (build-serialize src type expr #f)])
+     (let-values ([(n expr) (build-serialize src #f type expr #f)])
        `(emit ,src ,type ,n ,expr))]
     [(serialize ,src ,len ,[type] ,[expr])
-     (let-values ([(n expr) (build-serialize src type expr len)])
+     (let-values ([(n expr) (build-serialize src #t type expr len)])
        expr)]
     [(deserialize ,src ,len ,[type] ,[expr])
      (build-deserialize src type expr len)]))
