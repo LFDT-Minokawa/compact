@@ -32,6 +32,9 @@ nix develop --no-warn-dirty .#test-contracts --command bash -c '
     echo "         Build it: nix develop .#runtime --command bash -c \"cd runtime && npm run build\"" >&2
     exit 1
   fi
+  # The proof checks in support/proof-check run each circuit call through its ZKIR with this wasm
+  # build of zkir, which the .#test-contracts shell takes from the release compactc targets.
+  ln -sfn "${ZKIR_V3_PKG:?is not set; run this from the .#test-contracts shell}" .zkir-v3
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   corepack yarn install --immutable
   COMPACT_BINARY=compactc corepack yarn lint

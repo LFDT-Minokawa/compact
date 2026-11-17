@@ -8,7 +8,8 @@
         "moduleResolution": "bundler",
         "paths": {
             "@test/compact-test": ["./compact-test.ts"],
-            "@test/crypto": ["./support/crypto/index.ts"]
+            "@test/crypto": ["./support/crypto/index.ts"],
+            "@test/proof-check": ["./support/proof-check/index.ts"]
         },
         "strict": true,
         "target": "esnext",

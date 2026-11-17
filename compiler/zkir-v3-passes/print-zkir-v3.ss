@@ -142,6 +142,9 @@
        (inputs . ,(list->vector inp*)))]
     [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
      `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
+    [(load_constant ,zkir-type ,[* outp] ,[* inp*] ...)
+     `((op . "load_constant") (type . ,zkir-type) (encoding . ,(list->vector inp*))
+       (output . ,outp))]
     [(mul ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "mul") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(neg ,[* outp] ,[* inp])
