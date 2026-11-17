@@ -152,6 +152,11 @@ including the foreign field types, `Uint<0..1>`, and single-element enumerations
 
 ### Casting to and from byte vectors
 
+[TODO: rewrite the document in light of the exceptions, like foreign field types.
+We can just say that we want to make these agree where feasible.
+Or we can say that raw serialization is computed "in terms of" the cast but is
+not necessarily exactly the cast expression.]
+
 The Compact language also allows type casts using the keyword `as`,
 and some types support casting to and from Compact byte vectors (`Bytes<N>`).
 These casts are defined in the [Compact Reference](https://github.com/LFDT-Minokawa/compact/blob/main/doc/compact-reference.mdx),
@@ -552,140 +557,271 @@ and `transientHash<T>(x)` is in general not equal to the transient hash of `seri
 
 ### Raw serialized representations
 
-The raw serialized representation is specified by the type-directed rules below.
-The ledger serialization format is also defined below.
-It will agree with the raw serialization representation in the following sense:
-if the ledger alignment atoms are dropped so that there is a sequence of value atoms (`Uint8Array`s),
-trailing zeros are added back using the alignment atoms,
-and the value atoms are then concatenated,
-then this produces exactly the same bytes as raw event serialization.
+This section specifies, for every serializable type `T`:
 
-[TODO: restate this in terms of the new invariants]
-Raw serialization followed by raw deserialization of a value of type `T` is the identity on `T`,
-producing an equal value.
-Raw deserialization followed by raw serialization of a byte vector `Bytes<N>` is not necessarily
-the identity on `Bytes<N>`, however if `Bytes<N>` was produced by serialization then
-this **is** the identity on `Bytes<N>`.
+- the **raw serialized size** of `T`, a number of bytes determined by `T` alone;
+- **raw serialization**, which maps each value of type `T` to its raw serialized representation,
+  a byte vector of the raw serialized size of `T`;
+- **raw deserialization**, which maps a byte vector of the raw serialized size of `T`
+  either to a value of type `T` or to failure;
+- the **ledger serialization** of `T`, the FAB alignment of `T`,
+  and the value atoms that represent each value of type `T` in the ledger.
 
-#### Atomic Types
+The rules are type-directed.
+[Atomic types](#atomic-types) gives a rule for each atomic type,
+and [Compound types](#compound-types) gives a rule for each compound type
+in terms of the rules for their parts.
 
-**Boolean:** This is a built in Compact type.
-The raw serialized representation is `Bytes<1>`, a single-element byte vector.
-`true` is serialized as `[1]` and `false` is serialized as `[0]`.
-Raw deserialization fails on any other byte vector than the canonical ones `[0x0]` and `[0x1]`.
+**Agreement with the ledger serialization.**
+For a value `x` of type `T`,
+the **padded ledger bytes** of `x` are obtained from its ledger serialization as follows:
+each value atom is extended with trailing zero bytes to the width given by its alignment atom,
+32 bytes for `{ tag: 'field' }` and `N` bytes for `{ tag: 'bytes', length: N }`,
+and the extended value atoms are then concatenated in order.
+The ledger serialization is required to agree with the raw serialized representation:
 
-The ledger serialization has `{ tag: 'bytes', length: 1 }`.
-Ledger deserialization will reject non-canonical serialized values.
+1. For every value `x` of type `T`,
+   the padded ledger bytes of `x` are exactly the raw serialized representation of `x`.
+2. For every ledger serialization that is a [valid FAB value](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md#validity)
+   for the alignment of `T`
+   (in particular, whose non-`compress` value atoms have no trailing zero bytes)
+   and is accepted by ledger deserialization,
+   raw deserialization of its padded ledger bytes does not fail
+   and produces the same value as ledger deserialization.
 
-There ar currently no in-language casts between `Boolean` and `Bytes<1>` in either direction.
-The raw serialization rule is captured by the Compact code `Bytes [b ? 1 : 0]`;
-and the raw deserialization rule is captured by the Compact code
-`(assert(b[0] <= 1, "deserialization failure"), b[0] == 1)`.
+Ledger deserialization may reject ledger serializations whose padded ledger bytes raw deserialization would accept.
+The rules for each atomic type say where it does so.
 
-**Uint<0..N>:** These are built in Compact types.
-The raw serialized representation is a byte vector `Bytes<M>`,
-where `M` is the maximum of 1 and the number of bytes required to represent the maximum value `N-1`
-(so `M` is at least 1).
-The byte vector contains the little-endian encoding of the unsigned integer's value.
-Raw deserialization fails if the little endian encoding represents an
-unsigned integer greater than or equal to `N`.
+Some rules include Compact code that computes raw serialization or raw deserialization.
+This code is illustrative, not normative.
 
-The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above.
-Ledger deserialization will reject non-canonical serialized values.
+#### Atomic types
 
-The cast from `Uint<0..N>` to `Bytes<M>` produces the raw serialized representation.
-The cast from `Bytes<M>` to `Uint<0..N>` deserializes the raw serialized representation.
+**Boolean:** This is a built-in Compact type.
 
-It fails if little-endian encoded unsigned integer represented by the byte vector is greater than
-or equal to `N`.
+The raw serialized size is 1.
+`false` is serialized as `[0x00]` and `true` is serialized as `[0x01]`.
 
-**Uint<N>:** These are built in Compact types.
-Compact sized integer types `Uint<N>` are serialized exactly as
-the bounded unsigned integer type `Uint<0..M>` where `M` is `2^N`.
+Raw deserialization accepts `[0x00]`, producing `false`, and `[0x01]`, producing `true`.
+It fails on any other byte vector.
+There are no non-canonical raw serialized representations.
 
-So for instance, `Uint<8>` has the same raw serialized representation as `Uint<0..256>`,
-that is `Bytes<1>`;
-and `Uint<16>` is (little-endian) `Bytes<2>`; etc.
+The ledger serialization has the alignment `{ tag: 'bytes', length: 1 }`.
+`false` is represented by the empty value atom `[]` and `true` by the value atom `[0x01]`.
 
-**Field:** This is a built in Compact type.
-The raw serialized representation is a byte vector `Bytes<32>`.
-The byte vector contains the canonical little-endian encoding of the native field's value.
-Raw deserialization converts a byte vector to an unsigned integer,
-and then reduces that number modulo the field order.
+There are no casts between `Boolean` and `Bytes<1>`.
+For `b: Boolean`, raw serialization is computed by the Compact code `Bytes[b ? 1 : 0]`,
+or equivalently `b as Uint<1> as Bytes<1>`.
+For `v: Bytes<1>`, raw deserialization is computed by `v as Uint<1> as Boolean`:
+the cast from `Bytes<1>` to `Uint<1>` fails if `v[0]` is greater than 1.
 
-The ledger serialization has `{ tag: 'field' }`.
-This will accept a `Uint8Array` up to length 32 and deserialize it as
-an unsigned integer, reduced modulo the field order.
+**Uint<0..N>:** These are built-in Compact types.
+Their values are the unsigned integers in the range `0` to `N-1`, where `N` is at least 1.
 
-There are casts between `Field` and `Bytes<32>` that obeys these rules[^1].
+The raw serialized size is `M`,
+the maximum of 1 and the number of bytes needed to represent `N-1`.
+A value is serialized as the `M`-byte little-endian encoding of the unsigned integer.
+Since `N-1` is at most the implementation's maximum `Uint` value, 256^31-1,
+`M` is at most 31.
+
+Raw deserialization interprets the byte vector as a little-endian unsigned integer.
+It fails if that integer is greater than or equal to `N`, and otherwise produces it.
+There are no non-canonical raw serialized representations.
+
+The ledger serialization has the alignment `{ tag: 'bytes', length: M }`, for the same `M`.
+A value is represented by its little-endian encoding with trailing zero bytes removed;
+in particular, `0` is represented by the empty value atom `[]`.
+
+The cast from `Uint<0..N>` to `Bytes<M>` computes raw serialization,
+and the cast from `Bytes<M>` to `Uint<0..N>` computes raw deserialization.
+
+**Uint<N>:** These are built-in Compact types.
+`Uint<N>` is the same type as `Uint<0..2^N>`,
+and so it has the same raw serialized representation, raw deserialization, ledger serialization, and casts.
+
+Its raw serialized size is the maximum of 1 and `N/8` rounded up.
+For example, `Uint<8>` has raw serialized size 1, `Uint<16>` has raw serialized size 2,
+and `Uint<12>` has raw serialized size 2, with raw deserialization failing unless the top four bits are zero.
+`Uint<0>` is `Uint<0..1>`; its raw serialized size is 1, and raw deserialization accepts only `[0x00]`.
+
+**Field:** This is a built-in Compact type.
+Its values are the integers `0` to `p-1`,
+where `p` is the order of the native field of the proving system
+(the scalar field of BLS12-381).
+
+The raw serialized size is 32.
+A value is serialized as the 32-byte little-endian encoding of the integer.
+
+Raw deserialization interprets the byte vector as a little-endian unsigned integer,
+and produces that integer reduced modulo `p`.
+It never fails.
+A raw serialized representation is canonical if and only if the integer it encodes is less than `p`.
+Every value has at least one non-canonical raw serialized representation in addition to its canonical one,
+since 2^256 is more than twice `p`.
+
+The ledger serialization has the alignment `{ tag: 'field' }`.
+A value is represented by its little-endian encoding with trailing zero bytes removed;
+in particular, `0` is represented by the empty value atom `[]`.
+Ledger deserialization is stricter than raw deserialization:
+it rejects a value atom that encodes an integer greater than or equal to `p`.
+Such value atoms are not canonical in the sense of the FAB specification's
+[canonical field values](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md#canonical-field-values),
+which is a different notion from canonical raw serialized representations.
+
+The cast from `Field` to `Bytes<32>` computes raw serialization.
+The cast from `Bytes<32>` to `Field` computes raw deserialization[^1].
 
 **JubjubScalar:** This is a Compact standard library type.
-The raw serialized representation is a byte vector `Bytes<32>`.
-The byte vector contains the little-endian encoding of the Jubjub scalar's value.
-Raw deserialization converts a byte vector to an unsigned integer,
-and then reduces that number modulo the field order.
+Its values are the integers `0` to `r-1`,
+where `r` is the order of the scalar field of the Jubjub embedded curve.
+Since `r` is less than both 2^252 and the native field order `p`,
+every `JubjubScalar` value is also a `Field` value.
 
-The ledger serialization has `{ tag: 'field' }`.
-This will accept a `Uint8Array` up to length 32 and deserialize it as
-an unsigned integer, reduced modulo the field order.
+The raw serialized size is 32.
+A value is serialized as the 32-byte little-endian encoding of the integer.
 
-There is a cast between `JubjubScalar` and `Bytes<32>` that obeys these rules[^2].
+Raw deserialization interprets the byte vector as a little-endian unsigned integer,
+and produces that integer reduced modulo `r`.
+It never fails.
+A raw serialized representation is canonical if and only if the integer it encodes is less than `r`.
+Since 2^256 is more than 17 times `r`,
+every value has at least 16 non-canonical raw serialized representations in addition to its canonical one.
 
-**Secp256k1Base:** 
+The ledger serialization has the alignment `{ tag: 'field' }`.
+A value is represented by its little-endian encoding with trailing zero bytes removed;
+in particular, `0` is represented by the empty value atom `[]`.
+Ledger deserialization is stricter than raw deserialization:
+it rejects a value atom that encodes an integer greater than or equal to `r`.
 
-[The ledger stores v-1 as a 24-byte atom followed by an 8-byte atom.
-Ledger decoding range checks, it does not reduce by the field order.
-Event serialization writes a single little-endian vector, not split and not offset.
-Deserialization reduces modulo the field order.
-So does the Compact cast from `Bytes<32>`.
-In-circuit there are two encodings, the `to_bytes/from_bytes` encoding
-which agrees with event serialization, and the `public_input/private_input` encoding
-which agrees with the field encoding of the ledger encoding.
+There are no casts between `JubjubScalar` and `Bytes<32>`.
+For `x: JubjubScalar`, raw serialization is computed by the Compact code `x as Field as Bytes<32>`.
+For `v: Bytes<32>`, the Compact code `v as Field as JubjubScalar` computes raw deserialization
+when `v` encodes an integer less than `p`, and in particular when `v` is canonical,
+but not in general:
+the cast to `Field` reduces modulo `p` before the cast to `JubjubScalar` reduces modulo `r`.
 
-To have the same encoding, we need to reconcile this difference.
-Ask the Crypto team, it will require changes to ZKIR.]
+**Secp256k1Base, Secp256k1Scalar, Secp256r1Base, Secp256r1Scalar, Curve25519Base:**
+These are Compact standard library types.
+For each type, let `p` be the order of its field.
+The values of the type are the integers `0` to `p-1`.
 
-**Bytes<N>:** These are built-in Compact types.
-The raw serialized representation is the byte vector itself.
+The raw serialized size is 32.
+A value `v` is serialized as the 32-byte little-endian encoding of `(v - 1) mod p`.
+In particular, `0` is serialized as the encoding of `p - 1`.
 
-The ledger serialization has `{ tag: 'bytes', length: N }`.
+Raw deserialization interprets the byte vector as a little-endian unsigned integer `n`,
+and produces `((n mod p) + 1) mod p`.
+It never fails.
+A raw serialized representation is canonical if and only if `n` is less than `p`.
+A value `v` has a non-canonical raw serialized representation if and only if `((v - 1) mod p) + p` is less than `2^256`.
+For `Curve25519Base` this holds for every value;
+for the other types, whose moduli are close to `2^256`, it holds for only a small fraction of values.
 
-In Compact, the raw serialized representation of `b: Bytes<N>` is just `b` itself.
+The ledger serialization has the alignment
+`{ tag: 'bytes', length: 24 }, { tag: 'bytes', length: 8 }`.
+The two value atoms are the first 24 bytes and the last 8 bytes of the raw serialized representation,
+each with trailing zero bytes removed.
+Ledger deserialization is stricter than raw deserialization:
+it rejects a ledger serialization whose padded ledger bytes encode an integer greater than or equal to `p`.
 
-**Enumeration Types:** These are program-defined Compact types.
-The raw serialized representation of a value an enumeration type
-is its zero-based element index in declaration order.
-It uses the same encoding as `Uint<0..N>`, where `N` is the number of enumeration elements.
-Specifically, it is a byte vector `Bytes<M>` where `M` is the maximum of 1 and
-the number of bytes required to represent the zero-based index of the last declared element.
-It is encoded in little-endian order.
+The casts between these types and `Bytes<32>` do not compute raw serialization and raw deserialization.
+The cast from the type to `Bytes<32>` produces the 32-byte little-endian encoding of `v` itself,
+and the cast from `Bytes<32>` to the type reduces the encoded integer modulo `p`.
+The two are related by field arithmetic.
+For `x` of one of these types `T` and `b: Bytes<32>`, with
 
-The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above.
+    const one = Bytes[1, ...default<Bytes<31>>] as T;
 
-In Compact, the raw serialized representation of `e: T` where `T` is an enumeration type
-can be obtained by `e as Uint<0..N> as Bytes<M>` for `N` and `M` as above.
-Likewise the raw serialized representation `b: Bytes<M>` can be deserialized by
-`b as as Uint<0..N> as T`.
+raw serialization of `x` is computed by `(x - one) as Bytes<32>`,
+and raw deserialization of `b` is computed by `(b as T) + one`.
 
-**Opaque<'Uint8Array'>:** This is a built in Compact type.
-The raw serialized representation is `Bytes<N>`
-where `N` is the length of the `Uint8Array`.
-The byte vector contains the bytes of the `Uint8Array` in order.
+**Curve25519Scalar:** This is a Compact standard library type.
+Let `q` be the order of its field.
+The values of the type are the integers `0` to `q-1`.
+Since `q` is between `2^252` and `2^253`,
+`(v - 1) mod q` is less than `2^253` for every value `v`.
 
-The ledger serialization has `{ tag: 'compress' }`.
-This tag does not have a length property, but it is not needed for deserialization because
-"compress" values are allowed by the ledger to have trailing zeros.
+The raw serialized size is 33.
+For a value `v`, let `w` be `(v - 1) mod q`.
+`v` is serialized as the 26-byte little-endian encoding of `w mod 2^204`,
+followed by the 7-byte little-endian encoding of `w` divided by `2^204`, rounded down.
+In particular, `0` is serialized using `w = q - 1`.
 
-There is no way other than serialization to convert a Compact `Opaque<'Uint8Array'>` to a byte vector.
+Raw deserialization interprets the first 26 bytes as a little-endian unsigned integer `l`,
+and the last 7 bytes as a little-endian unsigned integer `h`.
+It fails if `l` is greater than or equal to `2^204`,
+or if `h` is greater than or equal to `2^49`.
+Otherwise it produces `((n mod q) + 1) mod q`, where `n` is `l + h * 2^204`.
+Unlike the other field types, raw deserialization of `Curve25519Scalar` can fail.
+An accepted raw serialized representation is canonical if and only if `n` is less than `q`.
+A value `v` has a non-canonical raw serialized representation if and only if `((v - 1) mod q) + q` is less than `2^253`,
+which holds for all but a small fraction of values.
 
-[Note: should we disallow this, even for serialization by the runtime?
-Can we support this in circuit at all?
-We could try using a serialization witness to provide the byte vector representation
-and assert that the `transient_hash` is equal to the in-circuit value of the input.]
+The ledger serialization has the alignment
+`{ tag: 'bytes', length: 26 }, { tag: 'bytes', length: 7 }`.
+The two value atoms are the first 26 bytes and the last 7 bytes of the raw serialized representation,
+each with trailing zero bytes removed.
+Ledger deserialization is stricter than raw deserialization:
+it rejects a ledger serialization whose padded ledger bytes are not accepted by raw deserialization,
+or encode an `n` greater than or equal to `q`.
 
-**Opaque<'string'>:** [Needs to be filled out.]
+The casts between `Curve25519Scalar` and `Bytes<32>`, and the cast from `Bytes<64>` to `Curve25519Scalar`,
+do not compute raw serialization and raw deserialization.
+The cast from `Curve25519Scalar` to `Bytes<32>` produces the 32-byte little-endian encoding of `v` itself,
+and the casts from `Bytes<32>` and `Bytes<64>` reduce the encoded integer modulo `q`.
+For `r: Bytes<33>`, raw deserialization is computed by the Compact code:
 
-#### Compound Types
+```compact
+const one = Bytes[1, ...default<Bytes<31>>] as Curve25519Scalar;
+const l = slice<26>(r, 0) as Uint<204>;
+const h = slice<7>(r, 26) as Uint<49>;
+const n = (l as Field) + (h as Field) * 25711008708143844408671393477458601640355247900524685364822016; // 2^204
+((n as Bytes<32>) as Curve25519Scalar) + one
+```
+
+There is no corresponding Compact code for raw serialization,
+since Compact has no operation that splits an integer at bit 204.
+Raw serialization of `x` is the unique canonical raw serialized representation
+that raw deserialization maps to `x`.
+
+**Bytes<N>:** These are built-in Compact types, for any `N` from 0 up to the implementation's maximum byte-vector length.
+
+The raw serialized size is `N`.
+A value `b` is serialized as `b` itself.
+
+Raw deserialization produces its argument unchanged.
+It never fails.
+There are no non-canonical raw serialized representations.
+
+The ledger serialization has the alignment `{ tag: 'bytes', length: N }`.
+A value is represented by the value atom consisting of its bytes with trailing zero bytes removed;
+in particular, a value whose bytes are all zero, including the value of `Bytes<0>`,
+is represented by the empty value atom `[]`.
+
+No cast is needed:
+in Compact, the raw serialized representation of `b: Bytes<N>` is `b` itself.
+
+**Enumeration types:** These are program-defined Compact types.
+For an enumeration type `E` with `N` elements,
+the **index** of an element is its zero-based position in the declaration of `E`.
+An enumeration type is serialized as the bounded unsigned integer type `Uint<0..N>`:
+its raw serialized representation, raw deserialization, and ledger serialization
+are those of `Uint<0..N>` applied to the index.
+
+So the raw serialized size is `M`,
+the maximum of 1 and the number of bytes needed to represent `N-1`,
+and an element is serialized as the `M`-byte little-endian encoding of its index.
+Raw deserialization fails if the encoded integer is greater than or equal to `N`,
+and otherwise produces the element with that index.
+There are no non-canonical raw serialized representations.
+The ledger serialization has the alignment `{ tag: 'bytes', length: M }`,
+and an element is represented by the little-endian encoding of its index with trailing zero bytes removed.
+
+There are no casts between enumeration types and `Bytes<M>`.
+For `e: E`, raw serialization is computed by the Compact code `e as Uint<0..N> as Bytes<M>`,
+and for `b: Bytes<M>`, raw deserialization is computed by `b as Uint<0..N> as E`.
+
+#### Compound types
 
 
 Key ideas:
@@ -846,9 +982,21 @@ Explain the design decisions that were made and the reasons behind them.
 Describe how the proposed solution affects existing systems, applications, and
 users.  Is it a breaking change?
 
-- The cast from `Bytes<32> to `Field` is a breaking change.
+- The cast from `Bytes<M>` to `Field` for `M` greater than or equal to 32 is a breaking change.
 - Writing the version bytes for 0.0 is a breaking change.
-- Changing emit to emit versioned events is a breaking change.
+- We are changing the event serialization of `Uint<0..1>` so it
+  now has raw serialized size 1, which is a breaking change.
+- The event serialization of the 8/24 foreign fields has changes (subtracting 1 in the field)
+- Changing emit to emit versioned events is a breaking change
+  (but we won't do this, we'll piggyback on the event version)
+  
+[If we add an appendix describing changes to the 0.0 format and
+where the change from hashing invariant does not hold for 0.0 or
+where hashes change with the change from 0.0 to 1.0, we need to mention:
+
+- the change in serialized representation of `Uint<0..1>`
+
+]
 
 ## Security Implications
 
@@ -868,6 +1016,8 @@ mitigated.
 
 Explain how to teach users, including both new and experienced ones, how to use
 the CoIP in their own work.
+
+Note that `persistentHash<Secp256k1Scalar>(x)` is not equal to `persistentHash<Bytes<32>>(x as Bytes<32>)`
 
 ## Implementation
 
@@ -905,9 +1055,11 @@ This CoIP is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE
 
 ## Footnotes
 
-[^1]: As of this writing, casts from `Bytes<N>` to `Field` will fail if the byte vector represents
-a value outside the range of `Field`.  This CoIP is proposing that we change that in the language
-definition.
+[^1]: A cast from `Bytes<M>` to `Field` currently fails if the encoded integer is greater than or equal to `p`.
+This CoIP changes such casts, for every `M`, to reduce the encoded integer modulo `p` instead.
+For `M` less than 32 this makes no difference, since the encoded integer is always less than `p`.
+For `M` equal to 32 it makes the cast agree with raw deserialization.
+See [Backwards Compatibility](#backwards-compatibility) and [Security Implications](#security-implications).
 
 [^2]: The ledger serialization implemented by the Compact runtime will instead reduce the
 serialized value via the native BLS12-381 field order (**wrong!**) and will therefore produce
