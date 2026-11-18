@@ -41530,6 +41530,45 @@ groups than for single tests.
                 (public-ledger %field1.1 (0 ((tfield (field-native)) %tmp.9)) lookup
                   %tmp.8)))))))
     )
+
+  ;; Regression test for GitHub issue #943.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: [[[Boolean, Boolean], Boolean]]): Bytes<3> {"
+      "  return serialize<[[[Boolean, Boolean], Boolean]], 3>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.1 ([%x.2 (ttuple
+                                  (ttuple
+                                    (ttuple (tboolean) (tboolean))
+                                    (tboolean)))])
+             (tbytes 3)
+          (let* ([[%value.3 (ttuple
+                              (ttuple
+                                (ttuple (tboolean) (tboolean))
+                                (tboolean)))]
+                  %x.2])
+            (let* ([[%t.4 (ttuple
+                            (ttuple (tboolean) (tboolean))
+                            (tboolean))]
+                    (tuple-ref %value.3 0)]
+                   [[%t.5 (ttuple (tboolean) (tboolean))] (tuple-ref %t.4 0)])
+              (vector->bytes 3
+                (vector
+                  (if (tuple-ref %t.5 0)
+                      (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                      (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                  (if (tuple-ref %t.5 1)
+                      (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                      (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                  (if (tuple-ref %t.4 1)
+                      (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                      (safe-cast (tunsigned 255) (tunsigned 0) 0))))))))))
 )
 
 (run-tests discard-useless-code
