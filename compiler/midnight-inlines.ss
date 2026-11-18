@@ -13,12 +13,12 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(declare-inline-entry serialize [T (nat n)]
+(declare-inline-entry serialize [T (nat N)]
   ([value T])
-  (Bytes n)
-  (serialize src n T value))
+  (Bytes N)
+  (serialize src N T value))
 
-(declare-inline-entry deserialize [T (nat n)]
-  ([value (Bytes n)])
+(declare-inline-entry deserialize [T (nat N)]
+  ([bytes (Bytes N)])
   T
-  (deserialize src n T value))
+  (deserialize src N T bytes))
