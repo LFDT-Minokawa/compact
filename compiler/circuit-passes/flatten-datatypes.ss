@@ -405,7 +405,8 @@
              [(curve-curve25519)
               (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
              [(curve-jubjub)
-              (assertf cannot-happen "cannot cast byte vector to JubjubScalar")]
+              (assert (= (length triv*) 2))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
              [(curve-secp256k1)
               (assert (= (length triv*) 2))
               (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]

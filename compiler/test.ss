@@ -77988,6 +77988,83 @@ groups than for single tests.
         ))
     )
 
+  ;; GitHub issue #938
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "struct Nested { a: Uint<8>, b: JubjubScalar, c: Boolean }"
+      "ledger bytes32: Bytes<32>;"
+      "ledger scalar: JubjubScalar;"
+      "ledger bytes34: Bytes<34>;"
+      "ledger nested: Nested;"
+      "export circuit testJtoB(s: JubjubScalar): Bytes<32> {"
+      "  const b = s as Bytes<32>;"
+      "  bytes32 = disclose(b);"
+      "  return bytes32;"
+      "}"
+      "export circuit testBtoJ(b: Bytes<32>): JubjubScalar {"
+      "  const s = b as JubjubScalar;"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      "export circuit testSerialize(s: JubjubScalar): Bytes<32> {"
+      "  const b = serialize<JubjubScalar, 32>(s);"
+      "  bytes32 = disclose(b);"
+      "  return bytes32;"
+      "}"
+      "export circuit testDeserialize(b: Bytes<32>): JubjubScalar {"
+      "  const s = deserialize<JubjubScalar, 32>(b);"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      "export circuit testSerializeNested(n: Nested): Bytes<34> {"
+      "  const b = serialize<Nested, 34>(n);"
+      "  bytes34 = disclose(b);"
+      "  return bytes34;"
+      "}"
+      "export circuit testDeserializeNested(b: Bytes<34>): Nested {"
+      "  const n = deserialize<Nested, 34>(b);"
+      "  nested = disclose(n);"
+      "  return nested;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('JubjubScalar casts to and from Bytes<32>, serialize, and deserialize', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ,(format "  const R = ~dn;" (1+ (max-jubjub-scalar)))
+        ,(format "  const P = ~dn;" (1+ (max-field)))
+        "  const le = (n: bigint, len: number = 32): Uint8Array => {"
+        "    const a = new Uint8Array(len);"
+        "    for (let i = 0; i < len; i++) { a[i] = Number(n & 0xffn); n >>= 8n; }"
+        "    return a;"
+        "  };"
+        "  // Scalar to bytes: 32-byte little-endian encoding, for both the cast and serialize."
+        "  for (const s of [0n, 1n, 1000n, R - 1n]) {"
+        "    expect((await C.circuits.testJtoB(Ctxt, s)).result).toEqual(le(s));"
+        "    expect((await C.circuits.testSerialize(Ctxt, s)).result).toEqual(le(s));"
+        "  }"
+        "  // Bytes to scalar: little-endian integer reduced modulo R, never failing."
+        "  // P and 2^256 - 1 distinguish a single reduction modulo R from reducing modulo P first."
+        "  for (const n of [0n, 1n, R - 1n, R, R + 5n, P - 1n, P, (1n << 256n) - 1n]) {"
+        "    const expected = n % R;"
+        "    expect((await C.circuits.testBtoJ(Ctxt, le(n))).result).toEqual(expected);"
+        "    expect((await C.circuits.testDeserialize(Ctxt, le(n))).result).toEqual(expected);"
+        "  }"
+        "  // Round trip."
+        "  for (const s of [0n, 12345n, R - 1n]) {"
+        "    const b = (await C.circuits.testSerialize(Ctxt, s)).result;"
+        "    expect((await C.circuits.testDeserialize(Ctxt, b)).result).toEqual(s);"
+        "  }"
+        "  // JubjubScalar inside a structure: 1 + 32 + 1 bytes, fields in declaration order."
+        "  const n = { a: 7n, b: R - 2n, c: true };"
+        "  const b = new Uint8Array([7, ...le(R - 2n), 1]);"
+        "  expect((await C.circuits.testSerializeNested(Ctxt, n)).result).toEqual(b);"
+        "  expect((await C.circuits.testDeserializeNested(Ctxt, b)).result).toEqual(n);"
+        "});"
+        ))
+    )
+
   (test ; Arithmetic and comparisons involving JubjubScalar
     '(
       "import CompactStandardLibrary;"
