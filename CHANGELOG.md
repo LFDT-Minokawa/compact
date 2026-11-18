@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.107, language 0.28.1, runtime 0.21.102]
+
+### Changed
+
+- The in-language "event" serialization format is now versioned.  It has MAJOR
+  and MINOR version numbers.  The current version of the format is 0.0.  A pair
+  of version bytes (currently both zero) are added to the front of the result of
+  every call to `serialize`.  A call to `deserialize` verifies that the reader
+  can understand the version; in this case that the version is exactly 0.0.  It
+  is a runtime error to deserialize an unsupported version.
+
+  The serialized size of every Compact type increases by two.
+
+  **This is a breaking change.**  The serialized size has increased by two so
+  calls to `serialize` and `deserialize` may need to be adjusted.  Contracts
+  compiled with toolchain 0.36.106 or earlier will not be able to deserialize
+  values serialized by 0.36.107 or later, and vice versa.
+
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
 ### Fixed
