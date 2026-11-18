@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+
+### Changed
+
+- The standard library documentation for `serialize` and `deserialize` is
+  expanded to actually describe what is implemented and what programmers can and
+  should rely on.
+- There is a cosmetic change to the parameter name `x` to be more informative:
+  `value` for `serialize` and `bytes` for `deserialize`.  This was reflected in
+  the implementation in `midnight-natives.ss` for clarity.  This actually causes
+  a change in generated JS code so the compiler version is incremented.
+
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
 ### Fixed
