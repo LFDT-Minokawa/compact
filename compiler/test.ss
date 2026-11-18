@@ -78065,6 +78065,77 @@ groups than for single tests.
         ))
     )
 
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "struct Nested { a: Uint<8>, b: JubjubScalar, c: Boolean }"
+      "export ledger scalar: JubjubScalar;"
+      "export ledger bytes32: Bytes<32>;"
+      "export ledger u8: Uint<8>;"
+      "export circuit selectBtoJ(b: Boolean, x: JubjubScalar, y: Bytes<32>): JubjubScalar {"
+      "  scalar = disclose(b ? x : y as JubjubScalar);"
+      "  return scalar;"
+      "}"
+      "export circuit selectJtoB(b: Boolean, x: JubjubScalar, y: Bytes<32>): Bytes<32> {"
+      "  bytes32 = disclose(b ? y : x as Bytes<32>);"
+      "  return bytes32;"
+      "}"
+      "export circuit ifBtoJ(b: Boolean, x: JubjubScalar, y: Bytes<32>): JubjubScalar {"
+      "  if (disclose(b)) {"
+      "    scalar = disclose(y as JubjubScalar);"
+      "  } else {"
+      "    scalar = disclose(x);"
+      "  }"
+      "  return scalar;"
+      "}"
+      "export circuit ifJtoB(b: Boolean, x: JubjubScalar, y: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    bytes32 = disclose(x as Bytes<32>);"
+      "  } else {"
+      "    bytes32 = disclose(y);"
+      "  }"
+      "  return bytes32;"
+      "}"
+      "export circuit deserializeA(b: Bytes<34>): Uint<8> {"
+      "  u8 = disclose(deserialize<Nested, 34>(b).a);"
+      "  return u8;"
+      "}"
+      "export circuit unusedCast(y: Bytes<32>): Uint<8> {"
+      "  const s = y as JubjubScalar;"
+      "  u8 = 3;"
+      "  return u8;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('JubjubScalar casts under a condition and unused JubjubScalar casts', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ,(format "  const R = ~dn;" (1+ (max-jubjub-scalar)))
+        "  const le = (n: bigint, len: number = 32): Uint8Array => {"
+        "    const a = new Uint8Array(len);"
+        "    for (let i = 0; i < len; i++) { a[i] = Number(n & 0xffn); n >>= 8n; }"
+        "    return a;"
+        "  };"
+        "  const x = R - 3n;"
+        "  const y = le(R + 5n);"
+        "  // Bytes to scalar, selected by a condition."
+        "  expect((await C.circuits.selectBtoJ(Ctxt, true, x, y)).result).toEqual(x);"
+        "  expect((await C.circuits.selectBtoJ(Ctxt, false, x, y)).result).toEqual(5n);"
+        "  expect((await C.circuits.ifBtoJ(Ctxt, true, x, y)).result).toEqual(5n);"
+        "  expect((await C.circuits.ifBtoJ(Ctxt, false, x, y)).result).toEqual(x);"
+        "  // Scalar to bytes, selected by a condition."
+        "  expect((await C.circuits.selectJtoB(Ctxt, true, x, y)).result).toEqual(y);"
+        "  expect((await C.circuits.selectJtoB(Ctxt, false, x, y)).result).toEqual(le(x));"
+        "  expect((await C.circuits.ifJtoB(Ctxt, true, x, y)).result).toEqual(le(x));"
+        "  expect((await C.circuits.ifJtoB(Ctxt, false, x, y)).result).toEqual(y);"
+        "  // The JubjubScalar casts below are dead after flattening."
+        "  const b = new Uint8Array([7, ...le((1n << 256n) - 1n), 1]);"
+        "  expect((await C.circuits.deserializeA(Ctxt, b)).result).toEqual(7n);"
+        "  expect((await C.circuits.unusedCast(Ctxt, y)).result).toEqual(3n);"
+        "});"
+        ))
+    )
+
   (test ; Arithmetic and comparisons involving JubjubScalar
     '(
       "import CompactStandardLibrary;"
