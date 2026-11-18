@@ -1104,10 +1104,10 @@ It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
   in the order it declares them.  `prepareVerification` takes no generic
   arguments.
 * `proof` is the inner proof, an `Opaque<"Uint8Array">`, typically returned
-  by a witness.
+  by a witness and so wrapped in `disclose` (see below).
 
 ```compact
-const acc = prepareVerification("inner.verifier", [x, y], innerProof());
+const acc = prepareVerification("inner.verifier", [x, y], disclose(innerProof()));
 ```
 
 An inner proof that verified proofs of its own, such as a step of an IVC
@@ -1120,7 +1120,7 @@ binding it to the inner proof, and it is accumulated into the result, so that
 its check happens too:
 
 ```compact
-const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], ivcProof());
+const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], disclose(ivcProof()));
 ```
 
 The accumulator's position in `publicInputs` must match the inner circuit's
@@ -1152,13 +1152,13 @@ check happens only when the circuit is proved: the check here confirms that the
 inner proof carries it, not that it holds.
 
 Whether a `prepareVerification` runs can be observed, so calling it in a branch
-whose condition depends on witness data discloses that condition.  Its public
-inputs, including any accumulator among them, are treated as disclosed, so ones
-derived from witness data must be wrapped in `disclose`.  The proof itself is
-not treated as disclosed, but the accumulator `verifyAccumulator` exposes is
-derived from it: verifying the same inner proof on its own in two transactions
-exposes the same accumulator and makes them linkable, and combined with other
-accumulators it may still be linkable.  This rule may become stricter.
+whose condition depends on witness data discloses that condition.  The
+accumulator `verifyAccumulator` exposes is a deterministic function of the
+public inputs and the proof: verifying the same inner proof on its own in two
+transactions exposes the same accumulator and makes them linkable, and combined
+with other accumulators it may still be linkable.  So the public inputs,
+including any accumulator among them, and the proof are treated as disclosed,
+and ones derived from witness data must be wrapped in `disclose`.
 
 For example, this circuit verifies two proofs of the same value against
 different keys:
@@ -1173,8 +1173,8 @@ export ledger attested: Field;
 
 export circuit attest(x: Field): [] {
   attested = disclose(x);
-  const a = prepareVerification("a.verifier", [attested], proofA());
-  const b = prepareVerification("b.verifier", [attested], proofB());
+  const a = prepareVerification("a.verifier", [attested], disclose(proofA()));
+  const b = prepareVerification("b.verifier", [attested], disclose(proofB()));
   verifyAccumulator(accumulate(a, b));
 }
 ```

@@ -24,9 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - the key file is a regular `.verifier` file of at most 1 MiB, resolved
     first from the directory of the file containing the call;
   - a constructor cannot call `prepareVerification`;
-  - public inputs derived from witness data must be wrapped in `disclose`, and
-    calling `prepareVerification` under a witness-dependent condition
-    discloses that condition.
+  - public inputs and proofs derived from witness data must be wrapped in
+    `disclose`, and calling `prepareVerification` under a witness-dependent
+    condition discloses that condition.
 
   **Circuits compiled with this version, whether or not they verify proofs,
   need ZKIR and ledger releases, and a proof server built on them, that

@@ -32346,7 +32346,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
       "}"
       )
     (succeeds)))
@@ -32358,7 +32358,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, carried()], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, carried()], disclose(innerProof())));"
       "}"
       )
     (oops
@@ -32373,7 +32373,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)));"
       "}"
       )
     (succeeds)))
@@ -32383,8 +32383,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
       "  verifyAccumulator(accumulate(a, b));"
       "}"
       )
@@ -32395,7 +32395,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
-      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
       "  verifyAccumulator(a);"
       "}"
       )
@@ -32406,7 +32406,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], p));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], disclose(p)));"
       "}"
       )
     (succeeds)))
@@ -32416,7 +32416,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [x], p));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [x], disclose(p)));"
       "}"
       )
     (oops
@@ -32430,8 +32430,24 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof()));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the return value of witness innerProof at line 2 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the proof given to prepareVerification at line 4 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
-      "  if (c) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "  if (c) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
       "}"
       )
     (oops
@@ -40482,7 +40498,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness p(): Opaque<'Uint8Array'>;"
       "witness w(): Accumulator;"
-      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(w())], p())); }"
+      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(w())], disclose(p()))); }"
       "export circuit only_verify(): [] { check(); }"
       )
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
@@ -42567,7 +42583,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness p(): Opaque<'Uint8Array'>;"
-      "circuit g(y: Uint<8>, q: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [disclose(y)], q); }"
+      "circuit g(y: Uint<8>, q: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [disclose(y)], disclose(q)); }"
       "export circuit f(): [] { verifyAccumulator(g(3, p())); }"
       )
     (succeeds)))
@@ -42577,7 +42593,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness p(): Opaque<'Uint8Array'>;"
-      "export circuit f(): [] { for (const i of 0..2) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [i], p())); } }"
+      "export circuit f(): [] { for (const i of 0..2) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [i], disclose(p()))); } }"
       )
     (succeeds)))
 
@@ -42586,7 +42602,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness p(): Opaque<'Uint8Array'>;"
-      "export circuit f(v: Vector<2, Field>): [] { const r = map((x: Field): [] => { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], p())); return []; }, v); }"
+      "export circuit f(v: Vector<2, Field>): [] { const r = map((x: Field): [] => { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], disclose(p()))); return []; }, v); }"
       )
     (succeeds)))
 )
@@ -46311,7 +46327,7 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
-      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
       "}"
       )
     (returns
@@ -46344,7 +46360,7 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
-      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
       "  verifyAccumulator(a);"
       "}"
       )
@@ -46388,8 +46404,8 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
       "  verifyAccumulator(accumulate(a, b));"
       "}"
       )
@@ -52388,7 +52404,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -52423,7 +52439,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(b: Bytes<2>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [...disclose(b), disclose(carried())], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [...disclose(b), disclose(carried())], disclose(innerProof())));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -52464,7 +52480,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(s: S, v: Vector<2, Field>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(s), disclose(carried()), disclose(v)], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(s), disclose(carried()), disclose(v)], disclose(innerProof())));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -52502,9 +52518,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
-      "  const acc1 = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const acc2 = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
-      "  const acc3 = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  const acc1 = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const acc2 = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const acc3 = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
       "  verifyAccumulator(accumulate(acc1, acc2, acc3));"
       "}"
       )
@@ -52541,7 +52557,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)));"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -52570,7 +52586,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
-      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
       "}"
       )
     (output-file "compiler/testdir/zkir/main.zkir"
@@ -52601,7 +52617,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
-      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
       "  verifyAccumulator(a);"
       "}"
       )
@@ -52638,8 +52654,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
       "  verifyAccumulator(accumulate(a, b));"
       "}"
       )
@@ -52672,9 +52688,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
-      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
       "  verifyAccumulator(accumulate(accumulate(a, b), c));"
       "}"
       )
@@ -62850,7 +62866,7 @@ groups than for single tests.
       "witness innerProof(): Opaque<'Uint8Array'>;"
       "witness carried(): Accumulator;"
       "export circuit main(): [] {"
-      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], innerProof()));"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
       "}"
       )
     (stage-javascript
@@ -62882,12 +62898,12 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
-      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
       "}"
       "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
-      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
-      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
-      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
       "  verifyAccumulator(accumulate(a, b, c));"
       "}"
       )
