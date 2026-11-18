@@ -39,10 +39,10 @@
     (define-pass rename-expr : (Linlined Expression) (ir p) -> (Linlined Expression) ()
       (Expression : Expression (ir p) -> Expression ()
         [(var-ref ,src ,var-name) `(var-ref ,src ,(maybe-rename p var-name))]
-        [(let* ,src ([,local* ,[expr*]] ...) ,expr)
-         (let-values ([(p var-name*) (extend-env p (map arg->name local*))]
-                      [(type*) (map arg->type local*)])
-           `(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,(Expression expr p)))])
+        [(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,expr)
+         (let-values ([(p var-name*) (extend-env p var-name*)])
+           (let ([f (lambda (expr) (rename-expr expr p))])
+             `(let* ,src ([(,var-name* ,type*) ,(map f expr*)] ...) ,(f expr))))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
       (Public-Input : Public-Input (ir p) -> Public-Input ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
