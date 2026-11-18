@@ -93,9 +93,9 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
     sample('Field (max)', runtime.CompactTypeField, runtime.MAX_FIELD),
   ],
   CompactTypeJubjubScalar: [
-    sample('Field', runtime.CompactTypeJubjubScalar, 12345678901234567890n),
-    sample('Field (zero)', runtime.CompactTypeJubjubScalar, 0n),
-    sample('Field (max)', runtime.CompactTypeJubjubScalar, runtime.MAX_FIELD),
+    sample('JubjubScalar', runtime.CompactTypeJubjubScalar, 12345678901234567890n),
+    sample('JubjubScalar (zero)', runtime.CompactTypeJubjubScalar, 0n),
+    sample('JubjubScalar (max)', runtime.CompactTypeJubjubScalar, runtime.MAX_JUBJUB_SCALAR),
   ],
   CompactTypeBoolean: [
     sample('Boolean (true)', runtime.CompactTypeBoolean, true),
@@ -331,8 +331,32 @@ describe('input validation', () => {
     expect(() => new runtime.CompactTypeEnum(3, 1).fromValue([new Uint8Array([9])])).toThrow(/expected Enum\[<=3\]/);
   });
 
+  test('Enum decodes valid values of 2^32 or more correctly', () => {
+    const e = new runtime.CompactTypeEnum(2 ** 32 + 10, 5);
+    expect(e.fromValue([new Uint8Array([0, 0, 0, 0, 1])])).toBe(2 ** 32);
+    expect(e.fromValue(e.toValue(2 ** 32 + 7))).toBe(2 ** 32 + 7);
+  });
+
+  test('Enum rejects an invalid encoding of a value of 2^32 or more', () => {
+    expect(() => new runtime.CompactTypeEnum(3, 1).fromValue([new Uint8Array([0, 0, 0, 0, 1])])).toThrow(/expected Enum\[<=3\]/);
+  });
+
   test('Enum rejects an out-of-range value on encode', () => {
     expect(() => new runtime.CompactTypeEnum(3, 1).toValue(9)).toThrow(/expected Enum\[<=3\]/);
+  });
+
+  test('JubjubScalar rejects values that are not less than the Jubjub scalar order', () => {
+    const r = runtime.JUBJUB_SCALAR_MODULUS;
+    const le = (n: bigint): Uint8Array => {
+      const a: number[] = [];
+      while (n > 0n) { a.push(Number(n & 0xffn)); n >>= 8n; }
+      return new Uint8Array(a);
+    };
+    for (const v of [r, r + 5n, runtime.MAX_FIELD]) {
+      expect(() => runtime.CompactTypeJubjubScalar.fromValue([le(v)])).toThrow(runtime.CompactError);
+      expect(() => runtime.CompactTypeJubjubScalar.toValue(v)).toThrow(runtime.CompactError);
+    }
+    expect(runtime.CompactTypeJubjubScalar.fromValue([le(r - 1n)])).toBe(r - 1n);
   });
 
   test('UnsignedInteger rejects an out-of-range value on encode', () => {

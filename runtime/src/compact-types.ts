@@ -16,6 +16,7 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CompactError } from './error.js';
 import {
+  MAX_JUBJUB_SCALAR,
   MAX_SECP256K1_BASE,
   MAX_SECP256K1_SCALAR,
   MAX_SECP256R1_BASE,
@@ -328,9 +329,26 @@ export const CompactTypeField: CompactType<bigint> = {
 };
 
 /**
- * Runtime type of the builtin `JubjubScalar` type
+ * Runtime type of the builtin `JubjubScalar` type.
  */
-export const CompactTypeJubjubScalar: CompactType<bigint> = CompactTypeField;
+export const CompactTypeJubjubScalar: CompactType<bigint> = {
+  alignment(): ocrt.Alignment {
+    return [{ tag: 'atom', value: { tag: 'field' } }];
+  },
+  fromValue(value: ocrt.Value): bigint {
+    const val = CompactTypeField.fromValue(value);
+    if (val > MAX_JUBJUB_SCALAR) {
+      throw new CompactError('expected JubjubScalar');
+    }
+    return val;
+  },
+  toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > MAX_JUBJUB_SCALAR) {
+      throw new CompactError('expected JubjubScalar');
+    }
+    return CompactTypeField.toValue(value);
+  },
+};
 
 // Implementation of foreign field values up to 32 bytes, encoded as the low 24
 // bytes (3 64-bit "limbs") and the high 8 bytes (one64-bit "limb"), and where
@@ -467,15 +485,17 @@ export class CompactTypeEnum implements CompactType<number> {
 
   fromValue(value: ocrt.Value): number {
     const val = value.shift();
-    if (val == undefined) {
+    if (val == undefined || val.length > this.length) {
       throw new CompactError(`expected Enum[<=${this.maxValue}]`);
     } else {
       let res = 0;
-      for (let i = 0; i < val.length; i++) {
-        res += (1 << (8 * i)) * val[i];
-      }
-      if (res > this.maxValue) {
-        throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+      for (let i = val.length - 1; i >= 0; --i) {
+        res = res * 256 + val[i];
+        // Check inside the loop so `res` never exceeds 2^53, where `number`
+        // arithmetic loses precision.
+        if (res > this.maxValue) {
+          throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+        }
       }
       return res;
     }
@@ -683,8 +703,8 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
-      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
-      // the unhashed payload).  There's no correct way to encode them here.
+        // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+        // the unhashed payload).  There's no correct way to encode them here.
       case 'compress':
         throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
       case 'field': {
