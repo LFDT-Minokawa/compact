@@ -190,9 +190,9 @@ protection is owned by Vitest and CI through `testTimeout` in
 After each successful compile, `yarn test` also checks the keys in `keys/`
 (`generated-keys.ts`). Every circuit that `contract-info.json` marks
 `proof: true` must have a `.prover` and a `.verifier` file. Each file must start
-with its `midnight:` header and have data after it. The ledger library
-(`@midnightntwrk/onchain-runtime-v4`) must be able to read the verifier key. The
-files must also match their size and hash in `contract-manifest.json`, and the
+with its `midnight:` header and have data after it. The linked runtime's ledger
+library (`ContractOperation`, re-exported by `@midnight-ntwrk/compact-runtime`)
+must be able to read the verifier key. The files must also match their size and hash in `contract-manifest.json`, and the
 verifier key must match the contract's `expectedVk`. No proof is made, so a
 well-formed key with wrong data still passes. A compile without `zkir-v3` on
 `PATH` writes no keys, so it fails this check.

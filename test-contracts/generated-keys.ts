@@ -18,7 +18,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { ContractOperation } from '@midnightntwrk/onchain-runtime-v4';
+// The runtime re-exports its own ledger copy, so keys are read the way the
+// runtime reads them, whatever ledger version it ships.
+import { ContractOperation } from '@midnight-ntwrk/compact-runtime';
 
 type KeyKind = 'prover' | 'verifier';
 
