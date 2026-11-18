@@ -1190,9 +1190,3 @@ This CoIP changes such casts, for every `M`, to reduce the encoded integer modul
 For `M` less than 32 this makes no difference, since the encoded integer is always less than `p`.
 For `M` equal to 32 it makes the cast agree with raw deserialization.
 See [Backwards Compatibility](#backwards-compatibility) and [Security Implications](#security-implications).
-
-[^2]: The ledger serialization implemented by the Compact runtime will instead reduce the
-serialized value via the native BLS12-381 field order (**wrong!**) and will therefore produce
-values out of range.  The compiler therefore must ensure that `JubjubScalar` values are in range.
-It does this by prohibiting arithmetic on `JubjubScalar`
-and explicitly checking that the value is in range on casts to `JubjubScalar.`
