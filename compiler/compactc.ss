@@ -61,6 +61,12 @@ The following flags, if present, affect the compiler's behavior as follows:
     printing a warning message, the generation of proving keys when it cannot
     find zkir.
 
+  --zk-jobs <n> sets the number of circuits whose proving keys are generated
+    at the same time.  Each job is a zkir process, which can use several
+    gigabytes of memory.  The COMPACT_ZK_JOBS environment variable sets the
+    same value.  The default depends on the processors and the available
+    memory.  Use --zk-jobs 1 to generate the keys one circuit at a time.
+
   --no-communications-commitment omits the contract communications commitment
     that enables data integrity for contract-to-contract calls.
 
@@ -116,6 +122,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--verbose)]
              [(--vscode)]
              [(--skip-zk)]
+             [(--zk-jobs) (string zk-jobs-string)]
              [(--no-communications-commitment)]
              [(--sourceRoot) (string source-root)]
              [(--compact-path) (string search-list)]
@@ -130,6 +137,17 @@ The following flags, if present, affect the compiler's behavior as follows:
      (check-pathname target-directory-pathname)
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
+                    [zk-jobs (let ([parse (lambda (what str)
+                                            (let ([n (string->number str)])
+                                              (unless (and n (fixnum? n) (fx> n 0))
+                                                (fprintf (console-error-port) "invalid ~a value ~a: expected a positive integer\n" what str)
+                                                (exit 1))
+                                              n))]
+                                   [env (getenv "COMPACT_ZK_JOBS")])
+                               (cond
+                                 [zk-jobs-string (parse "--zk-jobs" zk-jobs-string)]
+                                 [(and env (not (string=? env ""))) (parse "COMPACT_ZK_JOBS" env)]
+                                 [else #f]))]
                     [no-communications-commitment ?--no-communications-commitment]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])

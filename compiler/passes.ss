@@ -44,6 +44,96 @@
 
   (define zkir-warning-issued (make-parameter #f))
 
+  (define (shell-quote str)
+    (let ([op (open-output-string)])
+      (write-char #\' op)
+      (string-for-each
+        (lambda (c) (if (char=? c #\') (put-string op "'\\''") (write-char c op)))
+        str)
+      (write-char #\' op)
+      (get-output-string op)))
+
+  ;; Generates the keys for <dir>/zkir/*.zkir in <dir>/keys and returns the exit status.
+  ;; Runs one zkir process per circuit, largest first, (zk-jobs) at a time.
+  ;; When (zk-jobs) is #f: half the processors (one job uses about two), and at most
+  ;; one job per COMPACT_ZK_JOB_MB (default 5120) of available memory.  Both limits
+  ;; include cgroup v1 and v2 limits.  The script is POSIX sh, plus xargs -0 -P.
+  (define (run-zkir zkir dir)
+    (if (eqv? (zk-jobs) 1)
+        (system (format "exec ~a compile-many ~a ~a"
+                  zkir
+                  (shell-quote (format "~a/zkir" dir))
+                  (shell-quote (format "~a/keys" dir))))
+        (system
+          (string-append
+            (format "zkir=~a; dir=~a; jobs=~a\n" zkir (shell-quote dir) (or (zk-jobs) "auto"))
+            "serial() { exec \"$zkir\" compile-many \"$dir/zkir\" \"$dir/keys\"; }\n"
+            ; free MB in a cgroup: limit, usage and stat files, name of the reclaimable cache stat
+            "cgmem() {\n"
+            "  awk -v key=\"$4\" '\n"
+            "    FILENAME == ARGV[1] && FNR == 1 { lim = $1 }\n"
+            "    FILENAME == ARGV[2] && FNR == 1 { use = $1 }\n"
+            "    FILENAME == ARGV[3] && $1 == key { cache = $2 }\n"
+            "    END {\n"
+            "      if (lim ~ /^[0-9]+$/ && use ~ /^[0-9]+$/) {\n"
+            "        mb = (lim - use + cache) / 1048576\n"
+            "        if (mb < 0) mb = 0\n"
+            "        if (mb > 1000000000) mb = 1000000000\n"
+            "        printf \"%d\\n\", mb\n"
+            "      }\n"
+            "    }' \"$1\" \"$2\" \"$3\" 2>/dev/null\n"
+            "}\n"
+            ; processors allowed by "quota period" on stdin
+            "cgcpu() { awk '$1 ~ /^[0-9]+$/ && $1 > 0 && $2 > 0 { c = int($1 / $2); print c < 1 ? 1 : c; exit }' 2>/dev/null; }\n"
+            ; minimum of $1 and $2; empty is unknown
+            "least() { if [ -z \"$2\" ]; then echo \"$1\"; elif [ -z \"$1\" ] || [ \"$2\" -lt \"$1\" ]; then echo \"$2\"; else echo \"$1\"; fi; }\n"
+            "if [ \"$jobs\" = auto ]; then\n"
+            "  jobmb=${COMPACT_ZK_JOB_MB:-5120}\n"
+            "  case $jobmb in 0*|*[!0-9]*) jobmb=5120;; esac\n"
+            "  ncpu=$(getconf _NPROCESSORS_ONLN 2>/dev/null)\n"
+            "  case $ncpu in ''|*[!0-9]*) ncpu=2;; esac\n"
+            "  mem=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo 2>/dev/null)\n"
+            ; macOS: half of the installed memory
+            "  [ -n \"$mem\" ] || mem=$(sysctl -n hw.memsize 2>/dev/null | awk '/^[0-9]+$/ { print int($1 / 2097152) }')\n"
+            ; cgroup v2: this group and each parent
+            "  cg=$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)\n"
+            "  d=/sys/fs/cgroup${cg%/}\n"
+            "  while :; do\n"
+            "    [ ! -r \"$d/memory.max\" ] || mem=$(least \"$mem\" \"$(cgmem \"$d/memory.max\" \"$d/memory.current\" \"$d/memory.stat\" inactive_file)\")\n"
+            "    [ ! -r \"$d/cpu.max\" ] || ncpu=$(least \"$ncpu\" \"$(cgcpu < \"$d/cpu.max\")\")\n"
+            "    d=${d%/*}\n"
+            "    case $d in /sys/fs/cgroup*) ;; *) break;; esac\n"
+            "  done\n"
+            ; cgroup v1
+            "  d=/sys/fs/cgroup/memory\n"
+            "  [ ! -r $d/memory.limit_in_bytes ] || mem=$(least \"$mem\" \"$(cgmem $d/memory.limit_in_bytes $d/memory.usage_in_bytes $d/memory.stat total_inactive_file)\")\n"
+            "  d=/sys/fs/cgroup/cpu\n"
+            "  [ ! -r $d/cpu.cfs_quota_us ] || ncpu=$(least \"$ncpu\" \"$(cat $d/cpu.cfs_quota_us $d/cpu.cfs_period_us 2>/dev/null | tr '\\n' ' ' | cgcpu)\")\n"
+            "  jobs=$((ncpu / 2))\n"
+            ; memory unknown: at most two jobs
+            "  if [ -n \"$mem\" ]; then mem=$((mem / jobmb)); else mem=2; fi\n"
+            "  [ \"$jobs\" -le \"$mem\" ] || jobs=$mem\n"
+            "  [ \"$jobs\" -ge 1 ] || jobs=1\n"
+            "fi\n"
+            "n=$(ls \"$dir/zkir\" | grep -c '\\.zkir$')\n"
+            "[ \"$jobs\" -le \"$n\" ] || jobs=$n\n"
+            "[ \"$jobs\" -gt 1 ] || serial\n"
+            "if ! command -v xargs > /dev/null || ! printf 'x\\000' | xargs -0 -P 2 -n 1 true > /dev/null 2>&1; then\n"
+            "  echo \"No xargs that supports -0 and -P: compiling the circuits one at a time.\" >&2\n"
+            "  serial\n"
+            "fi\n"
+            "echo \"Compiling $n circuits, $jobs at a time:\" >&2\n"
+            "mkdir -p \"$dir/keys\" || exit 1\n"
+            ; one NUL-terminated "k/n name" argument per job
+            "ls -S \"$dir/zkir\" | sed -n 's/\\.zkir$//p' | awk -v n=\"$n\" '{ print NR \"/\" n \" \" $0 }' | tr '\\n' '\\000' |\n"
+            "  xargs -0 -P \"$jobs\" -n 1 sh -c '\n"
+            "    k=${3%% *}; c=${3#* }\n"
+            "    printf \"%s\\n\" \"  [$k] circuit $c started\" >&2\n"
+            "    if out=$(\"$1\" compile \"$2/zkir/$c.zkir\" \"$2/keys/$c.prover\" \"$2/keys/$c.verifier\" 2>&1)\n"
+            "    then printf \"%s\\n\" \"  [$k] circuit $c done\" >&2\n"
+            "    else printf \"%s\\n\" \"zkir failed for circuit $c:\" \"$out\" >&2; exit 255\n"
+            "    fi' sh \"$zkir\" \"$dir\"\n"))))
+
   (define generate-everything
     (case-lambda
       [(pathname output-directory-pathname)
@@ -154,11 +244,7 @@
                               ;; If we have zero circuits, the zkir directory won't exist,
                               ;; and zkir will fail to read it. Skip in that case silently.
                               (when (file-exists? (format "~a/zkir" output-directory-pathname))
-                                ;; TODO: Properly string escape!
-                                (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
-                                                     "zkir-v3"
-                                                     output-directory-pathname
-                                                     output-directory-pathname))])
+                                (let ([res (run-zkir "zkir-v3" output-directory-pathname)])
                                   (unless (zero? res)
                                     (external-errorf "zkir returned a non-zero exit status ~d" res))))
                               (unless (zkir-warning-issued)

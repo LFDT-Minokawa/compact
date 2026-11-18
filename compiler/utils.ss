@@ -25,7 +25,7 @@
           errorf internal-errorf external-errorf error-accessing-file pending-errorf source-errorf source-warningf
           assertf
           format-condition
-          maplr maplr2 compose shell sha256-bytevector sha256-file string-prefix? rm-rf mkdir-p
+          maplr maplr2 compose shell sha256-bytevector sha256-file sha256-files string-prefix? rm-rf mkdir-p
           to-camel-case
           source-error-condition?
           make-halt-condition halt-condition?
@@ -344,7 +344,7 @@
   ;;
   ;; Hashing occurs in-process through Common Crypto or OpenSSL when available, otherwise
   ;; via an external program that implements SHA-256.
-  (module (sha256-bytevector sha256-file)
+  (module (sha256-bytevector sha256-file sha256-native?)
     (define (bytevector->hex bytes)
       (let* ([n (bytevector-length bytes)]
              [v (bytevector-uint-ref bytes 0 'big n)])
@@ -464,8 +464,61 @@
     (define (sha256-bytevector bytes)
       ((force sha256-implementation) bytes))
 
+    (define (sha256-native?)
+      (not (eq? (force sha256-implementation) sha256/external)))
+
     (define (sha256-file pathname)
       (bytevector->hex (sha256-bytevector (read-bytevector pathname)))))
+
+  ;; Returns (map sha256-file pathname*).  total-size is the sum of the file sizes in bytes.
+  ;; For large totals, or without a native implementation, runs sha256sum in parallel
+  ;; (one process per file).  Uses sha256-file if that fails.
+  (define (sha256-files pathname* total-size)
+    (define (hex-string? str)
+      (let loop ([i 0])
+        (or (fx= i (string-length str))
+            (and (let ([c (string-ref str i)]) (or (char<=? #\0 c #\9) (char<=? #\a c #\f)))
+                 (loop (fx+ i 1))))))
+    (define (split-lines str)
+      (let loop ([i 0] [start 0] [rline* '()])
+        (cond
+          [(fx= i (string-length str))
+           (reverse (if (fx= i start) rline* (cons (substring str start i) rline*)))]
+          [(char=? (string-ref str i) #\newline)
+           (loop (fx+ i 1) (fx+ i 1) (cons (substring str start i) rline*))]
+          [else (loop (fx+ i 1) start rline*)])))
+    ;; => list of hashes, or #f on any failure
+    (define (hash-in-parallel)
+      (guard (c [else #f])
+        (let ([input (string->utf8
+                       (apply string-append
+                         (map (lambda (pathname) (string-append pathname "\x0;")) pathname*)))])
+          ;; shell writes all input before it reads output: the input must fit in a pipe buffer
+          (and (fx< (bytevector-length input) 32768)
+               (let-values ([(stdout stderr)
+                             (shell
+                               "exec xargs -0 -n 1 -P \"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)\" sha256sum -b"
+                               input)])
+                 (and (string=? stderr "")
+                      (let ([ht (make-hashtable string-hash string=?)])
+                        ;; line: <64 hex digits> *<pathname>
+                        (for-each
+                          (lambda (line)
+                            (when (and (fx> (string-length line) 66)
+                                       (string=? (substring line 64 66) " *"))
+                              (hashtable-set! ht
+                                (substring line 66 (string-length line))
+                                (substring line 0 64))))
+                          (split-lines stdout))
+                        (let ([hash* (map (lambda (pathname) (hashtable-ref ht pathname #f)) pathname*)])
+                          (and (andmap (lambda (hash) (and hash (hex-string? hash))) hash*)
+                               hash*)))))))))
+    ;; without a native implementation, sha256-file forks the compiler once per file
+    (or (and (or (> total-size (* 64 1024 1024)) (not (sha256-native?)))
+             (not (null? pathname*))
+             (not (null? (cdr pathname*)))
+             (hash-in-parallel))
+        (map sha256-file pathname*)))
 
   (define (string-prefix? prefix str)
     (let ([n (string-length prefix)])
