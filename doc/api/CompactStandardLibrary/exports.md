@@ -1332,9 +1332,9 @@ circuit blockTimeLte(time: Uint<64>): Boolean;
 Returns a byte vector of length `N` holding the byte encoding of a value of type `T`,
 optionally followed by zeros.
 
-The encoding is canonical: for a given type `T` and length `N`, every value has exactly one encoding,
-and `serialize` always produces it.
-Two values of the same type are equal if and only if their encodings are equal.
+The encoding is canonical: for each type `T` and length `N` that `serialize` accepts,
+every value has exactly one encoding, and `serialize` always produces it.
+Two values of the such a type are equal if and only if their same-length encodings are equal.
 
 `T` can be any type other than those containing contract types, `Opaque` types, or curve point types.
 `N` must be at least the serialized size of `T`, which is determined by `T` alone;
