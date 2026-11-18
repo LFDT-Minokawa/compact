@@ -40,15 +40,9 @@
       (Expression : Expression (ir p) -> Expression ()
         [(var-ref ,src ,var-name) `(var-ref ,src ,(maybe-rename p var-name))]
         [(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,expr)
-         (let loop ([var-name* var-name*] [expr* expr*] [p p] [new-var-name* '()] [new-expr* '()])
-           (if (null? var-name*)
-               `(let* ,src ([(,(reverse new-var-name*) ,type*) ,(reverse new-expr*)] ...)
-                      ,(Expression expr p))
-               (let ([new-expr (Expression (car expr*) p)])
-                 (let-values ([(p new-name*) (extend-env p (list (car var-name*)))])
-                   (loop (cdr var-name*) (cdr expr*) p
-                     (cons (car new-name*) new-var-name*)
-                     (cons new-expr new-expr*))))))])
+         (let-values ([(p var-name*) (extend-env p var-name*)])
+           (let ([f (lambda (expr) (rename-expr expr p))])
+             `(let* ,src ([(,var-name* ,type*) ,(map f expr*)] ...) ,(f expr))))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
     (define-record-type circuit

@@ -394,17 +394,15 @@
                      [bytes-type (with-output-language (Lnoserialize Type) `(tbytes ,src ,len))])
                 (with-output-language (Lnoserialize Expression)
                   `(seq ,src
-                     (assert ,src (== ,src ,byte-type
-                                    (bytes-ref ,src ,bytes-type ,expr (quote ,src 0))
-                                    (safe-cast ,src ,byte-type
-                                      ,(with-output-language (Lnoserialize Type) `(tunsigned ,src ,major))
-                                      (quote ,src ,major)))
+                     (assert ,src
+                       (== ,src ,byte-type
+                         (bytes-ref ,src ,bytes-type ,expr (quote ,src 0))
+                         (safe-cast ,src ,byte-type (tunsigned ,src ,major) (quote ,src ,major)))
                        ,message)
-                     (assert ,src (== ,src ,byte-type
-                                    (bytes-ref ,src ,bytes-type ,expr (quote ,src 1))
-                                    (safe-cast ,src ,byte-type
-                                      ,(with-output-language (Lnoserialize Type) `(tunsigned ,src ,minor))
-                                      (quote ,src ,minor)))
+                     (assert ,src
+                       (== ,src ,byte-type
+                         (bytes-ref ,src ,bytes-type ,expr (quote ,src 1))
+                         (safe-cast ,src ,byte-type (tunsigned ,src ,minor) (quote ,src ,minor)))
                        ,message)
                      ,expr^))))))))
     )
