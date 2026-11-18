@@ -1334,7 +1334,7 @@ optionally followed by zeros.
 
 The encoding is canonical: for each type `T` and length `N` that `serialize` accepts,
 every value has exactly one encoding, and `serialize` always produces it.
-Two values of the such a type are equal if and only if their same-length encodings are equal.
+Two values of such a type are equal if and only if their same-length encodings are equal.
 
 `T` can be any type other than those containing contract types, `Opaque` types, or curve point types.
 `N` must be at least the serialized size of `T`, which is determined by `T` alone;
