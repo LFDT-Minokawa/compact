@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.103]
+
+### Added
+
+- Circuits can verify other proofs.  The standard library has a new type
+  `Accumulator` and new circuits `prepareVerification`, `accumulate`, and
+  `verifyAccumulator`.  `prepareVerification(vk, publicInputs, proof)`
+  partially verifies an inner proof against a verifying key read from a file
+  at compile time and returns an `Accumulator` holding its final check;
+  `accumulate` combines accumulators, and `verifyAccumulator` exposes one to be
+  checked with the transaction's own proof.  An inner proof that carries an
+  accumulator is verified by passing that accumulator, from a witness, in its
+  public inputs.  The standard library documentation gives the full rules;
+  among them:
+  - each accumulator is used exactly once, and a branch of an `if`, or the code
+    after a `return` inside one, cannot use one bound outside it;
+  - the key file is a regular `.verifier` file of at most 1 MiB, resolved
+    first from the directory of the file containing the call;
+  - a constructor cannot call `prepareVerification`;
+  - public inputs and proofs derived from witness data must be wrapped in
+    `disclose`, and calling `prepareVerification` under a witness-dependent
+    condition discloses that condition.
+
+  **Circuits compiled with this version, whether or not they verify proofs,
+  need ZKIR and ledger releases, and a proof server built on them, that
+  support in-circuit proof verification.**
+
+- The runtime has new functions `prepareVerification`, `accumulate`, and
+  `verifyAccumulator`, records the inner proofs a circuit verifies in a new
+  `innerProofs` field of `PartialProofData`, and checks each one when the
+  circuit runs, with its new dependency `@midnightntwrk/zkir-v3`.  Pass
+  `innerProofs` as the last argument of `proofDataIntoSerializedPreimage`: the
+  parameter is optional, so leaving it out type-checks but proving fails.
+
+### Changed
+
+- The standard library now exports `Accumulator`, `prepareVerification`,
+  `accumulate`, and `verifyAccumulator`.  A contract that imports
+  `CompactStandardLibrary` and also defines one of these names at its top level
+  no longer compiles; rename its own definition.
+
+- The runtime pulls in `@midnightntwrk/onchain-runtime-v5`, so the ledger
+  types it re-exports, such as `StateValue` and `ContractState`, must be built
+  with v5 rather than v4.
+
 ## [Toolchain 0.36.108, language 0.28.0, runtime 0.21.102]
 
 ### Fixed

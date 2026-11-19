@@ -19,7 +19,7 @@
 
 import { beforeAll, describe, expect, test } from 'vitest';
 import { buildPathTo, compile, createTempFolder, ExitCodes, expectCompilerResult } from '@';
-import { ContractOperation } from '@midnightntwrk/onchain-runtime-v4';
+import { ContractOperation } from '@midnightntwrk/onchain-runtime-v5';
 import * as acorn from 'acorn';
 import { createHash } from 'node:crypto';
 import fs from 'fs';

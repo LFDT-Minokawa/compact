@@ -78,11 +78,13 @@
           #`(set! ndecl*
               (cons
                 (with-output-language (Lpreexpand Native-Declaration)
-                  `(native ,native-src #t #,name
+                  ;; a private-circuit is a circuit visible only inside the standard
+                  ;; library, e.g. to the expansion of a native keyword
+                  `(native ,native-src #,(not (eq? (syntax->datum class) 'private-circuit)) #,name
                      ,(make-native-entry
                         #,function
                         '#,(case (syntax->datum class)
-                             [(circuit) class]
+                             [(circuit private-circuit) (datum->syntax class 'circuit)]
                              [(witness) class]
                              [else (syntax-error class "invalid class")])
                         '#,(map parse-disclosure disclosure*)

@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
-import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
+import { ContractAddress } from '@midnightntwrk/onchain-runtime-v5';
 import { CompactError } from './error.js';
 import {
   CompactType,

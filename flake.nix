@@ -32,19 +32,20 @@
       url = "github:nix-community/fenix/c957e2d0e505ad7be04c7f2f2f3d7885fb9e242c";
       inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
-    onchain-runtime-v4 = {
-      # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+    onchain-runtime-v5 = {
+      # dependency for Compact runtime release; the midnight-ledger commit the pinned
+      # zkir (iquerejeta/pass-zkir-v3) builds against (merge of #791), whose
+      # proofDataIntoSerializedPreimage takes inner proofs
+      url = "github:midnightntwrk/midnight-ledger/6f72b82f0a86e32622538bf2e036c43d5b6e64b8";
     };
     zkir-v3 = {
-      # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1"; # zkir-v3
+      # zkir-v3: the key-generation binary for v3 IR format, and the zkir-wasm package
+      # the runtime checks inner proofs with and test-center runs v3 IR with
+      # Pinned to iquerejeta/pass-zkir-v3 (accumulator cond_select, checkInnerProof, no witness for a
+      # guarded-off inner_proof), which includes zkir-3.2.1 and so the #616 fix.
+      url = "github:midnightntwrk/midnight-zkir/80c4e2891b799f077662ca0a9b1b7f2e9b87ecde"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
       inputs.fenix.follows = "fenix-zkir";
-    };
-    zkir-v3-wasm = {
-      # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -63,9 +64,8 @@
 
   outputs = {
     self,
-    onchain-runtime-v4,
+    onchain-runtime-v5,
     zkir-v3,
-    zkir-v3-wasm,
     nixpkgs,
     utils,
     inclusive,
@@ -172,11 +172,18 @@
             };
 
             nixDependenciesMap = {
-              "@midnightntwrk/onchain-runtime-v4" = let
-                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v4";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
+              };
+              # prepareVerification checks inner proofs with zkir's checkInnerProof
+              "@midnightntwrk/zkir-v3" = let
+                pkg = zkir-v3.packages.${system}.zkir-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
               };
             };
           };
@@ -190,7 +197,7 @@
 
             nixDependenciesMap = {
               "@midnightntwrk/zkir-v3" = let
-                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
+                pkg = zkir-v3.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
@@ -210,7 +217,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.108"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.109"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

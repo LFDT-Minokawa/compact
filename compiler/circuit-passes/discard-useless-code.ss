@@ -203,7 +203,14 @@
      (values
        `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (idset-union-all (cons idset idset*)))]
+    [(prepare-verification ,src ,vk (,[Public-Input-Value : pubin* idset*] ...) ,[Value : expr idset])
+     (values
+       `(prepare-verification ,src ,vk (,pubin* ...) ,expr)
+       (idset-union-all (cons idset idset*)))]
     [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
+  (Public-Input-Value : Public-Input (ir) -> Public-Input (idset)
+    [(pi-fields ,[Value : expr idset] ,[type]) (values `(pi-fields ,expr ,type) idset)]
+    [(pi-accumulator ,[Value : expr idset]) (values `(pi-accumulator ,expr) idset)])
   (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
     [(single ,src ,[Value : expr idset])
      (values `(single ,src ,expr) idset)]

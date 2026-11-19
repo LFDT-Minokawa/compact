@@ -104,6 +104,8 @@
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
+              ;; a placeholder: an Accumulator is never hashed or put in the ledger
+              [(taccumulator ,src) (cons `(anative "Accumulator") a*)]
               [(tpoint ,src ,ctype)
                (strict-nanopass-case (Lcircuit Curve-Type) ctype
                  [(curve-curve25519)
@@ -239,6 +241,7 @@
     [(tfield ,src ,[ftype]) `(tfield ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,nat)]
     [(tpoint ,src ,[ctype]) `(tpoint ,ctype)]
+    [(taccumulator ,src) `(taccumulator)]
     [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
      `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
@@ -283,6 +286,7 @@
                           [(curve-secp256k1) (make-zkir-default "Secp256k1Scalar")]
                           [(curve-secp256r1) (make-zkir-default "Secp256r1Scalar")])])]
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                    [(taccumulator ,src) (internal-errorf 'flatten-datatypes "Accumulator has no default value")]
                     [(tpoint ,src ,ctype)
                      (with-output-language (Lflattened Statement)
                        (strict-nanopass-case (Lcircuit Curve-Type) ctype
@@ -496,6 +500,22 @@
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
        (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat2 ,nat1 ,triv))))]
+    ;; a public input flattens to its fields in the order the TypeScript's descriptor encodes them
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[Single-Triv : triv])
+     (hashtable-set! var-ht var-name (Wump-single var-name))
+     (with-output-language (Lflattened Statement)
+       (list `(= ,test ,var-name
+                (prepare-verification ,src ,vk ,triv
+                  ,(map (lambda (pubin)
+                          (nanopass-case (Lcircuit Public-Input) pubin
+                            [(pi-fields ,triv^)
+                             (with-output-language (Lflattened Public-Input)
+                               `(pi-fields ,(wump->elts (Triv triv^)) ...))]
+                            [(pi-accumulator ,triv^)
+                             (with-output-language (Lflattened Public-Input)
+                               `(pi-accumulator ,(Single-Triv triv^)))]))
+                        pubin*)
+                  ...))))]
     [(elt-ref ,[* wump] ,elt-name)
      (hashtable-set! var-ht var-name
        (Wump-case wump

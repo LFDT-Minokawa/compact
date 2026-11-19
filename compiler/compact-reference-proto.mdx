@@ -2260,6 +2260,9 @@ has static type *T* and evaluates to the default value of that type as follows:
 - `MerkleTree<`*n*`, `*T*`>`: an empty Merkle tree
 - `HistoricMerkleTree<`*n*`, `*T*`>`: an empty historic Merkle tree
 
+The standard library's `Accumulator` type has no default value, so `default<Accumulator>`
+is a static error.
+
 Compact provides no constructor for the foreign curve point types,
 so `default<`*T*`>` is the only way to create one in circuit.
 
@@ -2322,6 +2325,7 @@ to be related.
 That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
 or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
 Otherwise, it is a static error.
+Neither operand of equals or not equals may be an `Accumulator`; that too is a static error.
 
 Less than, greater than, less than or equals, and greater than or equals require
 the types of *e<sub>1</sub>* and *e<sub>2</sub>* to be unsigned integer types.

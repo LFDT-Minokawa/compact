@@ -26,6 +26,16 @@
         [else (assert cannot-happen)]))
     (define (alignment->vector alignment*)
       (list->vector (map alignment-atom->alist alignment*)))
+    ;; the keys a circuit's prepare_verification instructions name, once each in first-use
+    ;; order since zkir rejects duplicates, collected as the circuit's instructions print
+    (define inner-vk*)
+    (define (inner-vk-hash vk)
+      (let ([content (verifying-key-content vk)])
+        (unless (member content inner-vk*)
+          (set! inner-vk* (append inner-vk* (list content))))
+        (apply string-append "0x"
+          (map (lambda (b) (format "~(~2,'0x~)" b))
+               (bytevector->u8-list (sha256-bytevector content))))))
     (module (with-var-table var->string)
       (define ht)
       (define counter)
@@ -65,17 +75,23 @@
      (define (print-circuit op)
        (print-json-compact op
          (with-var-table
-           (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
-                                                 `((name . ,(var->string var-name))
-                                                   (type . ,zkir-type)))
-                                          var-name* zkir-type*))]
-                  [instructions (list->vector (maplr Instruction instr*))]
-                  [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 1)))
-               (do_communications_commitment . ,(not (no-communications-commitment)))
-               (inputs . ,inputs)
-               (outputs . ,outputs)
-               (instructions . ,instructions))))))
+           (fluid-let ([inner-vk* '()])
+             (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
+                                                   `((name . ,(var->string var-name))
+                                                     (type . ,zkir-type)))
+                                            var-name* zkir-type*))]
+                    [instructions (list->vector (maplr Instruction instr*))]
+                    [outputs (list->vector zkir-type0*)])
+               `((version . ((major . 3) (minor . 3)))
+                 (do_communications_commitment . ,(not (no-communications-commitment)))
+                 (inputs . ,inputs)
+                 (outputs . ,outputs)
+                 ,@(if (null? inner-vk*)
+                       '()
+                       `((inner_vks . ,(list->vector
+                                         (map (lambda (content) (list->vector (bytevector->u8-list content)))
+                                              inner-vk*)))))
+                 (instructions . ,instructions)))))))
      (let ([output-port*
              (fold-left (lambda (output-port* name)
                           (let ([target (assq name (target-ports))])
@@ -93,6 +109,8 @@
              (let ([str (call-with-string-output-port print-circuit)])
                (for-each (lambda (op) (put-string op str)) output-port*)))))])
   (Instruction : Instruction (ir) -> * (json)
+    [(accumulate ,[* outp] ,[* inp*] ...)
+     `((op . "accumulate") (inputs . ,(list->vector inp*)) (output . ,outp))]
     [(add ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(assert ,[* inp])
@@ -130,6 +148,8 @@
      `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
     [(impact ,[* inp] ,[* inp*] ...)
      `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
+    [(inner_proof ,[* outp] ,[* inp])
+     `((op . "inner_proof") (guard . ,inp) (output . ,outp))]
     [(into_coordinates ,outp0 ,outp1 ,[* inp])
      (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
        `((op . "into_coordinates") (outputs . ,(vector outp0 outp1)) (point . ,inp)))]
@@ -155,6 +175,13 @@
     [(persistent_hash ,[* outp] (,alignment* ...) ,[* inp*] ...)
      `((op . "persistent_hash") (output . ,outp)
        (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
+    [(prepare_verification ,[* outp] ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
+     `((op . "prepare_verification")
+       (guard . ,inp0)
+       (vk_hash . ,(inner-vk-hash vk))
+       (instance . ,(list->vector inp*))
+       (proof . ,inp1)
+       (output . ,outp))]
     [(private_input ,zkir-type ,[* outp])
      ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
      ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
@@ -182,7 +209,9 @@
     [(to_bytes ,[* outp] ,[* inp])
      `((op . "to_bytes") (output . ,outp) (input . ,inp))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
-     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))])
+     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))]
+    [(verify_accumulator ,[* inp])
+     `((op . "verify_accumulator") (input . ,inp))])
   (Input : Input (ir) -> * (json)
     (,fr (zkir-field-rep->string fr))
     (,var-name (var->string var-name)))

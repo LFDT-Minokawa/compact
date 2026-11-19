@@ -138,6 +138,25 @@
                 (cons (make-private-input test var-name primitive-type) instr*)))
             instr* var-name* primitive-type*)))
 
+    ;; accumulate is n-ary in ZKIR but binary in Compact, so one is recorded here instead of
+    ;; emitted, for an accumulate of its output to absorb, until its output is used otherwise
+    (define pending-accumulate-ht)
+    ;; fields in an Accumulator's public-input encoding (transient-crypto's accumulator_pi_len)
+    (define accumulator-encoding-length 12)
+    (define (accumulate-inputs triv)
+      (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
+        (if inputs
+            (begin (hashtable-delete! pending-accumulate-ht triv) inputs)
+            (list triv))))
+    (define (emit-pending-accumulate triv instr*)
+      (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
+        (if inputs
+            (begin
+              (hashtable-delete! pending-accumulate-ht triv)
+              (with-output-language (Lzkir Instruction)
+                (cons `(accumulate ,triv ,inputs ...) instr*)))
+            instr*)))
+
     (define (make-native name arg*)
       ;; Get the list of alignment atoms for a 0-based arg index.
       (define (arg->alignment arg* index)
@@ -148,6 +167,17 @@
         (with-output-language (Lzkir Instruction)
           ;; Generally assume that the arity is correct here.
           (case name
+            [(__compact_accumulate)
+             (assert (= (length var-name*) 1))
+             (hashtable-set! pending-accumulate-ht (car var-name*)
+               (append (accumulate-inputs (car triv*)) (accumulate-inputs (cadr triv*))))
+             instr*]
+            [(verifyAccumulator)
+             ;; verify_accumulator has no guard: a guarded-off Accumulator is the
+             ;; trivial one, which verifies
+             (assert (= (length var-name*) 0))
+             (cons `(verify_accumulator ,(car triv*))
+               (emit-pending-accumulate (car triv*) instr*))]
             [(constructJubjubPoint)
              (assert (= (length var-name*) 1))
              (cons `(from_coordinates ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
@@ -707,6 +737,7 @@
                    `(less_than ,tmp ,var-name ,(1+ nat) ,bits)
                    instr*))]))]
         [(tpoint ,ctype) instr*]
+        [(taccumulator) instr*]
         [else (assert cannot-happen)]))
 
     ;; Turn an Lflattened argument list into a list of names, a parallel list of types, and
@@ -738,6 +769,7 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (field-type->string ftype)]
         [(tpoint ,ctype) (format "Point<~a>" (curve-type->string ctype))]
+        [(taccumulator) "Accumulator"]
         [(tunsigned ,nat) "Scalar<BLS12-381>"]
         [(topaque ,opaque-type) "Scalar<BLS12-381>"]
         [else (assert cannot-happen)])))
@@ -773,7 +805,7 @@
      ;; - Insert type constraints for inputs
      ;; - Translate the statements in the body
      ;; - Emit an (output ...) terminator with the result trivs as operands.
-     (fluid-let ([default-src src])
+     (fluid-let ([default-src src] [pending-accumulate-ht (make-eq-hashtable)])
        (let-values ([(var-name* arg-type*) (unzip-arguments arg*)])
          (let* ([constraint*
                   (fold-left (lambda (constraint* var-name type)
@@ -781,18 +813,20 @@
                     '() var-name* arg-type*)]
                 [instr*
                   (fold-left (lambda (instr* stmt) (Statement stmt instr*))
-                    constraint* stmt*)]
-                [body
-                  (if (null? triv*)
-                      instr*
-                      (cons
-                        (with-output-language (Lzkir Instruction)
-                          `(output ,triv* ...))
-                        instr*))])
-           `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
-              ((,var-name* ,(map type->string arg-type*)) ...)
-              (,(map type->string primitive-type*) ...)
-              ,(reverse body) ...))))])
+                    constraint* stmt*)])
+           (unless (fx= (hashtable-size pending-accumulate-ht) 0)
+             (internal-errorf 'reduce-to-zkir "an accumulate result is never used"))
+           (let ([body
+                   (if (null? triv*)
+                       instr*
+                       (cons
+                         (with-output-language (Lzkir Instruction)
+                           `(output ,triv* ...))
+                         instr*))])
+             `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
+                ((,var-name* ,(map type->string arg-type*)) ...)
+                (,(map type->string primitive-type*) ...)
+                ,(reverse body) ...)))))])
 
   (Statement : Statement (ir instr*) -> * (instr*)
     [(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...))
@@ -973,6 +1007,35 @@
             env
             vm-code
             instr*))])]
+    ;; prepare_verification and its inner_proof take the statement's test as guard; the
+    ;; proof triv is TypeScript's and has no use in the circuit.  An accumulator among
+    ;; the public inputs is encoded in place and accumulated into the result.
+    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,pubin* ...))
+     (let ([proof (make-temp-id src 'proof)])
+       (with-output-language (Lzkir Instruction)
+         (let loop ([pubin* pubin*] [rinput* '()] [acc* '()] [instr* instr*])
+           (if (null? pubin*)
+               (let ([input* (reverse rinput*)])
+                 (if (null? acc*)
+                     (cons*
+                       `(prepare_verification ,var-name ,vk ,test ,proof ,input* ...)
+                       `(inner_proof ,proof ,test)
+                       instr*)
+                     (let ([acc (make-temp-id src 'acc)])
+                       (hashtable-set! pending-accumulate-ht var-name (cons acc (reverse acc*)))
+                       (cons*
+                         `(prepare_verification ,acc ,vk ,test ,proof ,input* ...)
+                         `(inner_proof ,proof ,test)
+                         instr*))))
+               (nanopass-case (Lflattened Public-Input) (car pubin*)
+                 [(pi-fields ,triv* ...)
+                  (loop (cdr pubin*) (append (reverse triv*) rinput*) acc* instr*)]
+                 [(pi-accumulator ,triv)
+                  (let ([enc* (map (lambda (i) (make-temp-id src 'carried)) (iota accumulator-encoding-length))])
+                    (loop (cdr pubin*)
+                          (append (reverse enc*) rinput*)
+                          (cons triv acc*)
+                          (cons `(encode (,enc* ...) ,triv) (emit-pending-accumulate triv instr*))))])))))]
     [(= ,test ,var-name ,single)
      (Single single var-name instr*)]
     [(assert ,src ,test ,mesg)
@@ -1004,7 +1067,8 @@
        (cons `(test_eq ,var-name ,triv0 ,triv1) instr*))]
     [(select ,triv0 ,triv1 ,triv2)
      (with-output-language (Lzkir Instruction)
-       (cons `(cond_select ,var-name ,triv0 ,triv1 ,triv2) instr*))]
+       (cons `(cond_select ,var-name ,triv0 ,triv1 ,triv2)
+         (emit-pending-accumulate triv2 (emit-pending-accumulate triv1 instr*))))]
     [(bytes-ref ,triv ,nat)
      (with-output-language (Lzkir Instruction)
        (let ([quo (make-temp-id default-src 'quo)]

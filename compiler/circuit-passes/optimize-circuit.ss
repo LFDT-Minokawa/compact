@@ -307,6 +307,13 @@
                             [(Lflattened-Triv? single)
                              (hashtable-set! var->triv var-name single)
                              single]
+                            ;; each prepareVerification consumes its own inner proof and
+                            ;; produces an Accumulator that must be used exactly once, so two
+                            ;; identical ones are never merged
+                            [(nanopass-case (Lflattened Single) single
+                               [(prepare-verification ,src ,vk ,triv ,pubin* ...) #t]
+                               [else #f])
+                             single]
                             [(hashtable-ref nontriv-single->var (cons test single) #f) =>
                              (lambda (var-name^)
                                (hashtable-set! var->triv var-name var-name^)
@@ -617,7 +624,12 @@
            (lambda (nat^)
              (and (<= nat^ nat1) nat^)))
          `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv))]
+    [(prepare-verification ,src ,vk ,[FWD-Triv : triv] ,[FWD-Public-Input : pubin*] ...)
+     `(prepare-verification ,src ,vk ,triv ,pubin* ...)]
     [else (internal-errorf 'FWD-Single "unexpected ir ~s" ir)])
+  (FWD-Public-Input : Public-Input (ir) -> Public-Input ()
+    [(pi-fields ,[FWD-Triv : triv*] ...) `(pi-fields ,triv* ...)]
+    [(pi-accumulator ,[FWD-Triv : triv]) `(pi-accumulator ,triv)])
   (FWD-Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]
     [(,src ,type ,[FWD-Triv : triv*] ...) `(,src ,type ,triv* ...)])
@@ -654,7 +666,8 @@
           [(vector->bytes ,triv ,triv* ...) #t]
           [(cast-to-field ,ftype ,primitive-type ,triv) #t]
           [(cast-from-field ,src ,safe ,nat ,ftype ,triv) #f]
-          [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) #f])))
+          [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) #f]
+          [(prepare-verification ,src ,vk ,triv ,pubin* ...) #f])))
     [(= ,test ,var-name ,single)
      (guard
        (not (hashtable-contains? ref-ht var-name))
@@ -728,7 +741,12 @@
      `(cast-from-field ,src ,safe ,nat ,ftype ,triv)]
     [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[BWD-Triv : triv])
      `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)]
+    [(prepare-verification ,src ,vk ,[BWD-Triv : triv] ,[BWD-Public-Input : pubin*] ...)
+     `(prepare-verification ,src ,vk ,triv ,pubin* ...)]
     [else (internal-errorf 'BWD-Single "unexpected ir ~s" ir)])
+  (BWD-Public-Input : Public-Input (ir) -> Public-Input ()
+    [(pi-fields ,[BWD-Triv : triv*] ...) `(pi-fields ,triv* ...)]
+    [(pi-accumulator ,[BWD-Triv : triv]) `(pi-accumulator ,triv)])
   (BWD-Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]
     [(,src ,type ,[BWD-Triv : triv*] ...) `(,src ,type ,triv* ...)])

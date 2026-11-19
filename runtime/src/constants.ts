@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 
 /**
  * The maximum value representable in Compact's `Field` type
@@ -96,6 +96,12 @@ export const CURVE25519_SCALAR_MODULUS: bigint = 2n ** 252n + 277423177773723535
  * The maximum value of a `Curve25519Scalar` foreign field value
  */
 export const MAX_CURVE25519_SCALAR: bigint = CURVE25519_SCALAR_MODULUS - 1n;
+
+/**
+ * The number of field elements in an `Accumulator`'s public-input encoding: transient-crypto's
+ * `accumulator_pi_len`, which compiler/zkir-v3-passes/reduce-to-zkir.ss also uses
+ */
+export const ACCUMULATOR_PUBLIC_INPUTS: number = 12;
 
 /**
  * A valid placeholder contract address

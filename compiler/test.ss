@@ -14961,6 +14961,158 @@ groups than for single tests.
              (tpoint (curve-jubjub))
           %x.2)))
     )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three arguments, received ~d" (4)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification<2>(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(k: Bytes<17>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(k, [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"no-such.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "failed to locate verifying key file ~s" ("no-such.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"empty.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s is empty" ("empty.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.txt\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "expected the verifying key file name ~s to end in .verifier" ("testfile.txt")))
+    ))
+
+  (test-group
+    ((create-file "keydir.verifier/placeholder"
+       '(
+         "not a key"
+         )))
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"keydir.verifier\", [1 as Field], p); }"
+         "export circuit main(): [] { }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("keydir.verifier")))
+     ))
+
+  ;; a key file must not be a symbolic link
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"symlink.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s must be a regular file, not a directory or symbolic link" ("symlink.verifier")))
+    ))
+
+  ;; a key path is resolved relative to the file holding the call: the empty
+  ;; libkey.verifier beside testfile.compact must not be the one lib/L uses
+  (test-group
+    ((create-file "lib/libkey.verifier"
+       '(
+         "library key"
+         )))
+    ((create-file "libkey.verifier"
+       '()))
+    ((create-file "lib/L.compact"
+       '(
+         "module L {"
+         "  import CompactStandardLibrary;"
+         "  export circuit check(p: Opaque<'Uint8Array'>): Accumulator {"
+         "    return prepareVerification(\"libkey.verifier\", [1 as Field], p);"
+         "  }"
+         "}"
+         )))
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "import \"lib/L\";"
+         "witness p(): Opaque<'Uint8Array'>;"
+         "export circuit main(): [] { verifyAccumulator(check(p())); }"
+         ))
+     (succeeds))
+     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 51" "accumulate expects at least two arguments, received ~d" (1)))
+    )
 )
 
 (run-tests infer-types
@@ -18456,6 +18608,639 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    four functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Curve25519Point, Curve25519Point)\n      declared argument types for function at <standard library>:\n        (Secp256r1Point, Secp256r1Point)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
+
+  (test
+    '(
+      "circuit foo(a: Accumulator): [] { }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 16" "unbound identifier ~s" (Accumulator)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Field { return a; }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Accumulator" "Field" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Accumulator {"
+      "  const b: Accumulator = a;"
+      "  return b;"
+      "}"
+      "export circuit bar(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(a: Accumulator): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(): Accumulator { return 1; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("return value of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(a: Accumulator): Field;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 11" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of witness w" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(): Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger x: Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("ledger field x" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger m: Map<Field, Accumulator>;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("ledger field m" "Map<Field, Accumulator>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(a: Accumulator) { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 13" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of the ledger constructor" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit f(a: Accumulator): []; }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 24" "~a cannot be or contain an Accumulator, but has type ~a" ("argument 'a' of contract circuit f" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { a: Accumulator; }"
+      "circuit f(s: S): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("struct field 'a'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(v: Vector<2, Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot be or contain an Accumulator, but has type ~a" ("vector element" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(t: [Accumulator, Field]): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot be or contain an Accumulator, but has type ~a" ("tuple element 1" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(): Accumulator { return default<Accumulator>; }"
+      "export circuit g(): [] { f(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 35" "default is not defined for type ~a" ("Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(m: Maybe<Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "~a cannot be or contain an Accumulator, but has type ~a" ("struct field 'value'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export new type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot be or contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return id(b); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { return b ? id(a) : a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 68" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 61")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { if (b) { return a; } return id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 70" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 54")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 11" "Accumulator ~s is never used on the path through the return at ~a" (a "line 3 char 1")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 62" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): Accumulator { return g(a, a); }"
+      "circuit g(a: Accumulator, c: Accumulator): Accumulator { return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 54" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a1: Accumulator, a2: Accumulator): Accumulator { return b ? a1 : a2; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 83" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a1 "line 3 char 79")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator, c: Accumulator): Accumulator { if (b) { return a; } return c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 86" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 3 char 70")))
+    )
+
+  ;; a return inside an anonymous circuit called on the spot returns from it
+  ;; alone, so the checks go on after the call
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(): Accumulator;"
+      "circuit f(): [] { ((): [] => { return; })(); verifyAccumulator(disclose(w())); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 73" "an Accumulator returned by a witness can only be used among the public inputs of prepareVerification, not ~a" ("passed to verifyAccumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { const b = ((y: Accumulator): Accumulator => { return y; })(a); verifyAccumulator(b); verifyAccumulator(b); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 136" "Accumulator ~s is used more than once" (b)))
+    )
+
+  ;; and an Accumulator bound outside it need not be used before it returns
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { ((): [] => { return; })(); verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(((x: Accumulator): Accumulator => ((y: Accumulator): Accumulator => { return y; })(x))(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  ;; a branch cannot use an Accumulator bound outside its if, even in one
+  ;; branch where the use would be sound
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { verifyAccumulator(a); } }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (a "line 2 char 45")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): Accumulator { return ((x: Accumulator): Accumulator => { if (c) { return x; } return x; })(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 113" "Accumulator ~s is bound outside the if at ~a, so neither of its branches can use it" (x "line 2 char 97")))
+    )
+
+  ;; the code after an early return becomes the if's other branch
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { return; } verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 82" "Accumulator ~s is bound before the if at ~a, which can return early, so the code after that if cannot use it" (a "line 2 char 45")))
+    )
+
+  ;; when both branches return, an Accumulator bound before the if must be used
+  ;; before it
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(c: Boolean, a: Accumulator): [] { if (c) { return; } else { return; } }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "Accumulator ~s is never used before the if at ~a, both of whose branches return" (a "line 2 char 45")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 33" "this Accumulator is never used" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator, c: Accumulator): Boolean { return a == c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 61" "an Accumulator cannot be used as ~a" ("an operand of ==")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { return disclose(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { const t = [a, 1]; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 44" "an Accumulator cannot be used as ~a" ("a tuple element")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { for (const i of 0..2) { id(a); } return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 69" "Accumulator ~s cannot be used inside a for loop, map, or fold" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Field { return transientHash<Accumulator>(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 70" "an Accumulator cannot be passed to ~a ~s" (native transientHash)))
+    )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(x: Field, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [x, 1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 52" "this Accumulator is never used" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { x: Field, b: Bytes<32> }"
+      "circuit f(s: S, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", s, p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 64" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("struct S<x: Field, b: Bytes<32>>")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(b: Bytes<32>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [b], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("Bytes<32>")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [...(42 as Field)], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 100" "expected tuple/vector spread expression to have a tuple, Vector, or Bytes type but received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 43" "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "circuit f(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 42" "unbound identifier ~s" (prepareVerification)))
+    ))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(a); verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 73" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 65" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import { Accumulator, accumulate, verifyAccumulator } from CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator, c: Accumulator): [] { verifyAccumulator(accumulate(a, b, c)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, x: Field): [] { verifyAccumulator(accumulate(a, x)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (accumulate #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Accumulator, Field)\n      declared argument types for function at <standard library>:\n        (Accumulator, Accumulator)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 84" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary prefix X;"
+      "circuit f(a: XAccumulator, b: XAccumulator): [] { XverifyAccumulator(X__compact_accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 70" "unbound identifier ~s" (X__compact_accumulate)))
+    )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, x: JubjubPoint): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field, x], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("JubjubPoint")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field, [a]], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a" ("[Accumulator]")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareVerification(\"testfile.verifier\", [1 as Field, a], p), a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 147" "Accumulator ~s is used more than once" (a)))
+    ))
 
   (test
     '(
@@ -31154,6 +31939,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f mk "modifies sealed field s" "line 3 char 34")))
     )
+
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export sealed ledger s: Field;"
+      "circuit bump(): Field { s = 1 as Field; return 1 as Field; }"
+      "export circuit f(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [bump()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "exported circuits cannot modify sealed ledger fields but ~a calls (directly or indirectly) ~a, which ~a at ~a" (f bump "modifies sealed field s" "line 4 char 25")))
+    ))
 )
 
 (run-tests reject-constructor-emit
@@ -31229,9 +32029,63 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (ev "emits event ShieldedSpend" "line 2 char 34")))
     )
+
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit e(): Field { emit (ShieldedSpend { pad(32, 'a') }); return 1 as Field; }"
+      "constructor() { verifyAccumulator(prepareVerification(\"testfile.verifier\", [e()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 3 char 22")))
+    ))
+  )
+
+(run-tests reject-constructor-verify
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "constructor() { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot verify a proof but ~a at ~a" ("verifies a proof against \"testfile.verifier\"" "line 3 char 35")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p())); }"
+      "constructor() { check(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot verify a proof but calls (directly or indirectly) ~a, which ~a at ~a" (check "verifies a proof against \"testfile.verifier\"" "line 3 char 41")))
+    ))
   )
 
 (run-tests identify-pure-circuits
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "pure circuit f(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { f(p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (f "verifies a proof against \"testfile.verifier\"" "line 3 char 21")))
+    ))
   (test
     '(
       "module M {"
@@ -31485,6 +32339,123 @@ groups than for single tests.
 )
 
 (run-tests track-witness-data
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, carried()], disclose(innerProof())));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the public inputs of prepareVerification at line 5 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], disclose(p)));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [x], disclose(p)));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter x of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the public inputs of prepareVerification at line 3 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof()));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the return value of witness innerProof at line 2 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the proof given to prepareVerification at line 4 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (c) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 30" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter c of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      performing this prepareVerification might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 3 char 3"))))
+    ))
   (test
     '(
       "ledger X: Field;"
@@ -37290,6 +38261,20 @@ groups than for single tests.
       irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit getv from external contract C" "line 4 char 50")))
     )
 
+  ;; the public inputs of prepareVerification are checked too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "contract C { circuit get(): Field; }"
+      "constructor(c: C) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(c).get()], p())); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 4 char 92")))
+    ))
+
   (test-group
     ((create-file "C1.compact"
        '(
@@ -39505,6 +40490,66 @@ groups than for single tests.
         "}"))
     )
 
+  ;; a circuit whose only effect is verifying a proof, here through a called
+  ;; circuit, needs a proof of its own; a witness may return an Accumulator
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "witness w(): Accumulator;"
+      "circuit check(): [] { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(w())], disclose(p()))); }"
+      "export circuit only_verify(): [] { check(); }"
+      )
+    ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+    ; lines to avoid hard-coding specific version strings into the test
+    (output-file "compiler/testdir/compiler/contract-info.json"
+      `(
+        "{"
+        ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+        ,(format "  \"language-version\": \"~a\"," language-version-string)
+        ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+        "  \"circuits\": ["
+        "    {"
+        "      \"name\": \"only_verify\","
+        "      \"pure\": false,"
+        "      \"proof\": true,"
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result-type\": {"
+        "        \"type-name\": \"Tuple\","
+        "        \"types\": ["
+        "        ]"
+        "      }"
+        "    }"
+        "  ],"
+        "  \"witnesses\": ["
+        "    {"
+        "      \"name\": \"p\","
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result type\": {"
+        "        \"type-name\": \"Opaque\","
+        "        \"tsType\": \"Uint8Array\""
+        "      }"
+        "    },"
+        "    {"
+        "      \"name\": \"w\","
+        "      \"arguments\": ["
+        "      ],"
+        "      \"result type\": {"
+        "        \"type-name\": \"Accumulator\""
+        "      }"
+        "    }"
+        "  ],"
+        "  \"contracts\": ["
+        "  ],"
+        "  \"ledger\": ["
+        "  ]"
+        "}"))
+    ))
+
   (test-group
     ((create-file "C.compact"
        '(
@@ -41530,6 +42575,36 @@ groups than for single tests.
                 (public-ledger %field1.1 (0 ((tfield (field-native)) %tmp.9)) lookup
                   %tmp.8)))))))
     )
+
+  ;; inlining a circuit, unrolling a loop, or inlining a map body renames the
+  ;; variables in prepareVerification's public inputs too
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "circuit g(y: Uint<8>, q: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [disclose(y)], disclose(q)); }"
+      "export circuit f(): [] { verifyAccumulator(g(3, p())); }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export circuit f(): [] { for (const i of 0..2) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [i], disclose(p()))); } }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness p(): Opaque<'Uint8Array'>;"
+      "export circuit f(v: Vector<2, Field>): [] { const r = map((x: Field): [] => { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], disclose(p()))); return []; }, v); }"
+      )
+    (succeeds)))
 
   ;; Regression test for GitHub issue #943.
   (test
@@ -45286,6 +46361,132 @@ groups than for single tests.
 )
 
 (run-tests optimize-circuit2
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.13)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.14) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.15)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= %c.14
+             %t.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.15
+               (pi-fields 1)))
+          (= %c.14 () (call %verifyAccumulator.2 %t.9)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.16)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.17) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.18)
+              (ty ((acompress)) ((topaque "Uint8Array"))))
+            (argument
+              (%q.19)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ()) (= 1 %t.21 (select %c.17 0 1))
+          (= %c.17
+             %t.11
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               (pi-fields 1)))
+          (= %t.21
+             %t.13
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %q.19
+               (pi-fields 2)))
+          (= 1 %a.22 (select %c.17 %t.11 %t.13))
+          (= 1 () (call %verifyAccumulator.2 %a.22)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (returns
+      (program (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %__compact_accumulate.2
+          ((argument
+             (%a.15)
+             (ty ((anative "Accumulator")) ((taccumulator))))
+            (argument
+              (%b.16)
+              (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty ((anative "Accumulator")) ((taccumulator))))
+        (native
+          %verifyAccumulator.5
+          ((argument
+             (%acc.17)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument
+             (%p.18)
+             (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= 1
+             %a.8
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               (pi-fields 1)))
+          (= 1
+             %b.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               (pi-fields 1)))
+          (= 1 (%t.19) (call %__compact_accumulate.2 %a.8 %b.9))
+          (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
+    ))
+
   (test
     `(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
@@ -51235,6 +52436,331 @@ groups than for single tests.
 )
 
 (run-tests print-zkir-v3
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"input\": \"%t.0\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.14\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\", \"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"proof\": \"%proof.14\", \"output\": \"%acc.15\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.15\", \"%t.0\"], \"output\": \"%t.16\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.16\" }"
+        "  ]"
+        "}"))
+    ))
+
+ ;; a spread public input is converted as in any tuple: Bytes<2> gives two fields
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(b: Bytes<2>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [...disclose(b), disclose(carried())], disclose(innerProof())));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+      "{"
+      "  \"version\": { \"major\": 3, \"minor\": 3 },"
+      "  \"do_communications_commitment\": true,"
+      "  \"inputs\": ["
+      "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+      "  ],"
+      "  \"outputs\": ["
+      "  ],"
+      "  \"inner_vks\": ["
+      "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+      "  ],"
+      "  \"instructions\": ["
+      "    { \"op\": \"constrain_bits\", \"val\": \"%b.0\", \"bits\": 16 },"
+      "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%t.2\"], \"val\": \"%b.0\", \"bits\": 8 },"
+      "    { \"op\": \"copy\", \"output\": \"%t.3\", \"val\": \"%quo.1\" },"
+      "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.4\", \"guard\": null },"
+      "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+      "    { \"op\": \"encode\", \"outputs\": [\"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"input\": \"%t.4\" },"
+      "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.18\" },"
+      "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"%t.2\", \"%t.3\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"proof\": \"%proof.18\", \"output\": \"%acc.19\" },"
+      "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.19\", \"%t.4\"], \"output\": \"%t.20\" },"
+      "    { \"op\": \"verify_accumulator\", \"input\": \"%t.20\" }"
+      "  ]"
+      "}"))
+    ))
+
+ ;; public inputs of any Field, Uint, and Boolean shape, with an accumulator in the
+ ;; middle: the instance is their fields in order, the accumulator's encoding in place
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { n: Uint<64>, ok: Boolean }"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(s: S, v: Vector<2, Field>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(s), disclose(carried()), disclose(v)], disclose(innerProof())));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+      "{"
+      "  \"version\": { \"major\": 3, \"minor\": 3 },"
+      "  \"do_communications_commitment\": true,"
+      "  \"inputs\": ["
+      "    { \"name\": \"%s.0\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%s.1\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+      "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" }"
+      "  ],"
+      "  \"outputs\": ["
+      "  ],"
+      "  \"inner_vks\": ["
+      "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+      "  ],"
+      "  \"instructions\": ["
+      "    { \"op\": \"constrain_bits\", \"val\": \"%s.0\", \"bits\": 64 },"
+      "    { \"op\": \"constrain_to_boolean\", \"val\": \"%s.1\" },"
+      "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.4\", \"guard\": null },"
+      "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+      "    { \"op\": \"encode\", \"outputs\": [\"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\"], \"input\": \"%t.4\" },"
+      "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.18\" },"
+      "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"%s.0\", \"%s.1\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\", \"%carried.14\", \"%carried.15\", \"%carried.16\", \"%carried.17\", \"%v.2\", \"%v.3\"], \"proof\": \"%proof.18\", \"output\": \"%acc.19\" },"
+      "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.19\", \"%t.4\"], \"output\": \"%t.20\" },"
+      "    { \"op\": \"verify_accumulator\", \"input\": \"%t.20\" }"
+      "  ]"
+      "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const acc1 = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const acc2 = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const acc3 = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
+      "  verifyAccumulator(accumulate(acc1, acc2, acc3));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%acc1.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%acc2.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%acc3.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc1.4\", \"%acc2.6\", \"%acc3.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%t.2\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.2\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.2\", \"output\": \"%t.3\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.3\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p)) : prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%c.0\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.4\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.4\", \"output\": \"%t.5\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%t.3\", \"output\": \"%proof.6\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%t.3\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.6\", \"output\": \"%t.7\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%a.8\", \"bit\": \"%c.0\", \"a\": \"%t.5\", \"b\": \"%t.7\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%a.8\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%a.2\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%b.4\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.2\", \"%b.4\"], \"output\": \"%t.5\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.5\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
+      "  verifyAccumulator(accumulate(accumulate(a, b), c));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%a.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%b.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%c.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.4\", \"%b.6\", \"%c.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
@@ -51297,7 +52823,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51327,7 +52853,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51358,7 +52884,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51388,7 +52914,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51419,7 +52945,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51473,7 +52999,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51492,7 +53018,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51529,7 +53055,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51574,7 +53100,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -51596,7 +53122,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51632,7 +53158,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -51683,7 +53209,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51703,7 +53229,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51733,7 +53259,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
@@ -51800,7 +53326,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51819,7 +53345,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/ismember.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51841,7 +53367,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51860,7 +53386,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/update.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -51879,7 +53405,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51919,7 +53445,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -51938,7 +53464,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -51960,7 +53486,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -51998,7 +53524,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52031,7 +53557,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52058,7 +53584,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52090,7 +53616,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52125,7 +53651,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52165,7 +53691,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52217,7 +53743,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52249,7 +53775,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52289,7 +53815,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52375,7 +53901,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52462,7 +53988,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52615,7 +54141,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52652,7 +54178,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52757,7 +54283,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52785,7 +54311,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52816,7 +54342,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52846,7 +54372,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52880,7 +54406,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -52914,7 +54440,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -52941,7 +54467,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -52974,7 +54500,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53013,7 +54539,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53058,7 +54584,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53087,7 +54613,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53117,7 +54643,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53152,7 +54678,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53206,7 +54732,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53227,7 +54753,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53245,7 +54771,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53263,7 +54789,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar4.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53293,7 +54819,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53325,7 +54851,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -53352,7 +54878,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53382,7 +54908,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53410,7 +54936,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53438,7 +54964,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53466,7 +54992,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53496,7 +55022,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53527,7 +55053,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53559,7 +55085,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53594,7 +55120,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53627,7 +55153,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53660,7 +55186,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53693,7 +55219,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53727,7 +55253,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53765,7 +55291,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53797,7 +55323,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53826,7 +55352,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -53858,7 +55384,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53888,7 +55414,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53918,7 +55444,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53949,7 +55475,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -53979,7 +55505,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54010,7 +55536,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -54041,7 +55567,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54072,7 +55598,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54124,7 +55650,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54201,7 +55727,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54264,7 +55790,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54291,7 +55817,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54318,7 +55844,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54345,7 +55871,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54372,7 +55898,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54400,7 +55926,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54427,7 +55953,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54454,7 +55980,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54494,7 +56020,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54530,7 +56056,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -54568,7 +56094,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54600,7 +56126,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54638,7 +56164,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -54728,7 +56254,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55019,7 +56545,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
@@ -55053,7 +56579,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55090,7 +56616,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55111,7 +56637,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55148,7 +56674,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55169,7 +56695,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55206,7 +56732,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55232,7 +56758,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55277,7 +56803,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55311,7 +56837,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55365,7 +56891,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55394,7 +56920,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55419,7 +56945,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/tres.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55465,7 +56991,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55508,7 +57034,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55548,7 +57074,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/hello.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55583,7 +57109,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/_arguments.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%_eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -55637,7 +57163,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/red_guess.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -55668,7 +57194,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -55700,7 +57226,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -55733,7 +57259,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -55773,7 +57299,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/rat.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55821,7 +57347,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55854,7 +57380,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -55937,7 +57463,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -55980,7 +57506,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56031,7 +57557,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56085,7 +57611,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -56222,7 +57748,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56248,7 +57774,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56337,7 +57863,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56363,7 +57889,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56412,7 +57938,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56431,7 +57957,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56453,7 +57979,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56505,7 +58031,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56524,7 +58050,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/incr_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56543,7 +58069,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56563,7 +58089,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56630,7 +58156,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56648,7 +58174,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/insert_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56668,7 +58194,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56749,7 +58275,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56768,7 +58294,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56788,7 +58314,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/increment_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56808,7 +58334,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56829,7 +58355,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -56927,7 +58453,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -56960,7 +58486,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57040,7 +58566,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57144,7 +58670,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57382,7 +58908,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57412,7 +58938,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57445,7 +58971,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57483,7 +59009,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57515,7 +59041,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57547,7 +59073,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57704,7 +59230,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -57736,7 +59262,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57774,7 +59300,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57824,7 +59350,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57952,7 +59478,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58097,7 +59623,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -58129,7 +59655,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58167,7 +59693,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58216,7 +59742,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58343,7 +59869,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58560,7 +60086,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58595,7 +60121,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58663,7 +60189,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test5.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58733,7 +60259,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -58752,7 +60278,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58772,7 +60298,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58792,7 +60318,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58825,7 +60351,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/gris.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -58857,7 +60383,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -58910,7 +60436,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testFtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%f.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58938,7 +60464,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoF.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -58964,7 +60490,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testUtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%u.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58994,7 +60520,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoU.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -59046,7 +60572,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256k1>\" }"
@@ -59064,7 +60590,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -59144,7 +60670,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -59179,7 +60705,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Point<Jubjub>\" }"
@@ -59211,7 +60737,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -59248,7 +60774,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -59286,7 +60812,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -59509,7 +61035,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59597,7 +61123,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/d1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59621,7 +61147,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/d2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59696,7 +61222,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256r1>\" }"
@@ -59714,7 +61240,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
@@ -59794,7 +61320,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
@@ -59826,7 +61352,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256k1>\" }"
@@ -59858,7 +61384,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256r1>\" }"
@@ -59890,7 +61416,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Base<Curve25519>\" }"
@@ -59922,7 +61448,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Curve25519>\" }"
@@ -59954,7 +61480,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256r1>\" },"
@@ -59991,7 +61517,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256r1>\" },"
@@ -60028,7 +61554,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%pt0.0\", \"type\": \"Point<Secp256k1>\" },"
@@ -60059,7 +61585,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/go.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%output.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60100,7 +61626,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"version\": { \"major\": 3, \"minor\": 3 },"
         "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
@@ -61369,6 +62895,77 @@ groups than for single tests.
         "});"
         )))
 
+  ;; prepareVerification's runtime calls, with placeholder proofs: provableCircuits skips the
+  ;; harness's ZKIR proof check, and test-center stubs the runtime's inner-proof check
+  ;; (stub-inner-proof-check.ts), so neither check is exercised here
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field, disclose(carried())], disclose(innerProof())));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('a witness supplies the accumulator an inner proof carries', async () => {"
+        "  const p = new Uint8Array([1]);"
+        "  const encoding = Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));"
+        "  const [C, Ctxt] = await startContract(contractCode, {"
+        "    innerProof(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [wc.privateState, p]; },"
+        "    carried(wc: runtime.WitnessContext<{}, number>): [number, runtime.Accumulator] {"
+        "      return [wc.privateState, runtime.Accumulator.fromPublicInputs(encoding)];"
+        "    },"
+        "  }, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check (the proofs are placeholders)"
+        "  Ctxt.callContext.circuitId = 'main';"
+        "  const r = await C.provableCircuits.main(Ctxt);"
+        "  const data = r.context.callProofDataTrace.at(-1);"
+        "  expect(data?.innerProofs).toEqual([p]);"
+        "  // the carried accumulator's encoding, which the circuit reads, then the proof:"
+        "  // the public inputs come before the proof"
+        "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
+        "  expect(data?.privateTranscriptOutputs[0]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
+        "});"
+        ))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p))); }"
+      "}"
+      "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], disclose(p));"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], disclose(q));"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], disclose(r));"
+      "  verifyAccumulator(accumulate(a, b, c));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('prepareVerification records the inner proofs a circuit verifies', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check (the proofs are placeholders)"
+        "  // and leaves setting the circuit id to the caller"
+        "  const p = new Uint8Array([1]);"
+        "  const q = new Uint8Array([2]);"
+        "  const r = new Uint8Array([3]);"
+        "  Ctxt.callContext.circuitId = 'guarded';"
+        "  const on = await C.provableCircuits.guarded(Ctxt, true, p);"
+        "  expect(on.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p]);"
+        "  const off = await C.provableCircuits.guarded(Ctxt, false, p);"
+        "  expect(off.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([]);"
+        "  Ctxt.callContext.circuitId = 'three';"
+        "  const all = await C.provableCircuits.three(Ctxt, p, q, r);"
+        "  expect(all.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p, q, r]);"
+        "});"
+        ))
+    ))
   )
 
 (run-tests save-manifest
@@ -64879,7 +66476,8 @@ groups than for single tests.
         "          },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._set_0(context, partialProofData, v_0);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -64903,7 +66501,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._get_0(context, partialProofData);"
         "        partialProofData.output = { value: _descriptor_4.toValue(result_0), alignment: _descriptor_4.alignment() };"
@@ -64927,7 +66526,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._clear_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -64988,7 +66588,8 @@ groups than for single tests.
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
         "      publicTranscript: [],"
-        "      privateTranscriptOutputs: []"
+        "      privateTranscriptOutputs: [],"
+        "      innerProofs: []"
         "    };"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -65225,7 +66826,8 @@ groups than for single tests.
         "    input: { value: [], alignment: [] },"
         "    output: undefined,"
         "    publicTranscript: [],"
-        "    privateTranscriptOutputs: []"
+        "    privateTranscriptOutputs: [],"
+        "    innerProofs: []"
         "  };"
         "  return {"
         "    get value() {"
@@ -65286,7 +66888,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -78822,7 +80424,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._foo_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -78859,7 +80462,8 @@ groups than for single tests.
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
         "      publicTranscript: [],"
-        "      privateTranscriptOutputs: []"
+        "      privateTranscriptOutputs: [],"
+        "      innerProofs: []"
         "    };"
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
@@ -78912,7 +80516,8 @@ groups than for single tests.
         "    input: { value: [], alignment: [] },"
         "    output: undefined,"
         "    publicTranscript: [],"
-        "    privateTranscriptOutputs: []"
+        "    privateTranscriptOutputs: [],"
+        "    innerProofs: []"
         "  };"
         "  return {"
         "  };"
@@ -85104,6 +86709,39 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Bytes<32> {"
+      "  return serialize<Accumulator, 32>(a);"
+      "}"
+      "circuit baz(bv: Bytes<32>): Bytes<32> {"
+      "  return foo(deserialize<Accumulator, 32>(bv));"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  baz(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "an Accumulator cannot be used as ~a" ("the argument of serialize")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(bv: Bytes<32>): Accumulator {"
+      "  return deserialize<Accumulator, 32>(bv);"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  foo(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "an Accumulator cannot be deserialized" ()))
     )
 
   (test
