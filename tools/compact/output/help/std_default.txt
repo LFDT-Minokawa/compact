@@ -3,14 +3,14 @@ The Compact command-line tool provides a set of utilities for Compact smart cont
 Usage: compact [OPTIONS] <COMMAND>
 
 Commands:
-  check    Check for updates with the remote server [aliases: ch]
+  check    Check for updates with the remote server [alias: ch]
   update   Update to the latest or a specific version of the Compact toolchain [aliases: u, up]
   format   Format compact files [aliases: f, fmt]
   fixup    Apply fixup transformations to compact files [aliases: fx, fix]
-  list     List available compact versions [aliases: l]
-  clean    Remove all compact versions [aliases: cl]
-  self     Commands for managing the compact tool itself [aliases: s]
-  compile  Call the compiler [aliases: c]
+  list     List available compact versions [alias: l]
+  clean    Remove all compact versions [alias: cl]
+  self     Commands for managing the compact tool itself [alias: s]
+  compile  Call the compiler [alias: c]
   help     Print this message or the help of the given subcommand(s)
 
 Options:
