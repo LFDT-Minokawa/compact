@@ -162,7 +162,6 @@
                                        ledger-op)]
                           [what (if (eq? adt-name 'Kernel)
                                     (format "call ~a" op-name)
-                                    ; the adt-name case isn't exercised as there are no forbidden ops except for kernel
                                     (format "call ~a on ledger fields that contain a ~a ADT type" op-name
                                             (if (eq? adt-name '__compact_Cell) 'Cell adt-name)))])
                       (raise (make-forbidden-condition what op-name src^ '()))))
