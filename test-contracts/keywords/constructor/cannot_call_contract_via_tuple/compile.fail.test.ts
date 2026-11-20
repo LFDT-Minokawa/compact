@@ -13,15 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The same source as ../impure_without_v3, compiled with the v3 flag, which
-// is what supplies keccak256 for provable circuits.
+import { defineCompileTest } from '@test/compact-test';
 
-pragma language_version >= 0.25.0;
-
-import CompactStandardLibrary;
-
-export ledger digest: Bytes<32>;
-
-export circuit keccak256_writes_ledger(value: Bytes<32>): [] {
-    digest = disclose(keccak256<Bytes<32>>(value));
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 20 char 1:\s+constructor cannot call external contracts but calls circuit get from external contract Other at\s+line 21 char 29/,
+});

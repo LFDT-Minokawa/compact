@@ -15,6 +15,7 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// With the flag, keccak256 is available to provable circuits, so the source
-// that fails in ../impure_without_v3 compiles here.
-export default defineCompileTest(import.meta.url);
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 20 char 1:\s+constructor cannot call external contracts but calls circuit get from external contract Other at\s+line 21 char 29/,
+});

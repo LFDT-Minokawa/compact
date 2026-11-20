@@ -17,8 +17,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, describe, inject, test } from 'vitest';
 
+import { checkGeneratedKeys } from './generated-keys.ts';
 import type {
     CompactContractConstructor,
     CompileResult,
@@ -65,6 +66,9 @@ type CompileSlotWaiter = {
 };
 
 const maxConcurrentCompiles = 4;
+// How long one slow compile may take once it has the compile slot.
+const slowCompileTimeoutMs = 600_000;
+const maxConcurrentTests = inject('maxConcurrency');
 const compileResults = new Map<string, Promise<CompileResult>>();
 const fixtureStatuses = new Map<string, FixtureStatus>();
 const compileSlotQueue: CompileSlotWaiter[] = [];
@@ -82,6 +86,8 @@ if (selectedFixtures.length === 0) {
     );
 }
 
+const slowFixtureCount = selectedFixtures.filter(isSlowFixture).length;
+
 afterAll(async () => {
     await cleanupPassedFixtures();
 });
@@ -92,24 +98,44 @@ describe('Compact test contracts', () => {
     );
 
     for (const fixture of selectedFixtures) {
-        test.concurrent(testName(fixture, 'compile'), async (context) => {
-            recordFixtureTestMetadata(context, fixture, 'compile');
-            await runCompileTest(fixture);
-        });
+        test.concurrent(
+            testName(fixture, 'compile'),
+            async (context) => {
+                recordFixtureTestMetadata(context, fixture, 'compile');
+                await runCompileTest(fixture);
+            },
+            testTimeout(fixture),
+        );
     }
 
     for (const fixture of runtimeFixtures) {
-        test.concurrent(testName(fixture, 'runtime'), async (context) => {
-            const metadata = recordFixtureTestMetadata(
-                context,
-                fixture,
-                'runtime',
-            );
+        test.concurrent(
+            testName(fixture, 'runtime'),
+            async (context) => {
+                const metadata = recordFixtureTestMetadata(
+                    context,
+                    fixture,
+                    'runtime',
+                );
 
-            await runRuntimeTest(fixture, metadata);
-        });
+                await runRuntimeTest(fixture, metadata);
+            },
+            testTimeout(fixture),
+        );
     }
 });
+
+/**
+ * Picks the Vitest timeout for a fixture's tests, or the config default.
+ */
+function testTimeout(fixture: SelectedFixture): number | undefined {
+    if (!isSlowFixture(fixture)) {
+        return undefined;
+    }
+
+    const turns = Math.min(maxConcurrentTests, slowFixtureCount + 1);
+    return slowCompileTimeoutMs * turns;
+}
 
 /**
  * Applies CLI path filters while adding compile prerequisites for runtime cases.
@@ -228,9 +254,27 @@ async function runCompileTest(fixture: SelectedFixture) {
         const result = await compileFixture(fixture);
 
         assertExpectedCompileResult(fixture.compileDefinition, result);
+
+        if (result.exitCode === 0) {
+            await assertGeneratedKeys(fixture);
+        }
     } catch (error) {
         markFixtureFailed(fixture);
         throw error;
+    }
+}
+
+/**
+ * Fails a successful compile whose keys are missing or malformed. A failed
+ * compile deletes its output, so there is nothing to check then.
+ */
+async function assertGeneratedKeys(fixture: SelectedFixture) {
+    const problems = await checkGeneratedKeys(fixture.outputDir);
+
+    if (problems.length > 0) {
+        throw new Error(
+            `${fixture.relativeFixtureDir} generated bad keys:\n${problems.map((problem) => `  ${problem}`).join('\n')}`,
+        );
     }
 }
 

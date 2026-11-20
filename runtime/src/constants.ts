@@ -30,8 +30,7 @@ export const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
 /**
  * The order of the JubJub scalar field
  */
-export const JUBJUB_SCALAR_MODULUS: bigint =
-    0xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7n;
+export const JUBJUB_SCALAR_MODULUS: bigint = 0xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7n;
 
 /**
  * The maximum value of a `JubjubScalar` foreign field value
@@ -41,7 +40,7 @@ export const MAX_JUBJUB_SCALAR: bigint = JUBJUB_SCALAR_MODULUS - 1n;
 /**
  * The order of the secp256k1 base field
  */
-export const SECP256K1_BASE_MODULUS: bigint = 2n**256n - 2n**32n - 977n;
+export const SECP256K1_BASE_MODULUS: bigint = 2n ** 256n - 2n ** 32n - 977n;
 
 /**
  * The maximum value of a `Secp256k1Base` foreign field value
@@ -51,8 +50,7 @@ export const MAX_SECP256K1_BASE: bigint = SECP256K1_BASE_MODULUS - 1n;
 /**
  * The order of the secp256k1 scalar field
  */
-export const SECP256K1_SCALAR_MODULUS: bigint =
-  0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+export const SECP256K1_SCALAR_MODULUS: bigint = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
 
 /**
  * The maximum value of a `Secp256k1Scalar` foreign field value
@@ -62,7 +60,7 @@ export const MAX_SECP256K1_SCALAR: bigint = SECP256K1_SCALAR_MODULUS - 1n;
 /**
  * The order of the secp256r1 base field
  */
-export const SECP256R1_BASE_MODULUS: bigint = 2n**256n - 2n**224n + 2n**192n + 2n**96n - 1n;
+export const SECP256R1_BASE_MODULUS: bigint = 2n ** 256n - 2n ** 224n + 2n ** 192n + 2n ** 96n - 1n;
 
 /**
  * The maximum value of a `Secp256r1Base` foreign field value
@@ -72,8 +70,7 @@ export const MAX_SECP256R1_BASE: bigint = SECP256R1_BASE_MODULUS - 1n;
 /**
  * The order of the secp256r1 scalar field
  */
-export const SECP256R1_SCALAR_MODULUS: bigint =
-  0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
+export const SECP256R1_SCALAR_MODULUS: bigint = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
 
 /**
  * The maximum value of a `Secp256r1Scalar` foreign field value
@@ -83,7 +80,7 @@ export const MAX_SECP256R1_SCALAR: bigint = SECP256R1_SCALAR_MODULUS - 1n;
 /**
  * The order of the Curve25519 base field
  */
-export const CURVE25519_BASE_MODULUS: bigint = 2n**255n - 19n;
+export const CURVE25519_BASE_MODULUS: bigint = 2n ** 255n - 19n;
 
 /**
  * The maximum value of a `Curve25519Base` foreign field value
@@ -93,8 +90,7 @@ export const MAX_CURVE25519_BASE: bigint = CURVE25519_BASE_MODULUS - 1n;
 /**
  * The order of the Curve25519 scalar field
  */
-export const CURVE25519_SCALAR_MODULUS: bigint =
-  2n**252n + 27742317777372353535851937790883648493n;
+export const CURVE25519_SCALAR_MODULUS: bigint = 2n ** 252n + 27742317777372353535851937790883648493n;
 
 /**
  * The maximum value of a `Curve25519Scalar` foreign field value

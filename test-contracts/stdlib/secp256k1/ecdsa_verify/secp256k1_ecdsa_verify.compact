@@ -20,7 +20,7 @@
 //
 // The digest goes in big-endian; the library flips it internally.
 //
-// Pure, so no keys are generated, but the v3 flag is still needed.
+// Pure, so no keys are generated.
 
 pragma language_version >= 0.25.0;
 

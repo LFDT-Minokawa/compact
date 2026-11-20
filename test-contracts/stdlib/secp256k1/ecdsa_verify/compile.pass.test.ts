@@ -15,5 +15,5 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// Pure, so no keys are generated, but the secp256k1 library needs the flag.
+// Pure, so no keys are generated.
 export default defineCompileTest(import.meta.url);
