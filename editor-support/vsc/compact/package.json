@@ -96,6 +96,8 @@
     "url": "github.com:midnightntwrk/compactc.git"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.0",
+    "@eslint/js": "^10.0.1",
     "@types/chai": "^5.2.2",
     "@types/glob": "^9.0.0",
     "@types/jest": "^30.0.0",
