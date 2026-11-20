@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Toolchain 0.36.108, language 0.28.0, runtime 0.21.103]
+## [Toolchain 0.36.110, language 0.28.100, runtime 0.21.103]
 
 ### Fixed
 
@@ -29,6 +29,33 @@ There are fixes for three small issues.
   compiler is careful to avoid allowing such values but the runtime descriptor
   did not prevent them.  A proper descriptor is implemented that rejects invalid
   values on both encoding and decoding.
+
+## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.102]
+
+### Added
+
+- The Compact language now allows casts in both directions between
+  `JubjubScalar` and `Bytes<32>`.  These follow the same rules as the foreign
+  field casts: casts to `Bytes<32>` cannot fail because every `JubjubScalar`
+  value is representable, and casts to `JubjubScalar` will reduce modulo the
+  field order if the represented value is too big.
+
+### Fixed
+
+- Serialization and deserialization of `JubjubScalar` failed, because they tried
+  to use `Bytes<32>` casts that were not supported in the language.  This change
+  fixes GitHub [issue #938](https://github.com/LFDT-Minokawa/compact/issues/938)
+  by adding the casts to the language rather than adding an internal-only
+  conversion facility.  This fits with the longer-term plan to make the
+  available casts more systematic and less ad hoc.
+
+## [Toolchain 0.36.108, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- Fix for GitHub [issue #943](https://github.com/LFDT-Minokawa/compact/issues/943).
+  A bug in `inline-circuits` could result in an internal error for calls to
+  `serialize` with certain deeply nested structures.
 
 ## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
 

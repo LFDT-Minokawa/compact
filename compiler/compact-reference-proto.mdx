@@ -3174,17 +3174,18 @@ the foreign field types `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
   error, because the maximum `JubjubScalar` value is less than the maximum
   `Field` value.  A cast from `JubjubScalar` to a `Uint` type is allowed but
   causes a dynamic error if the value is too large for the target type.
-- Any cast from one of the foreign field types to `Bytes<32>` is allowed and
-  cannot cause a dynamic error; the byte representation is little-endian.
-- Any cast from `Bytes<32>` to a foreign field type is allowed and cannot cause
-  a dynamic error: the value the byte vector encodes is reduced modulo that
-  field's modulus.  A cast from `Bytes<64>` to `Curve25519Scalar` is allowed
-  and behaves the same way.
-  Round-tripping a foreign field value through `Bytes<32>` therefore always
+- Any cast from `JubjubScalar` or one of the foreign field types to `Bytes<32>`
+  is allowed and cannot cause a dynamic error; the byte representation is
+  little-endian.
+- Any cast from `Bytes<32>` to `JubjubScalar` or one of the foreign field types
+  is allowed and cannot cause a dynamic error: the value the byte vector encodes
+  is reduced modulo that field's modulus.  A cast from `Bytes<64>` to
+  `Curve25519Scalar` is allowed and behaves the same way.  Round-tripping a
+  `JubjubScalar` or foreign field value through `Bytes<32>` therefore always
   gives back the same value, while round-tripping a `Bytes<32>` through a
-  foreign field type does so only when the bytes encode an in-range value.
-  (Casts from `Bytes` to the native `Field` type behave differently and can
-  fail as described above.)
+  `JubjubScalar` or foreign field type does so only when the bytes encode an
+  in-range value.  (Casts from `Bytes` to the native `Field` type behave
+  differently and can fail as described above.)
 - Apart from these, there are no casts *to* the foreign field types.  Since
   numeric literals have `Uint` type, a literal cannot be used as a foreign
   field value; such a value must come from a witness, a circuit argument, or a

@@ -782,7 +782,7 @@
        (define (valid-length? ctype)
          (strict-nanopass-case (Lnodca Curve-Type) ctype
            [(curve-curve25519) (eqv? len 32)]
-           [(curve-jubjub) #f]
+           [(curve-jubjub) (eqv? len 32)]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
        (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
