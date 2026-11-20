@@ -1,0 +1,33 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+ledger encoded: Bytes<32>;
+ledger decoded: JubjubScalar;
+
+export circuit serialize_if(flag: Boolean, value: JubjubScalar): Bytes<32> {
+  if (disclose(flag)) {
+    encoded = disclose(serialize<JubjubScalar, 32>(value));
+  }
+  return encoded;
+}
+
+export circuit deserialize_if(flag: Boolean, bytes: Bytes<32>): JubjubScalar {
+  if (disclose(flag)) {
+    decoded = disclose(deserialize<JubjubScalar, 32>(bytes));
+  }
+  return decoded;
+}
