@@ -15,6 +15,19 @@
 
 (define (save-manifest ir output-directory-pathname manifest-dir*)
   (define manifest-version-string "1")
+  ; pathname => hash.  filled before the entries are built, so that hashing can be parallel.
+  (define hash-ht (make-hashtable string-hash string=?))
+  (define (file-size pathname)
+    (call-with-port (open-file-input-port pathname) port-length))
+  (define (directory-contents pathname) ; => subdirectory names, file names
+    (partition
+      (lambda (fn) (file-directory? (format "~a/~a" pathname fn)))
+      (remove "contract-manifest.json" (sort string<? (directory-list pathname)))))
+  (define (file-pathnames pathname) ; recursive
+    (let-values ([(dir-fn* file-fn*) (directory-contents pathname)])
+      (append
+        (map (lambda (fn) (format "~a/~a" pathname fn)) file-fn*)
+        (apply append (map (lambda (fn) (file-pathnames (format "~a/~a" pathname fn))) dir-fn*)))))
   (define (file-entry root)
     (lambda (fn)
       (let ([pathname (format "~a/~a" root fn)])
@@ -22,15 +35,12 @@
           fn
           (list
             (cons "type" "file")
-            (cons "size" (call-with-port (open-file-input-port pathname) port-length))
-            (cons "hash" (sha256-file pathname)))))))
+            (cons "size" (file-size pathname))
+            (cons "hash" (or (hashtable-ref hash-ht pathname #f) (sha256-file pathname))))))))
   (define (dir-entry root)
     (lambda (fn)
-      (let* ([pathname (format "~a/~a" root fn)]
-             [fn* (directory-list pathname)]
-             [fn* (sort string<? fn*)]
-             [fn* (remove "contract-manifest.json" fn*)])
-        (let-values ([(dir-fn* file-fn*) (partition file-directory? fn*)])
+      (let ([pathname (format "~a/~a" root fn)])
+        (let-values ([(dir-fn* file-fn*) (directory-contents pathname)])
           (cons
             fn
             (cons*
@@ -38,6 +48,17 @@
               (append
                 (map (file-entry pathname) file-fn*)
                 (map (dir-entry pathname) dir-fn*))))))))
+  (define manifest-dir-present*
+    (filter (lambda (d)
+              (file-exists? (format "~a/~a" output-directory-pathname d)))
+            manifest-dir*))
+  (let ([pathname* (apply append
+                     (map (lambda (d) (file-pathnames (format "~a/~a" output-directory-pathname d)))
+                          manifest-dir-present*))])
+    (for-each
+      (lambda (pathname hash) (hashtable-set! hash-ht pathname hash))
+      pathname*
+      (sha256-files pathname* (apply + (map file-size pathname*)))))
   (let ([op (get-target-port 'contract-manifest.json)])
     (print-json op
       (cons*
@@ -56,8 +77,5 @@
         (cons
           "runtime-version"
           runtime-version-string)
-        (map (dir-entry output-directory-pathname)
-             (filter (lambda (d)
-                       (file-exists? (format "~a/~a" output-directory-pathname d)))
-                     manifest-dir*)))))
+        (map (dir-entry output-directory-pathname) manifest-dir-present*))))
   ir)

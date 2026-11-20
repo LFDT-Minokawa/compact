@@ -15,7 +15,19 @@
 
 #!chezscheme
 
-(define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
+; Paths are used only in error messages, and they are the most expensive part of
+; the analysis.  Stage 1 runs without paths and stops at the first leak.  Stage 2
+; runs with paths, only if stage 1 found a leak.
+(define (track-witness-data ir)
+  (if (call/cc
+        (lambda (k)
+          ($track-witness-data ir (lambda () (k #f)))
+          #t))
+      ir
+      ($track-witness-data ir #f)))
+
+(define-pass $track-witness-data : Lwithpaths (ir quick-k) -> Lwithpaths ()
+  ; quick-k: #f to track paths.  Otherwise, a thunk that does not return, called at the first leak.
   ; track-witness-data is the so-called "witness-protection program" or WPP for short
   ; that enforces explicit disclosure of witness values, i.e., values that come into a
   ; contract via the constructor, exported circuit arguments, or witness return values
@@ -48,15 +60,30 @@
             [(src uid info path*)
              (assert (not (null? path*)))
              ; maintain invariant: path* is always sorted according to path<? and has no duplicates
-             (let ([path* (let ([path* (sort path<? path*)])
-                            (let loop ([path (car path*)] [path* (cdr path*)])
-                              (if (null? path*)
-                                  (list path)
-                                  (let ([path^ (car path*)] [path* (cdr path*)])
-                                    (if (same-path? path^ path)
-                                        (loop path path*)
-                                        (cons path (loop path^ path*)))))))])
-               (new src uid info path*))]))))
+             (new src uid info (remove-adjacent-duplicate-paths (sort path<? path*)))]
+            [(src uid info path* already-sorted?)
+             ; the caller guarantees the invariant
+             (assert already-sorted?)
+             (assert (not (null? path*)))
+             (new src uid info path*)]))))
+
+    ; path* is nonempty and sorted
+    (define (remove-adjacent-duplicate-paths path*)
+      (let loop ([path (car path*)] [path* (cdr path*)])
+        (if (null? path*)
+            (list path)
+            (let ([path^ (car path*)] [path* (cdr path*)])
+              (if (same-path? path^ path)
+                  (loop path path*)
+                  (cons path (loop path^ path*)))))))
+
+    ; path1* and path2* are sorted
+    (define (merge-paths path1* path2*)
+      (cond
+        [(null? path1*) path2*]
+        [(null? path2*) path1*]
+        [(path<? (car path2*) (car path1*)) (cons (car path2*) (merge-paths path1* (cdr path2*)))]
+        [else (cons (car path1*) (merge-paths (cdr path1*) path2*))]))
 
     (define-datatype Witness-Info
       (Witness-Return-Value function-name)
@@ -154,6 +181,24 @@
     ; function-ht: function name => Fun record
     (define function-ht (make-eq-hashtable))
 
+    ; interned so that most path-point comparisons are eq?
+    (define intern-path-point
+      (let ([stdlib-ht (make-hashtable string-hash string=?)]
+            [src-ht (make-eq-hashtable)])
+        (lambda (src description exposure)
+          (let* ([description-ht (if (stdlib-src? src)
+                                     stdlib-ht
+                                     (let ([a (eq-hashtable-cell src-ht src #f)])
+                                       (or (cdr a)
+                                           (let ([ht (make-hashtable string-hash string=?)])
+                                             (set-cdr! a ht)
+                                             ht))))]
+                 [a (hashtable-cell description-ht description '())])
+            (or (find (lambda (pp) (string=? (path-point-exposure pp) exposure)) (cdr a))
+                (let ([pp (make-path-point src description exposure)])
+                  (set-cdr! a (cons pp (cdr a)))
+                  pp))))))
+
     ; for purposes of path points, all standard library routines are treated as if they have
     ; the same source location
     (define (same-ppsrc? src1 src2)
@@ -172,28 +217,42 @@
     ; convergence of abstract values to fixed points.  it also leads to simpler though
     ; less accurate error messages like "a hash of" instead of "a hash of a hash of
     ; a hash of ...".
-    (define (add-path-point src description exposure abs)
+    ; a macro, so that description and exposure are not computed without paths
+    (define-syntax add-path-point
+      (syntax-rules ()
+        [(_ src description exposure abs)
+         (if quick-k
+             abs
+             ($add-path-point src description exposure abs))]))
+
+    (define ($add-path-point src description exposure abs)
       ; if a standard library program point doesn't expose anything, there's nothing interesting
       ; to say about it, so we drop it.
       (if (and (equal? exposure "") (stdlib-src? src))
           abs
           (let ()
-            (define add-to-path
-              (let ([new-pp (make-path-point src description exposure)])
-                (lambda (pp*)
-                  (if (ormap (lambda (pp)
-                               (and (same-ppsrc? (path-point-src pp) src)
-                                    (string=? (path-point-description pp) description)
-                                    (string=? (path-point-exposure pp) exposure)))
-                             pp*)
-                      pp*
-                      (cons new-pp pp*)))))
+            (define new-pp (intern-path-point src description exposure))
+            (define (add-to-path pp*)
+              (if (memq new-pp pp*)
+                  pp*
+                  (cons new-pp pp*)))
             (define (add-to-witness witness)
-              (make-witness
-                (witness-src witness)
-                (witness-uid witness)
-                (witness-info witness)
-                (map add-to-path (witness-path* witness))))
+              (let* ([old-path* (witness-path* witness)]
+                     [new-path* (map add-to-path old-path*)])
+                (if (ormap eq? old-path* new-path*)
+                    ; some paths are unchanged: order and uniqueness can be lost
+                    (make-witness
+                      (witness-src witness)
+                      (witness-uid witness)
+                      (witness-info witness)
+                      new-path*)
+                    ; all paths have the same new head: order and uniqueness are kept
+                    (make-witness
+                      (witness-src witness)
+                      (witness-uid witness)
+                      (witness-info witness)
+                      new-path*
+                      #t))))
             (let add-path-point ([abs abs])
               (Abs-case abs
                 [(Abs-atomic witness*) (Abs-atomic (map add-to-witness witness*))]
@@ -202,19 +261,25 @@
                 [(Abs-single abs) (Abs-single (add-path-point abs))])))))
 
     (define (add-path-binding var-name abs)
-      (if (id-temp? var-name)
+      (if (or quick-k (id-temp? var-name))
           abs
           (add-path-point (id-src var-name) (format "the binding of ~a" (id-sym var-name)) "" abs)))
 
     (define (same-path-point? pp1 pp2)
-      (and (same-ppsrc? (path-point-src pp1) (path-point-src pp2))
-           (string=? (path-point-description pp1) (path-point-description pp2))
-           (string=? (path-point-exposure pp1) (path-point-exposure pp2))))
+      (or (eq? pp1 pp2)
+          (and (same-ppsrc? (path-point-src pp1) (path-point-src pp2))
+               (string=? (path-point-description pp1) (path-point-description pp2))
+               (string=? (path-point-exposure pp1) (path-point-exposure pp2)))))
 
     (define (same-path? pp1* pp2*)
-      (and (fx= (length pp1*) (length pp2*))
-           ; paths are ordered and so are equivalent only if pairwise equivalent
-           (andmap same-path-point? pp1* pp2*)))
+      (or (eq? pp1* pp2*)
+          (and (fx= (length pp1*) (length pp2*))
+               ; paths are ordered and so are equivalent only if pairwise equivalent
+               (let loop ([pp1* pp1*] [pp2* pp2*])
+                 ; stop at a shared tail, or at null
+                 (or (eq? pp1* pp2*)
+                     (and (same-path-point? (car pp1*) (car pp2*))
+                          (loop (cdr pp1*) (cdr pp2*))))))))
 
     (define (same-paths? path1* path2*)
       (and (fx= (length path1*) (length path2*))
@@ -250,6 +315,7 @@
       (define (pp-compare pp1 pp2)
         (let ([src1 (path-point-src pp1)] [src2 (path-point-src pp2)])
           (cond
+            [(eq? pp1 pp2) '=]
             [(ppsrc<? src1 src2) '<]
             [(ppsrc<? src2 src1) '>]
             [else (case (string-compare (path-point-exposure pp1) (path-point-exposure pp2))
@@ -271,11 +337,15 @@
                  (cond
                    [(fx= uid1 uid2)
                     (cons (let ([path1* (witness-path* witness1)] [path2* (witness-path* witness2)])
-                            (make-witness
-                              (witness-src witness1)
-                              uid1
-                              (witness-info witness1)
-                              (append path1* path2*)))
+                            (if (eq? path1* path2*)
+                                ; always true without paths
+                                witness1
+                                (make-witness
+                                  (witness-src witness1)
+                                  uid1
+                                  (witness-info witness1)
+                                  (remove-adjacent-duplicate-paths (merge-paths path1* path2*))
+                                  #t)))
                           (merge-witnesses (cdr witness1*) (cdr witness2*)))]
                    [(fx< uid1 uid2) (cons witness1 (merge-witnesses (cdr witness1*) witness2*))]
                    [else (cons witness2 (merge-witnesses witness1* (cdr witness2*)))]))))]))
@@ -292,8 +362,7 @@
            (andmap (lambda (witness1 witness2)
                      (or (eq? witness1 witness2)
                          (and (fx= (witness-uid witness1) (witness-uid witness2))
-                              (same-paths? (witness-path* witness1) (witness-path* witness2))
-                              (same-witnesses? (cdr witness1*) (cdr witness2*)))))
+                              (same-paths? (witness-path* witness1) (witness-path* witness2)))))
                    witness1*
                    witness2*)))
 
@@ -402,7 +471,7 @@
                  (begin
                    (assert (= (length var-name*) (length abs*)))
                    (set-cdr! a (Call-inprocess))
-                   (let ([abs (let ([abs* (if src?
+                   (let ([abs (let ([abs* (if (and src? (not quick-k))
                                               (map (lambda (abs i?)
                                                      (add-path-point
                                                        src?
@@ -480,6 +549,7 @@
            (* (source-object-efp src) 5)))
       (define leak-table (make-hashtable (lambda (x) (+ (source-object-hash (car x)) (string-hash (cdr x)))) equal?))
       (define (record-leak! src what witness*)
+        (when quick-k (quick-k))
         (hashtable-update! leak-table (cons src what)
           (lambda (witness0*) (merge-witnesses witness* witness0*))
           '()))
