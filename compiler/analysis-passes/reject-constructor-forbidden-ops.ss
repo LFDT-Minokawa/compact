@@ -76,13 +76,30 @@
            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
             (eq-hashtable-set! ledger-adt-ht ledger-field-name (cons adt-name adt-op*))]
            [else (assert cannot-happen)])]))
-    (define (forbidden-in-constructor? adt-op* ledger-op)
-      (ormap
-        (lambda (adt-op)
-          (nanopass-case (Lnodca ADT-Op) adt-op
-            [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
-             (and (eq? ledger-op^ ledger-op) (not constructor-ok?))]))
-        adt-op*))
+    ; find-adt-op returns the member of adt-op* named ledger-op.
+    (define (find-adt-op adt-name adt-op* ledger-op)
+      (or (find
+            (lambda (adt-op)
+              (nanopass-case (Lnodca ADT-Op) adt-op
+                [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
+                 (eq? ledger-op^ ledger-op)]))
+            adt-op*)
+          (internal-errorf 'reject-constructor-forbidden-ops
+                           "no operation ~s in ADT ~s"
+                           ledger-op adt-name)))
+    (define (forbidden-in-constructor? adt-op)
+      (nanopass-case (Lnodca ADT-Op) adt-op
+        [(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
+         (not constructor-ok?)]))
+    ; adt-of-result returns the name and operations of the ADT that adt-op produces, e.g.,
+    ; the value ADT of a Map's lookup, or #f and #f if it does not produce an ADT.
+    (define (adt-of-result adt-op)
+      (nanopass-case (Lnodca ADT-Op) adt-op
+        [(,ledger-op ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
+         (nanopass-case (Lnodca Type) (de-alias type)
+           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+            (values adt-name adt-op*)]
+           [else (values #f #f)])]))
     (define (record-ledger-adts! pelt)
       (nanopass-case (Lnodca Program-Element) pelt
         [(kernel-declaration ,public-binding)
@@ -95,13 +112,6 @@
         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           contract-name]
         [else (assert cannot-happen)]))
-    ; the ledger field it is read from or the variable bound to it,
-    ; falling back on the contract's own name
-    (define (ledger-field expr type)
-      (nanopass-case (Lnodca Expression) expr
-        [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...) (id-sym ledger-field-name)]
-        [(var-ref ,src ,var-name) (id-sym var-name)]
-        [else (name-of-contract type)]))
   )
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -139,17 +149,25 @@
      ir])
   (Expression : Expression (ir function-name) -> Expression ()
     [(public-ledger ,src ,ledger-field-name ,sugar? ,[accessor*] ...)
-       (let* ([a (eq-hashtable-ref ledger-adt-ht ledger-field-name #f)]
-              [adt-name (car a)]
-              [adt-op* (cdr a)])
-         (for-each
-           (lambda (accessor)
-             (nanopass-case (Lnodca Ledger-Accessor) accessor
+       (let ([a (eq-hashtable-ref ledger-adt-ht ledger-field-name #f)])
+         (let loop ([accessor* accessor*] [adt-name (car a)] [adt-op* (cdr a)])
+           (unless (null? accessor*)
+             (nanopass-case (Lnodca Ledger-Accessor) (car accessor*)
                [(,src^ ,ledger-op ,expr* ...)
-                (when (forbidden-in-constructor? adt-op* ledger-op)
-                  (let ([op-name (format "~a.~a" (if (eq? adt-name 'Kernel) 'kernel (id-sym ledger-field-name)) ledger-op)])
-                    (raise (make-forbidden-condition (format "call ~a" op-name) (string->symbol op-name) src^ '()))))]))
-           accessor*))
+                (let ([adt-op (find-adt-op adt-name adt-op* ledger-op)])
+                  (when (forbidden-in-constructor? adt-op)
+                    ; the kernel's ledger field name is internal.
+                    (let* ([op-name (if (eq? adt-name 'Kernel)
+                                       (string->symbol (format "~a.~a" 'kernel ledger-op))
+                                       ledger-op)]
+                          [what (if (eq? adt-name 'Kernel)
+                                    (format "call ~a" op-name)
+                                    ; the adt-name case isn't exercised as there are no forbidden ops except for kernel
+                                    (format "call ~a on ledger fields that contain a ~a ADT type" op-name
+                                            (if (eq? adt-name '__compact_Cell) 'Cell adt-name)))])
+                      (raise (make-forbidden-condition what op-name src^ '()))))
+                  (let-values ([(adt-name^ adt-op*^) (adt-of-result adt-op)])
+                    (loop (cdr accessor*) adt-name^ adt-op*^)))]))))
        ir]
     [(call ,src ,function-name^ ,[expr*] ...)
      (process-function-name! function-name^ src)
@@ -161,9 +179,8 @@
           (raise (make-forbidden-condition what what src '())))]
        [else (assert cannot-happen)])]
     [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
-     (let ([what (format "call circuit ~a from external contract ~a" elt-name (name-of-contract type))]
-           [ledger-name (ledger-field expr type)])
-       (raise (make-forbidden-condition what (format "~a.~a" ledger-name elt-name) src '())))])
+     (let ([what (format "call circuit ~a from external contract ~a" elt-name (name-of-contract type))])
+       (raise (make-forbidden-condition what elt-name src '())))])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
   (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
   (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())

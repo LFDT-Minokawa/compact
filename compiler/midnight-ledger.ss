@@ -629,7 +629,7 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) writeCoin (allowed-in-constructor #t)
+    (function (update-with-coin-check 0 1) writeCoin (allowed-in-constructor #f)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Writes a ShieldedCoinInfo to this Cell, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \

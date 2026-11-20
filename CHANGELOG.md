@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+## [Toolchain 0.36.107, language 0.28.100, runtime 0.21.102]
 
-### Fixed
+### Changed
 
 - The compiler now complains if the constructor attempts to call an operation
-  that requires contract's state to be already initialized. This includes some
+  that requires the contract's state to be already initialized. This includes some
   natives and some ledger operations which are declared by
   `(allowed-in-constructor b)` where `b` is a boolean literal in
   `midnight-natives.ss` and `midnight-ledger.ss`, respectively.
@@ -18,12 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Internal notes
 
 - There is now a single pass (`reject-constructor-forbidden-ops`) that
-  rejects some calls in the constructor, including contract calls, emitting events,
-  and the forbidden ledger operations or natives.
+  rejects some operations in the constructor, including contract calls, event emits,
+  and calls to forbidden ledger operations or natives.
 - The `ledger-adt.mdx` spells out which operations cannot be called in a constructor
-  and is directly generated from `midnight-ledger.ss` upon running `./compoiler/go`.
+  and is directly generated from `midnight-ledger.ss` upon running `./compiler/go`.
   However, for the natives, this is documented manually in
-  `CompactStandardLibrary/export.md`.
+  `CompactStandardLibrary/exports.md`.
 
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 

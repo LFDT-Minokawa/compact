@@ -1843,7 +1843,7 @@ Any attempt to return another type of value using `return` *expr*`;` where the
 type of *expr* is something other than `[]`, is a static error.
 
 The constructor cannot call, directly or indirectly, any operation that requires
-contract's state to be initialized first. These operations are
+the contract's state to be initialized first. These operations are
 
 - emitting an event
 - calling a circuit from another contract

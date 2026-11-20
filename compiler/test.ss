@@ -31647,6 +31647,44 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.self" "line 7 char 19" (constructor bar foo kernel.self))))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coin: QualifiedShieldedCoinInfo;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call writeCoin on ledger fields that contain a Cell ADT type" "line 4 char 7")))
+    )
+
+  ; Will be dropped after review.
+  ; used for testing of nested ledgers with dummy forbidden op.
+  ; if one sets increment to be forbidden for lists they'd get the error:
+  ; Exception: testfile.compact line 6 char 1:
+  ;    constructor cannot call resetToDefault on ledger fields that contain a List ADT type but does so
+  ;    at line 10 char 24
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Field, Counter>;"
+      "ledger G: Map<Field, Map<Field, Counter>>;"
+      "ledger L: List<Field>;"
+      "ledger ML: Map<Field, List<Field>>;"
+      "constructor() {"
+      "  F.insert(1 as Field, default<Counter>);"
+      "  F.lookup(1 as Field).increment(1);"
+      "  G.lookup(1 as Field).lookup(2 as Field).increment(1);"
+      "  ML.lookup(1 as Field).resetToDefault();"
+      "  G.resetToDefault();"
+      "}"
+      )
+    (succeeds)
+    )
+
   )
 
 (run-tests identify-pure-circuits
@@ -39050,7 +39088,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo "contract_c.foo"))))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo foo))))
      ))
 
   (test-group
@@ -39085,7 +39123,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo blah fab "contract_c.foo"))))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo blah fab foo))))
      ))
 
   (test-group
@@ -39119,7 +39157,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab "contract_c.foo"))))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab foo))))
      ))
 
   (test-group
@@ -39153,7 +39191,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab "contract_c.foo"))))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab foo))))
      ))
 
   (test-group
@@ -39177,7 +39215,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor baz "contract_c.bar"))))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor baz bar))))
      ))
 
   (test-group
@@ -39203,7 +39241,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor blah id baz "contract_c.bar"))))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor blah id baz bar))))
      ))
 
   (test-group
@@ -39228,7 +39266,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor id baz "contract_c.bar"))))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor id baz bar))))
       ))
 
   (test-group
@@ -39261,7 +39299,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo "contract_c.foo"))))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo foo))))
      ))
 
   (test
@@ -39273,7 +39311,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 26" (constructor bar "c.foo"))))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 26" (constructor bar foo))))
     )
 
   (test
@@ -39285,7 +39323,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 39" (constructor bar "C.foo"))))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 39" (constructor bar foo))))
     )
 
   (test-group
@@ -85547,6 +85585,52 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger callerIsSome: Boolean;"
+      "export ledger nativeBalance: Uint<128>;"
+      "export ledger beforeFuture: Boolean;"
+      "export ledger afterEpoch: Boolean;"
+      "constructor() {"
+      "  callerIsSome = kernel.caller().is_some;"
+      "  nativeBalance = kernel.balance(left<Bytes<32>, Bytes<32>>(nativeToken()));"
+      "  beforeFuture = kernel.blockTimeLessThan(4102444800);"
+      "  afterEpoch = kernel.blockTimeGreaterThan(0);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('caller, balance, and block time in a constructor', async () => {"
+        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const L = contractCode.ledger(ctxt.callContext.currentQueryContext.state);"
+        "  expect(L.callerIsSome).toEqual(false);"
+        "  expect(L.nativeBalance).toEqual(0n);"
+        "  expect(typeof L.beforeFuture).toEqual('boolean');"
+        "  expect(typeof L.afterEpoch).toEqual('boolean');"
+        "});"
+        ))
+    )
+
+  ; only included for review purposes, will be dropped after approval
+  ; before making writeCoin forbidden this is what one should expect
+  #;(test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coin: QualifiedShieldedCoinInfo;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('writeCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
     )
 )
 

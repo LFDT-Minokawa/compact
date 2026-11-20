@@ -92,17 +92,12 @@
                      (#,@(map convert-native-argument argument-name* argument-type*))
                      #,(convert-outer-type result-type)))
                 ndecl*)))
-        (define (parse-allowed-in-constructor x)
-          (syntax-case x (allowed-in-constructor)
-            [(allowed-in-constructor b)
-             (boolean? (syntax->datum #'b))
-             (syntax->datum #'b)]
-            [_ (syntax-error x "expected (allowed-in-constructor #t) or (allowed-in-constructor #f)")]))
-        (syntax-case q ()
-          [(_ class name [type-param ...] function constructor-flag ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type (parse-allowed-in-constructor #'constructor-flag))]
-          [(_ class name function constructor-flag ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type (parse-allowed-in-constructor #'constructor-flag))])))
+        (define (check-boolean x) (unless (boolean? (syntax->datum x)) (syntax-error x "not a boolean")))
+        (syntax-case q (allowed-in-constructor)
+          [(_ class name [type-param ...] function (allowed-in-constructor constructor-ok?) ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type #'constructor-ok?)]
+          [(_ class name function (allowed-in-constructor constructor-ok?) ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type #'constructor-ok?)])))
     (values
       (fluid-let ([ndecl* '()])
         (include "midnight-natives.ss")
