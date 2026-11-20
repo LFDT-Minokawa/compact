@@ -349,7 +349,10 @@ describe('input validation', () => {
     const r = runtime.JUBJUB_SCALAR_MODULUS;
     const le = (n: bigint): Uint8Array => {
       const a: number[] = [];
-      while (n > 0n) { a.push(Number(n & 0xffn)); n >>= 8n; }
+      while (n > 0n) {
+        a.push(Number(n & 0xffn));
+        n >>= 8n;
+      }
       return new Uint8Array(a);
     };
     for (const v of [r, r + 5n, runtime.MAX_FIELD]) {

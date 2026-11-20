@@ -14,7 +14,7 @@ There are fixes for three small issues.
 
 - `sha512` now rejects inputs that contain opaque types.  This matches the other
   byte-oriented hashing functions in the standard library (`persistentHash`,
-  `persistentCommit`, and `keccak256`).  `sha512` was inadvertenly omitted from
+  `persistentCommit`, and `keccak256`).  `sha512` was inadvertently omitted from
   the list.
 
 - The Compact runtime descriptor for `enum` types had a bug in `fromValue`

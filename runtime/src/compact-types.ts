@@ -703,8 +703,8 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
-        // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
-        // the unhashed payload).  There's no correct way to encode them here.
+      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+      // the unhashed payload).  There's no correct way to encode them here.
       case 'compress':
         throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
       case 'field': {

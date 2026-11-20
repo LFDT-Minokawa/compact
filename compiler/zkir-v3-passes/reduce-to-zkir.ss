@@ -44,8 +44,6 @@
             (let ([atom (car alignment*)])
               (nanopass-case (Lflattened Alignment) atom
                 [(anative ,zkir-type) (guard (string=? zkir-type "JubjubScalar"))
-                 ;; This doesn't have its own descriptor in `runtime/src/compact-types.ts.  It's
-                 ;; just a native field but it needs a ZKIR conversion instruction.
                  (let ([fld (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
