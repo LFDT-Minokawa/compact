@@ -31661,30 +31661,79 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call writeCoin on ledger fields that contain a Cell ADT type" "line 4 char 7")))
     )
 
-  ; Will be dropped after review.
-  ; used for testing of nested ledgers with dummy forbidden op.
-  ; if one sets increment to be forbidden for lists they'd get the error:
-  ; Exception: testfile.compact line 6 char 1:
-  ;    constructor cannot call resetToDefault on ledger fields that contain a List ADT type but does so
-  ;    at line 10 char 24
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: Map<Field, Counter>;"
-      "ledger G: Map<Field, Map<Field, Counter>>;"
-      "ledger L: List<Field>;"
-      "ledger ML: Map<Field, List<Field>>;"
-      "constructor() {"
-      "  F.insert(1 as Field, default<Counter>);"
-      "  F.lookup(1 as Field).increment(1);"
-      "  G.lookup(1 as Field).lookup(2 as Field).increment(1);"
-      "  ML.lookup(1 as Field).resetToDefault();"
-      "  G.resetToDefault();"
-      "}"
+      "export ledger b: Boolean;"
+      "constructor() { b = kernel.blockTimeLessThan(4102444800); }"
       )
-    (succeeds)
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.blockTimeLessThan" "line 3 char 27")))
     )
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "constructor() { b = kernel.blockTimeGreaterThan(0); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.blockTimeGreaterThan" "line 3 char 27")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Set ADT type" "line 4 char 8")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(1 as Field, disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Map ADT type" "line 4 char 8")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.pushFrontCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call pushFrontCoin on ledger fields that contain a List ADT type" "line 4 char 8")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, Set<QualifiedShieldedCoinInfo>>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.lookup(1 as Field).insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Set ADT type" "line 4 char 27")))
+    )
   )
 
 (run-tests identify-pure-circuits
@@ -85779,24 +85828,18 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger callerIsSome: Boolean;"
       "export ledger nativeBalance: Uint<128>;"
-      "export ledger beforeFuture: Boolean;"
-      "export ledger afterEpoch: Boolean;"
       "constructor() {"
       "  callerIsSome = kernel.caller().is_some;"
       "  nativeBalance = kernel.balance(left<Bytes<32>, Bytes<32>>(nativeToken()));"
-      "  beforeFuture = kernel.blockTimeLessThan(4102444800);"
-      "  afterEpoch = kernel.blockTimeGreaterThan(0);"
       "}"
       )
     (stage-javascript
       `(
-        "test('caller, balance, and block time in a constructor', async () => {"
+        "test('caller and balance in a constructor', async () => {"
         "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
         "  const L = contractCode.ledger(ctxt.callContext.currentQueryContext.state);"
         "  expect(L.callerIsSome).toEqual(false);"
         "  expect(L.nativeBalance).toEqual(0n);"
-        "  expect(typeof L.beforeFuture).toEqual('boolean');"
-        "  expect(typeof L.afterEpoch).toEqual('boolean');"
         "});"
         ))
     )

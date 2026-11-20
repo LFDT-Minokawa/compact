@@ -577,7 +577,7 @@
     (popeq [cached #t] [result (void)])
     ;; [context, effects, state]
     ))
-  (function read blockTimeLessThan (allowed-in-constructor #t)
+  (function read blockTimeLessThan (allowed-in-constructor #f)
                   ([time Uint64 (discloses "the lower bound of the time being checked")])
                   Boolean
       "Checks whether the current block time (measured in seconds since the Unix epoch) is less than the given amount."
@@ -591,7 +591,7 @@
       (lt)
       ;; [context, effects, state, tblock < time]
       (popeq [cached #t] [result (void)])))
-  (function read blockTimeGreaterThan (allowed-in-constructor #t)
+  (function read blockTimeGreaterThan (allowed-in-constructor #f)
                   ([time Uint64 (discloses "the upper bound of the time being checked")])
                   Boolean
       "Checks whether the current block time (measured in seconds since the Unix epoch) is greater than the given amount."
@@ -733,7 +733,7 @@
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) insertCoin (allowed-in-constructor #t)
+    (function (update-with-coin-check 0 1) insertCoin (allowed-in-constructor #f)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Set, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
@@ -833,7 +833,7 @@
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 1 2) insertCoin (allowed-in-constructor #t)
+    (function (update-with-coin-check 1 2) insertCoin (allowed-in-constructor #f)
       ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
@@ -984,7 +984,7 @@
      ;; [context, effects, state]
 
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) pushFrontCoin (allowed-in-constructor #t)
+    (function (update-with-coin-check 0 1) pushFrontCoin (allowed-in-constructor #f)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \

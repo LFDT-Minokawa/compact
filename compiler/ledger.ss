@@ -437,7 +437,7 @@
                    [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                     (emit-js-function (datum op-name) (datum (input-name ...)) #'(input-type ...) (datum result-type-string) (datum doc-string) cond-str)]
                    [(function class op-name (allowed-in-constructor constructor-ok?) ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
-                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) #'constructor-ok? cond-str)]
+                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) (datum constructor-ok?) cond-str)]
                    [else (syntax-error clause)]))
                (syntax-case clause (when)
                  [(when () clause) (function-clause #'clause #f)]
