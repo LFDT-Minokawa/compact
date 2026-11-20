@@ -22,6 +22,7 @@
     "@vitest/ui": "^5.1.0",
     "allure-vitest": "^3.14.0",
     "fast-check": "^4.10.2",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0"
   }
 }
