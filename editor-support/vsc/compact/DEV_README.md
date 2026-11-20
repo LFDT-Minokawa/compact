@@ -237,6 +237,10 @@ Important for end users and QA engineers!
 
 2. Add information about changes in `editor-support/vsc/compact/CHANGELOG.md`
 
+3. `engines.vscode` and `@types/vscode` in `package.json` must stay at the same
+version: vsce refuses to package with newer types. Dependabot ignores
+`@types/vscode` for this reason, so raise both by hand together.
+
 
 ## Testing if VSC Plugin has up to date keywords
 
