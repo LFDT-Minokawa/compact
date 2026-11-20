@@ -96,8 +96,11 @@ jobs:
 
           git checkout -b "compact-docs-update-${RUN_ID}"
 
-          cp ../doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
-          cp ../doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          # One ledger ADT document per target
+          for DOC in ../doc/ledger-adt-*.mdx; do
+            cp "$DOC" "docs/compact/data-types/$(basename "$DOC")"
+            cp "$DOC" "docs/compact/reference/$(basename "$DOC")"
+          done
 
           cp ../doc/writing.mdx docs/compact/reference/writing.mdx
           cp ../doc/compact-reference.mdx docs/compact/reference/compact-reference.mdx
@@ -105,8 +108,13 @@ jobs:
           cp ../doc/compact-grammar.mdx docs/compact/reference/compact-grammar.mdx
           cp ../doc/compact-keywords.mdx docs/compact/reference/compact-keywords.mdx
 
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library/exports.md
-          cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library/README.md
+          # One standard library API document directory per target
+          for DIR in ../doc/api/CompactStandardLibrary-*/; do
+            NAME="$(basename "$DIR")"
+            mkdir -p "docs/compact/standard-library/$NAME"
+            cp "$DIR/exports.md" "docs/compact/standard-library/$NAME/exports.md"
+            cp "$DIR/README.md" "docs/compact/standard-library/$NAME/README.md"
+          done
 
           cp ../doc/compiler-usage.mdx docs/compact/compilation-and-tooling/compiler-usage.mdx
           cp ../doc/formatter-usage.mdx docs/compact/compilation-and-tooling/formatter-usage.mdx

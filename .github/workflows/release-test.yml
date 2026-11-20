@@ -23,6 +23,13 @@ on:
         description: 'Build artifact'
         required: true
         type: string
+      target:
+        description: >-
+          Target the tested binary is built for (a directory in compiler/targets/); part of
+          the name of the zip inside the artifact, see release-build.yml.
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -33,15 +40,22 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Set name of artifact
-        run: |
-          export ARTIFACT_NAME=compactc_${{ inputs.tag }}_${{ inputs.architecture }}
-          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
-
       - name: Checkout compactc repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.branch }}
+
+      - name: Set name of artifact
+        env:
+          TAG: ${{ inputs.tag }}
+          ARCH: ${{ inputs.architecture }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          NAME="compactc_${TAG}_${ARCH}"
+          if [ -n "$TARGET" ]; then
+            NAME="${NAME}_$(./scripts/target-artifact-suffix.sh "$TARGET")"
+          fi
+          echo "ARTIFACT_NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -71,12 +85,12 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: test-results-junit-${{ inputs.architecture }}
+          name: test-results-junit-${{ inputs.architecture }}${{ inputs.target && format('-{0}', inputs.target) || '' }}
           path: tests-e2e/reports/test-report.xml
 
       - name: Upload CTRF test results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: test-results-ctrf-${{ inputs.architecture }}
+          name: test-results-ctrf-${{ inputs.architecture }}${{ inputs.target && format('-{0}', inputs.target) || '' }}
           path: tests-e2e/reports/ctrf-report.json
