@@ -920,7 +920,7 @@
          [(field-scalar ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
             [(curve-curve25519) (handle-bytes32-field)]
-            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-jubjub) (handle-bytes32-field)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
@@ -1055,7 +1055,7 @@
                     `(bytes_from_natives ,tmp 64 ,(reverse triv*) ...)
                     instr*))]
                [else (assert cannot-happen)])]
-            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-jubjub) (handle-bytes32-field)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(vector->bytes ,triv ,triv* ...)

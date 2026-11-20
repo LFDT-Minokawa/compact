@@ -76,7 +76,7 @@
                [(field-scalar ,ctype)
                 (strict-nanopass-case (Lflattened Curve-Type) ctype
                   [(curve-curve25519) #t]
-                  [(curve-jubjub) (assert cannot-happen)]
+                  [(curve-jubjub) #t]
                   [(curve-secp256k1) #t]
                   [(curve-secp256r1) #t])]))
          (list ir)
@@ -118,7 +118,7 @@
          [(field-scalar ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
             [(curve-curve25519) (list `(= 1 ,var-name ,ir))]
-            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-jubjub) (list `(= 1 ,var-name ,ir))]
             [(curve-secp256k1) (list `(= 1 ,var-name ,ir))]
             [(curve-secp256r1) (list `(= 1 ,var-name ,ir))])]
          [(field-native) (guard (<= len (field-bytes))) (list `(= 1 ,var-name ,ir))]

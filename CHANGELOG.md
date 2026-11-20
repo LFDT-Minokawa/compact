@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.107, language 0.28.100, runtime 0.21.102]
+## [Toolchain 0.36.110, language 0.28.101, runtime 0.21.102]
 
 ### Changed
 
@@ -24,6 +24,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and is directly generated from `midnight-ledger.ss` upon running `./compiler/go`.
   However, for the natives, this is documented manually in
   `CompactStandardLibrary/exports.md`.
+
+## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.102]
+
+### Added
+
+- The Compact language now allows casts in both directions between
+  `JubjubScalar` and `Bytes<32>`.  These follow the same rules as the foreign
+  field casts: casts to `Bytes<32>` cannot fail because every `JubjubScalar`
+  value is representable, and casts to `JubjubScalar` will reduce modulo the
+  field order if the represented value is too big.
+
+### Fixed
+
+- Serialization and deserialization of `JubjubScalar` failed, because they tried
+  to use `Bytes<32>` casts that were not supported in the language.  This change
+  fixes GitHub [issue #938](https://github.com/LFDT-Minokawa/compact/issues/938)
+  by adding the casts to the language rather than adding an internal-only
+  conversion facility.  This fits with the longer-term plan to make the
+  available casts more systematic and less ad hoc.
+
+## [Toolchain 0.36.108, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- Fix for GitHub [issue #943](https://github.com/LFDT-Minokawa/compact/issues/943).
+  A bug in `inline-circuits` could result in an internal error for calls to
+  `serialize` with certain deeply nested structures.
+
+## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+
+### Changed
+
+- The standard library documentation for `serialize` and `deserialize` is
+  expanded to actually describe what is implemented and what programmers can and
+  should rely on.
+- There is a cosmetic change to the parameter name `x` to be more informative:
+  `value` for `serialize` and `bytes` for `deserialize`.  This was reflected in
+  the implementation in `midnight-natives.ss` for clarity.  This actually causes
+  a change in generated JS code so the compiler version is incremented.
 
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
