@@ -1,8 +1,8 @@
 # Compact language usage index
 
-Scanned the **390 fixtures** in `test-contracts/`.
+Scanned the **399 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 121
+## Not covered by any fixture — 115
 
 | name | group |
 |---|---|
@@ -98,11 +98,9 @@ Scanned the **390 fixtures** in `test-contracts/`.
 | `UnshieldedBurn` | Event types |
 | `Paused` | Event types |
 | `Unpaused` | Event types |
-| `Misc` | Event types |
 | `transientHash` | Native circuits and witnesses |
 | `transientCommit` | Native circuits and witnesses |
 | `persistentCommit` | Native circuits and witnesses |
-| `degradeToTransient` | Native circuits and witnesses |
 | `upgradeFromTransient` | Native circuits and witnesses |
 | `sha512` | Native circuits and witnesses |
 | `neg` | Native circuits and witnesses |
@@ -112,7 +110,6 @@ Scanned the **390 fixtures** in `test-contracts/`.
 | `ecAdd` | Native circuits and witnesses |
 | `ecNeg` | Native circuits and witnesses |
 | `ecMul` | Native circuits and witnesses |
-| `ecMulGenerator` | Native circuits and witnesses |
 | `hashToCurve` | Native circuits and witnesses |
 | `constructJubjubPoint` | Native circuits and witnesses |
 | `secp256k1PointX` | Native circuits and witnesses |
@@ -124,9 +121,6 @@ Scanned the **390 fixtures** in `test-contracts/`.
 | `ownPublicKey` | Native circuits and witnesses |
 | `createZswapInput` | Native circuits and witnesses |
 | `createZswapOutput` | Native circuits and witnesses |
-| `JubjubPoint` | Native types |
-| `serialize` | Inline entries |
-| `deserialize` | Inline entries |
 
 ## Builtin types — 6/6 covered
 
@@ -134,12 +128,12 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact:21`](../../test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact#L21) | 143 |
-| `Bytes` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 432 |
-| `Field` | [`test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact:16`](../../test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact#L16) | 499 |
+| `Boolean` | [`test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact:21`](../../test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact#L21) | 151 |
+| `Bytes` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 456 |
+| `Field` | [`test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact:16`](../../test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact#L16) | 504 |
 | `Opaque` | [`test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact:16`](../../test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact#L16) | 4 |
-| `Uint` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 216 |
-| `Vector` | [`test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact:16`](../../test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact#L16) | 138 |
+| `Uint` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 218 |
+| `Vector` | [`test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact:16`](../../test-contracts/keywords/circuit/overload_ambiguous_by_widening/circuit_overload_ambiguous_by_widening.compact#L16) | 146 |
 
 ## Standard library circuits — 8/33 covered
 
@@ -187,7 +181,7 @@ Declared in `shipped Compact libraries — export struct`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Maybe` | [`test-contracts/keywords/import/stdlib_requires_import/import_stdlib_requires_import.compact:17`](../../test-contracts/keywords/import/stdlib_requires_import/import_stdlib_requires_import.compact#L17) | 7 |
+| `Maybe` | [`test-contracts/keywords/import/stdlib_requires_import/import_stdlib_requires_import.compact:17`](../../test-contracts/keywords/import/stdlib_requires_import/import_stdlib_requires_import.compact#L17) | 8 |
 | `Either` | [`test-contracts/keywords/return/if_else_either/return_if_else_either.compact:19`](../../test-contracts/keywords/return/if_else_either/return_if_else_either.compact#L19) | 3 |
 | `MerkleTreeDigest` | **no fixture** | 0 |
 | `MerkleTreePathEntry` | **no fixture** | 0 |
@@ -231,7 +225,7 @@ Declared in `compiler sources — declare-ledger-adt`.
 | `Cell.resetToDefault` | **no fixture** | 0 |
 | `Counter.read` | [`test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact:22`](../../test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact#L22) | 2 |
 | `Counter.lessThan` | **no fixture** | 0 |
-| `Counter.increment` | [`test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact:22`](../../test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact#L22) | 10 |
+| `Counter.increment` | [`test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact:22`](../../test-contracts/keywords/const/initializer_side_effects/const_initializer_side_effects.compact#L22) | 14 |
 | `Counter.decrement` | **no fixture** | 0 |
 | `Counter.resetToDefault` | **no fixture** | 0 |
 | `Set.resetToDefault` | **no fixture** | 0 |
@@ -272,7 +266,7 @@ Declared in `compiler sources — declare-ledger-adt`.
 | `HistoricMerkleTree.insertIndexDefault` | **no fixture** | 0 |
 | `HistoricMerkleTree.resetHistory` | **no fixture** | 0 |
 
-## Event types — 1/11 covered
+## Event types — 2/11 covered
 
 Declared in `compiler sources — declare-event-type`.
 
@@ -288,9 +282,9 @@ Declared in `compiler sources — declare-event-type`.
 | `UnshieldedBurn` | **no fixture** | 0 |
 | `Paused` | **no fixture** | 0 |
 | `Unpaused` | **no fixture** | 0 |
-| `Misc` | **no fixture** | 0 |
+| `Misc` | [`test-contracts/stdlib/jubjub/scalar/serialize/event/jubjub_scalar_serialize_event.compact:24`](../../test-contracts/stdlib/jubjub/scalar/serialize/event/jubjub_scalar_serialize_event.compact#L24) | 2 |
 
-## Native circuits and witnesses — 2/27 covered
+## Native circuits and witnesses — 4/27 covered
 
 Declared in `compiler sources — declare-native-entry`.
 
@@ -298,11 +292,11 @@ Declared in `compiler sources — declare-native-entry`.
 |---|---|---:|
 | `transientHash` | **no fixture** | 0 |
 | `transientCommit` | **no fixture** | 0 |
-| `persistentHash` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:43`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L43) | 59 |
+| `persistentHash` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact:21`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact#L21) | 61 |
 | `persistentCommit` | **no fixture** | 0 |
-| `degradeToTransient` | **no fixture** | 0 |
+| `degradeToTransient` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact:21`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact#L21) | 2 |
 | `upgradeFromTransient` | **no fixture** | 0 |
-| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 64 |
+| `keccak256` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input/jubjub_scalar_keygen_without_jubjub_input.compact:21`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input/jubjub_scalar_keygen_without_jubjub_input.compact#L21) | 66 |
 | `sha512` | **no fixture** | 0 |
 | `neg` | **no fixture** | 0 |
 | `inv` | **no fixture** | 0 |
@@ -311,7 +305,7 @@ Declared in `compiler sources — declare-native-entry`.
 | `ecAdd` | **no fixture** | 0 |
 | `ecNeg` | **no fixture** | 0 |
 | `ecMul` | **no fixture** | 0 |
-| `ecMulGenerator` | **no fixture** | 0 |
+| `ecMulGenerator` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact:21`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact#L21) | 2 |
 | `hashToCurve` | **no fixture** | 0 |
 | `constructJubjubPoint` | **no fixture** | 0 |
 | `secp256k1PointX` | **no fixture** | 0 |
@@ -324,32 +318,32 @@ Declared in `compiler sources — declare-native-entry`.
 | `createZswapInput` | **no fixture** | 0 |
 | `createZswapOutput` | **no fixture** | 0 |
 
-## Native types — 10/11 covered
+## Native types — 11/11 covered
 
 Declared in `compiler sources — declare-native-type`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact#L20) | 3 |
-| `JubjubPoint` | **no fixture** | 0 |
+| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact#L20) | 38 |
+| `JubjubPoint` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact:19`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact#L19) | 3 |
 | `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact#L20) | 8 |
 | `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 10 |
 | `Curve25519Point` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:18`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L18) | 30 |
 | `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/casts/to_boolean/secp256k1_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256k1/base/casts/to_boolean/secp256k1_base_casts_to_boolean.compact#L20) | 5 |
 | `Secp256k1Scalar` | [`test-contracts/stdlib/foreign_field/self_subtract/foreign_field_self_subtract.compact:18`](../../test-contracts/stdlib/foreign_field/self_subtract/foreign_field_self_subtract.compact#L18) | 8 |
-| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 14 |
+| `Secp256k1Point` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input/jubjub_scalar_keygen_without_jubjub_input.compact:19`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input/jubjub_scalar_keygen_without_jubjub_input.compact#L19) | 16 |
 | `Secp256r1Base` | [`test-contracts/stdlib/foreign_field/self_subtract/foreign_field_self_subtract.compact:20`](../../test-contracts/stdlib/foreign_field/self_subtract/foreign_field_self_subtract.compact#L20) | 7 |
 | `Secp256r1Scalar` | [`test-contracts/stdlib/secp256r1/scalar/casts/to_boolean/secp256r1_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256r1/scalar/casts/to_boolean/secp256r1_scalar_casts_to_boolean.compact#L20) | 3 |
 | `Secp256r1Point` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:32`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L32) | 13 |
 
-## Inline entries — 0/2 covered
+## Inline entries — 2/2 covered
 
 Declared in `compiler sources — declare-inline-entry`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `serialize` | **no fixture** | 0 |
-| `deserialize` | **no fixture** | 0 |
+| `serialize` | [`test-contracts/stdlib/jubjub/scalar/serialize/basic/jubjub_scalar_serialize_basic.compact:25`](../../test-contracts/stdlib/jubjub/scalar/serialize/basic/jubjub_scalar_serialize_basic.compact#L25) | 7 |
+| `deserialize` | [`test-contracts/stdlib/jubjub/scalar/serialize/basic/jubjub_scalar_serialize_basic.compact:26`](../../test-contracts/stdlib/jubjub/scalar/serialize/basic/jubjub_scalar_serialize_basic.compact#L26) | 8 |
 
 ## What this does and does not show
 
