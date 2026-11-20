@@ -42,16 +42,12 @@
     [(>= ,src ,bits ,[expr1] ,[expr2]) (do-not src `(< ,src ,bits ,expr1 ,expr2))]
     [(!= ,src ,[type] ,[expr1] ,[expr2]) (do-not src `(== ,src ,type ,expr1 ,expr2))]
     [(cast-from-bytes ,src ,[type] ,len ,[expr])
-     ;; The target `type` should be an unsigned integer type, the native field type, or one of the
-     ;; secp256k1 field types.
+     ;; The target `type` should be an unsigned integer type or a field type.
      (nanopass-case (Lposttypescript Type) type
        [(tunsigned ,src ,nat)
         (let ([native (with-output-language (Lposttypescript Field-Type) `(field-native))])
           `(cast-from-field ,src ,nat ,native (bytes->field ,src ,native ,len ,expr)))]
        [(tfield ,src ,ftype)
-        (guard (nanopass-case (Lposttypescript Field-Type) ftype
-                 [(field-scalar (curve-jubjub)) #f]
-                 [else #t]))
         `(bytes->field ,src ,ftype ,len ,expr)]
        [else (assert cannot-happen)])])
   (Type : Type (ir) -> Type ()
