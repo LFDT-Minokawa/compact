@@ -20,7 +20,7 @@ endif
 syn keyword compactKeyword as assert circuit constructor contract default disclose emit enum export from implements import include ledger module new pad pragma prefix pure return sealed slice struct type witness
 syn keyword compactBoolean true false
 syn keyword compactType Boolean Bytes Field Opaque Uint Vector
-syn keyword compactType Kernel Counter Set Map List MerkleTree HistoricMerkleTree
+syn keyword compactType Kernel Counter Set NumberedSet Map List MerkleTree HistoricMerkleTree
 syn keyword compactConditional if else 
 syn keyword compactStorageClass const
 syn keyword compactFutureReservedWord this await break case catch class continue debugger delete do extends finally function in instanceof null super switch throw try typeof var void while with yield implements interface package private protected public let static

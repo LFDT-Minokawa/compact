@@ -1584,6 +1584,7 @@ The following *ledger-state types* are supported.
 - *T*, for any regular Compact type *T*
 - `Counter`
 - `Set<`*T*`>`, for any Compact type *T*
+- `NumberedSet<`*T*`>`, for any Compact type *T*
 - `Map<`*K*, *T*`>`, for any Compact types *K* and *T*
 - `Map<`*K*, *V*`>`, for any Compact type *K* and ledger-state type *V* (see the following section)
 - `List<`*T*`>`, for any Compact type *T*
@@ -2473,6 +2474,7 @@ has static type *T* and evaluates to the default value of that type as follows:
   `Curve25519Point`): the additive identity point.
 - `Counter`: a Counter initialized to `0`
 - `Set<`*T*`>`: an empty Set
+- `NumberedSet<`*T*`>`: an empty NumberedSet whose counter is initialized to `0`
 - `Map<`*K*`, `*T*`>`: an empty Map
 - `List<`*T*`>`: an empty List
 - `MerkleTree<`*n*`, `*T*`>`: an empty Merkle tree

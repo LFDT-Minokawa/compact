@@ -25107,6 +25107,55 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger F: NumberedSet<Field>;"
+      "export circuit foo(x: ShieldedCoinInfo): [] {"
+      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 4" "operation ~a undefined for ledger field type ~a" (insertCoin "NumberedSet<Field>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: NumberedSet<Field>;"
+      "export circuit foo(): [] {"
+      "  F.insert(true);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (1 insert "Field" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: NumberedSet<Field>;"
+      "export circuit foo(): Field {"
+      "  return F.lookup(true);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 11" "expected ~:r argument of ~s to have type ~a but received ~a" (1 lookup "Field" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: NumberedSet;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "mismatch between actual number ~s and declared number ~s of ADT parameters for ~s" (0 1 NumberedSet)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "type Ctr = Counter;"
       "export ledger C: Ctr;"
       "export circuit foo(): [] {"
@@ -27415,6 +27464,19 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 5" "operation ~a undefined for ledger field type ~a" ("=" "Counter")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: NumberedSet<Field>;"
+      "export circuit test(): []  {"
+      "  F = default<NumberedSet<Field>>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "operation ~a undefined for ledger field type ~a" ("=" "NumberedSet<Field>")))
     )
 
   (test
@@ -38022,6 +38084,95 @@ groups than for single tests.
          "        },"
          "        \"value\": {"
          "          \"type-name\": \"Counter\""
+         "        }"
+         "      }"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  (test-group
+    ((create-file "numbered-set-fields.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger ns: NumberedSet<Bytes<32>>;"
+         "ledger nf: NumberedSet<Field>;"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/numbered-set-fields/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"ns\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"NumberedSet\","
+         "      \"type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    },"
+         "    {"
+         "      \"name\": \"nf\","
+         "      \"index\": 1,"
+         "      \"exported\": false,"
+         "      \"storage\": \"NumberedSet\","
+         "      \"type\": {"
+         "        \"type-name\": \"Field\""
+         "      }"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  (test-group
+    ((create-file "nested-numbered-set.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger m: Map<Field, NumberedSet<Field>>;"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/nested-numbered-set/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"m\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Map\","
+         "      \"key\": {"
+         "        \"type-name\": \"Field\""
+         "      },"
+         "      \"value\": {"
+         "        \"type-name\": \"NumberedSet\","
+         "        \"type\": {"
+         "          \"type-name\": \"Field\""
          "        }"
          "      }"
          "    }"
@@ -60118,6 +60269,23 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger S: NumberedSet<Bytes<32>>;"
+      "export circuit enqueue(id: Bytes<32>): [] {"
+      "  S.insert(disclose(id));"
+      "}"
+      "export circuit positionOf(id: Bytes<32>): Uint<64> {"
+      "  return S.lookup(disclose(id));"
+      "}"
+      "export circuit nextPosition(): Uint<64> {"
+      "  return S;"
+      "}"
+      )
+    (succeeds)
+    )
+
   ; change: " --> ' for message of assert
   (test
     '(
@@ -64591,8 +64759,8 @@ groups than for single tests.
     (stage-javascript "test-center/ts/threading-hacky.ts"))
 
   (test
-    "test-center/compact/stamped-counter.compact"
-    (stage-javascript "test-center/ts/stamped-counter.ts"))
+    "test-center/compact/numbered-set.compact"
+    (stage-javascript "test-center/ts/numbered-set.ts"))
 
   (test
     "test-center/composable/Recursion/Single/Self.compact"

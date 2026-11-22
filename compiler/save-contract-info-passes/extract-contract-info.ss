@@ -49,12 +49,10 @@
              (list (cons "type" (adt-arg->json (car adt-arg*))))]
             [(Counter)
              '()]
-            [(StampedCounter)
-             (list (cons "key" (adt-arg->json (car adt-arg*))))]
             [(Map)
              (list (cons "key" (adt-arg->json (car adt-arg*)))
                    (cons "value" (adt-arg->json (cadr adt-arg*))))]
-            [(Set List)
+            [(Set NumberedSet List)
              (list (cons "type" (adt-arg->json (car adt-arg*))))]
             [(MerkleTree HistoricMerkleTree)
              (list (cons "depth" (adt-arg->json (car adt-arg*)))

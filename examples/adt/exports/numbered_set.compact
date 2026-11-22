@@ -15,10 +15,10 @@
 
 import CompactStandardLibrary;
 
-export ledger s: StampedCounter<Bytes<32>>;
+export ledger s: NumberedSet<Bytes<32>>;
 
-export circuit stamp(key: Bytes<32>): [] {
-  return s.stamp(disclose(key));
+export circuit insert(key: Bytes<32>): [] {
+  return s.insert(disclose(key));
 }
 
 export circuit increment(amount: Uint<16>): [] {
@@ -37,8 +37,8 @@ export circuit reset_to_default(): [] {
   return s.resetToDefault();
 }
 
-export circuit value(): Uint<64> {
-  return s.value();
+export circuit read(): Uint<64> {
+  return s.read();
 }
 
 export circuit lookup(key: Bytes<32>): Uint<64> {
@@ -47,4 +47,24 @@ export circuit lookup(key: Bytes<32>): Uint<64> {
 
 export circuit member(key: Bytes<32>): Boolean {
   return s.member(disclose(key));
+}
+
+export circuit size(): Uint<64> {
+  return s.size();
+}
+
+export circuit is_empty(): Boolean {
+  return s.isEmpty();
+}
+
+export circuit decrement(amount: Uint<16>): [] {
+  return s.decrement(disclose(amount));
+}
+
+export circuit lower_to(threshold: Uint<64>): [] {
+  return s.lowerTo(disclose(threshold));
+}
+
+export circuit less_than(threshold: Uint<64>): Boolean {
+  return s.lessThan(disclose(threshold));
 }

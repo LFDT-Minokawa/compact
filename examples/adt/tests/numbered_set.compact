@@ -1,0 +1,102 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger s: NumberedSet<Uint<64>>;
+
+export circuit test_all(): [] {
+  assert(s.read() == 0, "Initial value is 0");
+  assert(!s.member(1), "The set is empty");
+  assert(s.isEmpty(), "Initially empty");
+  assert(s.size() == 0, "Initial size is 0");
+
+  s.increment(3);
+  assert(s.isEmpty(), "A nonzero counter with no keys is still empty");
+  s.resetToDefault();
+
+  s.insert(1);
+  assert(!s.isEmpty(), "No longer empty");
+  assert(s.size() == 1, "One key");
+  assert(s.member(1), "Key 1 is in the set");
+  assert(s.lookup(1) == 0, "Key 1 was numbered 0");
+  assert(s.read() == 1, "Inserting a new key advances the counter");
+
+  s.increment(5);
+  assert(s.read() == 6, "Value is 6");
+  assert(s.lookup(1) == 0, "The number does not move");
+
+  s.insert(2);
+  assert(s.lookup(2) == 6, "Key 2 was numbered 6");
+  assert(s.size() == 2, "Two keys");
+  assert(s.read() == 7, "Value is 7");
+  s.insert(2);
+  assert(s.size() == 2, "Inserting a present key does not add one");
+  assert(s.lookup(2) == 6, "Inserting a present key keeps its number");
+  assert(s.read() == 7, "Inserting a present key does not advance the counter");
+  s.remove(2);
+  assert(s.read() == 7, "Removing a key does not move the counter");
+  s.insert(2);
+  assert(s.lookup(2) == 7, "Removing and inserting renumbers");
+  assert(s.read() == 8, "Value is 8");
+
+  s.raiseTo(3);
+  assert(s.read() == 8, "Raising below the value is a no-op");
+  s.raiseTo(12);
+  assert(s.read() == 12, "Raising above the value takes the threshold");
+
+  s.remove(1);
+  assert(!s.member(1), "Key 1 is no longer in the set");
+  assert(s.member(2), "Key 2 still is");
+  assert(s.size() == 1, "One key left");
+
+  s.resetToDefault();
+  assert(s.read() == 0, "Value is 0");
+  assert(!s.member(2), "The set is empty");
+  assert(s.isEmpty(), "Empty again");
+}
+
+export ledger t: NumberedSet<Uint<64>>;
+
+// Everything a Counter can do, including the syntax that relies on it.
+export circuit test_counter_operations(): [] {
+  assert(t == 0, "A bare field reads the counter");
+  t += 7;
+  assert(t.read() == 7, "+= increments");
+  t -= 2;
+  assert(t == 5, "-= decrements");
+  t.decrement(1);
+  assert(t.lessThan(5), "4 is less than 5");
+  assert(!t.lessThan(4), "4 is not less than 4");
+  t.lowerTo(9);
+  assert(t == 4, "Lowering above the value is a no-op");
+  t.lowerTo(2);
+  assert(t == 2, "Lowering below the value takes the threshold");
+}
+
+// Moving the counter backwards lets later inserts reuse numbers.
+export circuit test_backwards_numbers(): [] {
+  t.resetToDefault();
+  t.insert(1);
+  t.decrement(1);
+  t.insert(2);
+  assert(t.lookup(1) == t.lookup(2), "decrement allows a repeated number");
+  t.raiseTo(5);
+  t.insert(3);
+  t.lowerTo(0);
+  t.insert(4);
+  assert(t.lookup(4) == 0, "lowerTo allows a repeated number");
+  assert(t.lookup(3) == 5, "Earlier numbers do not move");
+}

@@ -288,10 +288,21 @@
                       [else (syntax-error c2 "unhandled case")])]
                    [else (syntax-error c1 "unhandled case")]))
                (let* ([clause* (sort clause<? (expand-when clause*))]
-                      [read-op* (if kernel? '() (read-ops clause*))])
+                      [read-op* (if kernel? '() (read-ops clause*))]
+                      [read-getter? (and (memq 'read read-op*) (not (has-js-only? clause*)))])
                  (for-each
-                   (lambda (clause) (emit-adt-clause adt-formal* clause read-op*))
+                   (lambda (clause) (emit-adt-clause adt-formal* clause read-op* read-getter?))
                    clause*)))
+             ;; Mirrors print-typescript's read-getter?: a field whose ADT has a read
+             ;; operation is exposed in TypeScript as a getter for that operation
+             ;; alone, unless the ADT also has JS-only operations, which would then
+             ;; be unreachable.
+             (define (has-js-only? clause*)
+               (ormap (lambda (clause)
+                        (syntax-case clause (function js-only)
+                          [(when (expr ...) (function js-only . stuff)) #t]
+                          [else #f]))
+                      clause*))
              (define (read-ops clause*)
                (let ([op* (fold-left
                             (lambda (op* clause)
@@ -305,7 +316,7 @@
                                 [else (syntax-error clause)]))
                             '()
                             clause*)])
-                 (if (memq 'read op*)
+                 (if (and (memq 'read op*) (not (has-js-only? clause*)))
                      (list 'read)
                      op*)))
              ;; Ensure a blank line between formatted markdown text lines.
@@ -319,7 +330,7 @@
                     (printf "```~a\n" language)
                     (let () body1 body2 ...)
                     (printf "\n```\n\n"))]))
-             (define (emit-adt-clause adt-formal* clause read-op*)
+             (define (emit-adt-clause adt-formal* clause read-op* read-getter?)
                (define (expand-type x)
                  (define (handle-ledger-type id args)
                    (let ([ledger-type (ct-env id)])
@@ -410,7 +421,7 @@
                  (when cond-str
                    (paragraph "**~a**" cond-str))
                  (when (memq op-name read-op*)
-                   (if (eq? op-name 'read)
+                   (if (and (eq? op-name 'read) read-getter?)
                        (paragraph "*available from Typescript as a getter on the ledger field*")
                        (paragraph "*available from Typescript as `~a(~{~a~^, ~}): ~a`*"
                          (to-camel-case op-name #f)

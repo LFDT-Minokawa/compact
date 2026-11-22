@@ -9,15 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A new ledger ADT, `StampedCounter<key_type>`: a `Counter` paired with a
-  `Map<key_type, Uint<64>>`. `stamp(key)` copies the counter's current value
-  onto a key, and `increment` and `raiseTo(threshold)` update the counter, all
-  on the ledger without the value entering the circuit, so none of them
-  conflicts with a concurrent transaction doing the same. This is enough to
-  write contention-free FIFO queues and streams in Compact (sequence numbers
-  handed out at insert, "highest height seen" raised on every response).
-  `value()`, `lookup(key)`, `member(key)`, `remove(key)` and
-  `resetToDefault()` as for the existing ADTs.
+- Two new operations on the `Counter` ledger ADT: `raiseTo(n)` and `lowerTo(n)`.
+  `raiseTo(n)` increases the counter's value to `n` if it is not already `n` or
+  more, and `lowerTo(n)` decreases the counter's value to `n` if it is not already
+  `n` or less.
+- A new ledger ADT: `NumberedSet<key_type>`, which is like a `Set` but numbers
+  each element of the set with the value of an embedded counter at the time of
+  its insertion.
+  Inserting an element that is not already in the set advances the counter by
+  one, so successive new elements receive successive numbers.
+  Inserting an element that is already in the set changes neither its number
+  nor the counter.
+  The number associated with an element `x` of a `NumberedSet` value `numberedset`
+  can be retrieved via `numberedset.lookup(x)`.
+  In addition, `NumberedSet` supports all of the operations of the `Set` ADT
+  as well as all of the operations of the `Counter` ADT.
+  The `Counter` operations give access to the embedded counter.
+  `NumberedSet`'s `insert`, `increment`, `decrement`, `raiseTo` and `lowerTo`
+  operations are non-contentive: none of them interferes with another, so a
+  circuit can, for example, insert an element, and thereby advance the counter,
+  without conflicting with a concurrent transaction that does the same.
+  In TypeScript, a `NumberedSet` field is an object with a `read()` method,
+  rather than a getter as for `Counter`, and iterating over a `NumberedSet` value
+  yields `[element, number]` pairs, rather than just elements as for `Set`.
 
 ## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.102]
 
