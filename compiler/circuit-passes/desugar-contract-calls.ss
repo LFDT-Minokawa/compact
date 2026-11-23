@@ -78,7 +78,7 @@
                     (with-output-language (Lflattened Native-Declaration)
                       `(native ,src ,nm
                          ,(make-native-entry "__compactRuntime.transientCommit"
-                                             'circuit '(#f #f) '(#f #f #f))
+                                             'circuit '(#f #f) '(#f #f #f) #f)
                          ((argument (,value-vars ...) (ty (,aligns ...) (,prims ...)))
                           (argument (,(make-temp-id src 'rand))
                                     (ty ((afield)) ((tfield (field-native))))))
