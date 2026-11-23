@@ -544,8 +544,10 @@ async fn load_from_cache(path: &Path, source: &str, now: SystemTime) -> Option<M
     })
 }
 
-/// Written beside the cache and renamed over it, so that a reader never sees
-/// half a file.
+/// Written to a file of its own beside the cache and renamed over it, so that
+/// a reader never sees half a file. Every writer has its own such file: two
+/// commands refreshing the listing at the same moment each replace the cache
+/// whole, and the later rename wins.
 async fn save_to_cache(path: &Path, source: &str, artifacts: &MidnightArtifacts) -> Result<()> {
     let cached = CachedListing {
         schema: CACHE_SCHEMA,
@@ -554,24 +556,43 @@ async fn save_to_cache(path: &Path, source: &str, artifacts: &MidnightArtifacts)
         compilers: artifacts.compilers.clone(),
     };
 
-    if let Some(parent) = path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .context("Failed to create cache directory")?;
-    }
-
     let contents =
         serde_json::to_string_pretty(&cached).context("Failed to serialize cache data")?;
+    let path = path.to_owned();
 
-    let mut partial = path.as_os_str().to_owned();
-    partial.push(".partial");
-    let partial = PathBuf::from(partial);
-
-    tokio::fs::write(&partial, contents)
+    tokio::task::spawn_blocking(move || replace(&path, contents.as_bytes()))
         .await
+        .context("Failed to write cache file")?
+}
+
+/// `path', replaced whole by `contents'. The temporary file is named after
+/// `path', so that one left by a command killed mid-write is recognisably
+/// this CLI's, and it is removed if anything fails before the rename.
+fn replace(path: &Path, contents: &[u8]) -> Result<()> {
+    use std::io::Write as _;
+
+    let directory = path
+        .parent()
+        .ok_or_else(|| anyhow!("`{}' is not in a directory", path.display()))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| anyhow!("`{}' does not name a file", path.display()))?;
+
+    std::fs::create_dir_all(directory).context("Failed to create cache directory")?;
+
+    let mut prefix = name.to_owned();
+    prefix.push(".");
+
+    let mut partial = tempfile::Builder::new()
+        .prefix(&prefix)
+        .suffix(".partial")
+        .tempfile_in(directory)
         .context("Failed to write cache file")?;
-    tokio::fs::rename(&partial, path)
-        .await
+    partial
+        .write_all(contents)
+        .context("Failed to write cache file")?;
+    partial
+        .persist(path)
         .context("Failed to replace cache file")?;
 
     Ok(())
@@ -1062,6 +1083,45 @@ mod tests {
         );
 
         let names: Vec<_> = std::fs::read_dir(file.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(names, ["cache.json"], "nothing is left beside the cache");
+    }
+
+    /// Commands that refresh the listing at the same moment each write a
+    /// temporary file of their own, so all of them succeed and the cache they
+    /// leave is one of their listings, whole.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn writers_at_the_same_moment_leave_one_whole_cache() {
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("cache.json");
+        let listings: Vec<MidnightArtifacts> = (0..16)
+            .map(|minor| artifacts(&[format!("0.{minor}.0").as_str()]))
+            .collect();
+
+        let writers: Vec<_> = listings
+            .iter()
+            .cloned()
+            .map(|listing| {
+                let file = file.clone();
+                tokio::spawn(async move { save_to_cache(&file, RELEASES_URL, &listing).await })
+            })
+            .collect();
+
+        for writer in writers {
+            writer.await.unwrap().unwrap();
+        }
+
+        let cached = load_from_cache(&file, RELEASES_URL, SystemTime::now())
+            .await
+            .expect("the cache is whole");
+        assert!(
+            listings.contains(&cached),
+            "the cache is one writer's listing"
+        );
+
+        let names: Vec<_> = std::fs::read_dir(directory.path())
             .unwrap()
             .map(|entry| entry.unwrap().file_name())
             .collect();
