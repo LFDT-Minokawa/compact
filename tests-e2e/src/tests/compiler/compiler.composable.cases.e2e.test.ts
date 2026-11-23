@@ -49,7 +49,7 @@ describe('[Composable contracts] Compiler', () => {
                 buildPathTo(`${fixtures}/main.compact`),
             );
             expectCompilerResult(result).toBeFailure(
-                `Exception: main.compact line 25 char 1:\n  constructor cannot call external contracts but calls circuit up from external contract A at line\n  27 char 7`,
+                `Exception: main.compact line 25 char 1:\n  constructor cannot call circuit up from external contract A but does so at line 27 char 7`,
                 compilerDefaultOutput(),
             );
             expectFiles(result).thatNoFilesAreGenerated();
