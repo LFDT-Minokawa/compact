@@ -27,7 +27,7 @@ use compact::{
     Compiler, CompilerAsset, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand,
     VersionSpec,
     catalog::{Catalog, Channel, Standing},
-    fetch::{self, MidnightArtifacts},
+    fetch::{self, Freshness, MidnightArtifacts},
     file,
     fixup::{self, FixupStatus, fixup_file},
     formatter::{self, FormatStatus, format_file},
@@ -225,7 +225,18 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
         }
     }
 
-    let catalog = Catalog::from(load_compilers().await?);
+    let (artifacts, freshness) = load_compilers().await?;
+    let mut catalog = Catalog::from(artifacts);
+
+    // A cached listing can be up to a quarter of an hour old, and a version
+    // published since -- a candidate, typically, asked for by name as soon as
+    // it is announced -- is not in it. An exact version the cache lacks is
+    // looked for again in a listing fetched now.
+    if let (Some(spec @ VersionSpec::Exact(_)), Freshness::Cached) = (&command.version, freshness)
+        && catalog.resolve(spec).is_err()
+    {
+        catalog = Catalog::from(fetch_compilers().await?);
+    }
 
     let (version, artifact) = match &command.version {
         Some(spec) => catalog.resolve(spec)?,
@@ -320,21 +331,25 @@ async fn candidate_default_newer_than(
     (Standing::of(default.version(), latest) == Standing::CandidateAhead).then_some(default)
 }
 
-/// Fetch the archive unless it is already here, then unpack it.
+/// Fetch the archive unless it is already here, check it against the size and
+/// SHA-256 the release listing gives, then unpack it.
 ///
-/// An archive that cannot be read is discarded and fetched once more. The
-/// archive is otherwise reused whenever it is on disk, so a corrupt one would
-/// fail every retry in exactly the same way and leave deleting it by hand as
-/// the only way forward -- which is the shape of the failure reported in issue
-/// #739. Only the archive's own faults are retried: a full disk or a
-/// permission error is reported as it happens, because fetching the file again
-/// would not help.
+/// An archive that is not as listed, or cannot be read, is discarded and
+/// fetched once more. The archive is otherwise reused whenever it is on disk,
+/// so a damaged one would fail every retry in exactly the same way and leave
+/// deleting it by hand as the only way forward -- which is the shape of the
+/// failure reported in issue #739. Only the archive's own faults are retried: a
+/// full disk or a permission error is reported as it happens, because fetching
+/// the file again would not help. An archive the listing gives no SHA-256 for
+/// is not fetched at all.
 async fn download_and_install(
     cfg: &CommandLineArguments,
     version: &semver::Version,
     compiler_asset: &CompilerAsset,
     zip_path: &Path,
 ) -> Result<()> {
+    compiler_asset.sha256()?;
+
     if !file::File::new(zip_path.to_path_buf()).exist() {
         download_archive(compiler_asset, zip_path).await?;
     }
@@ -354,12 +369,12 @@ async fn download_and_install(
         version = cfg.style.version(version.clone()),
         message = cfg
             .style
-            .warn("downloaded archive is unreadable, downloading it again"),
+            .warn("downloaded archive is damaged, downloading it again"),
     );
 
     utils::remove_file_if_exists(zip_path)
         .await
-        .with_context(|| anyhow!("Failed to discard the unreadable archive `{zip_path:?}'"))?;
+        .with_context(|| anyhow!("Failed to discard the damaged archive `{zip_path:?}'"))?;
 
     download_archive(compiler_asset, zip_path).await?;
 
@@ -595,7 +610,17 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
     }
 }
 
-async fn load_compilers() -> Result<MidnightArtifacts> {
+/// What can be installed, from the cache while it is fresh.
+async fn load_compilers() -> Result<(MidnightArtifacts, Freshness)> {
+    with_spinner(MidnightArtifacts::load()).await
+}
+
+/// What can be installed, fetched now whatever the cache holds.
+async fn fetch_compilers() -> Result<MidnightArtifacts> {
+    with_spinner(MidnightArtifacts::fetch()).await
+}
+
+async fn with_spinner<T>(load: impl Future<Output = Result<T>>) -> Result<T> {
     let pb = indicatif::ProgressBar::new_spinner();
 
     pb.set_style(ProgressStyle::default_spinner().tick_chars(" ▏▎▍▌▋▊▉█"));
@@ -604,13 +629,13 @@ async fn load_compilers() -> Result<MidnightArtifacts> {
 
     pb.set_message("Fetching information from server");
 
-    let artifacts = fetch::MidnightArtifacts::load().await.with_context(|| {
+    let loaded = load.await.with_context(|| {
         anyhow!("Failed to query backend services to collect the latest artifacts")
     })?;
 
     pb.finish_and_clear();
 
-    Ok(artifacts)
+    Ok(loaded)
 }
 
 async fn check(cfg: &CommandLineArguments) -> Result<()> {
@@ -620,7 +645,7 @@ async fn check(cfg: &CommandLineArguments) -> Result<()> {
         .await
         .context("Failed to get the current compiler")?;
 
-    let catalog = Catalog::from(load_compilers().await?);
+    let catalog = Catalog::from(load_compilers().await?.0);
 
     let Some((latest_version, _)) = catalog.releases().latest() else {
         bail!("No version available")
@@ -791,7 +816,7 @@ async fn list(cfg: &CommandLineArguments, command: &ListCommand) -> Result<()> {
             );
         }
     } else {
-        let catalog = Catalog::from(load_compilers().await?);
+        let catalog = Catalog::from(load_compilers().await?.0);
 
         println!(
             "{label}: {message}\n",
@@ -882,16 +907,17 @@ async fn clean(cfg: &CommandLineArguments, command: &CleanCommand) -> Result<()>
     utils::initialise_directories(cfg).await?;
 
     if command.cache {
-        let cache_path = fetch::get_cache_path()?;
+        // the older CLI's cache too, which this one leaves alone otherwise
+        for cache_path in [fetch::cache_path()?, fetch::legacy_cache_path()?] {
+            utils::remove_file_if_exists(&cache_path).await?;
 
-        utils::remove_file_if_exists(&cache_path).await?;
-
-        println!(
-            "{label}: {message} {version}",
-            label = cfg.style.label(),
-            message = cfg.style.error("removed"),
-            version = cfg.style.version_raw(cache_path.display()).italic().dim()
-        );
+            println!(
+                "{label}: {message} {version}",
+                label = cfg.style.label(),
+                message = cfg.style.error("removed"),
+                version = cfg.style.version_raw(cache_path.display()).italic().dim()
+            );
+        }
     }
 
     let versions_dir = cfg.directory.versions_dir();

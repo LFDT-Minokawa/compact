@@ -14,9 +14,9 @@
 // limitations under the License.
 
 use crate::common::{
-    LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, PREVIOUS_COMPACTC_VERSION,
-    VERSION_WITH_NO_FORMAT, assert_path_contains_string, get_version, read_directory_contents,
-    run_command,
+    LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, OTHER_COMPACTC_VERSION,
+    PREVIOUS_COMPACTC_VERSION, VERSION_ON_DISK_ONLY, assert_path_contains_string, get_version,
+    make_compiler_without_formatter, read_directory_contents, run_command,
 };
 
 mod common;
@@ -269,37 +269,39 @@ fn test_sc5_update_clean_folder_check() {
     assert_eq!(directories.len(), 2);
 }
 
-// clean with the last version without fixup and format
+// clean with a compiler that has no fixup and format, as before 0.25.0
 #[test]
 fn test_sc5a_update_clean_folder_check_no_fixup_format() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
+
+    make_compiler_without_formatter(temp_path, VERSION_ON_DISK_ONLY);
 
     run_command(
         &[
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            VERSION_WITH_NO_FORMAT,
+            VERSION_ON_DISK_ONLY,
         ],
         None,
-        Some("./output/update/std_update_other.txt"),
+        Some("./output/update/std_already_installed.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", VERSION_ON_DISK_ONLY),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
     );
 
-    assert_path_contains_string(temp_path, &[VERSION_WITH_NO_FORMAT, get_version()]);
+    assert_path_contains_string(temp_path, &[VERSION_ON_DISK_ONLY, get_version()]);
 
     run_command(
         &["--directory", &format!("{}", temp_path.display()), "clean"],
         None,
         Some("./output/clean/std_clean_other.txt"),
         None,
-        &[("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT)],
+        &[("[COMPACTC_VERSION]", VERSION_ON_DISK_ONLY)],
         None,
     );
 
@@ -369,7 +371,6 @@ fn test_sc6_update_two_versions_clean_folder_check() {
 }
 
 #[test]
-#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc6a_update_three_versions_clean_folder_check() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
@@ -408,13 +409,13 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            "0.23.0",
+            OLDEST_COMPACTC_VERSION,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", "0.23.0"),
+            ("[COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -425,7 +426,7 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
         &[
             LATEST_COMPACTC_VERSION,
             PREVIOUS_COMPACTC_VERSION,
-            "0.23.0",
+            OLDEST_COMPACTC_VERSION,
             get_version(),
         ],
     );
@@ -438,7 +439,7 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
         &[
             ("[COMPACTC_VERSION_ONE]", LATEST_COMPACTC_VERSION),
             ("[COMPACTC_VERSION_TWO]", PREVIOUS_COMPACTC_VERSION),
-            ("[COMPACTC_VERSION_THREE]", "0.23.0"),
+            ("[COMPACTC_VERSION_THREE]", OLDEST_COMPACTC_VERSION),
         ],
         None,
     );
@@ -448,7 +449,6 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
 }
 
 #[test]
-#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc7_update_previous_list_compile() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
@@ -458,13 +458,13 @@ fn test_sc7_update_previous_list_compile() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            VERSION_WITH_NO_FORMAT,
+            OTHER_COMPACTC_VERSION,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", OTHER_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -475,7 +475,7 @@ fn test_sc7_update_previous_list_compile() {
     run_command(
         &["--directory", &format!("{}", temp_path.display()), "list"],
         None,
-        Some("./output/list/std_024_selected.txt"),
+        Some("./output/list/std_other_selected.txt"),
         None,
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
@@ -495,13 +495,12 @@ fn test_sc7_update_previous_list_compile() {
         None,
         Some("./output/compile/std_non_latest.txt"),
         None,
-        &[("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT)],
+        &[("[COMPACTC_VERSION]", OTHER_COMPACTC_VERSION)],
         None,
     );
 }
 
 #[test]
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 fn test_sc8_update_oldest_list_compile() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();

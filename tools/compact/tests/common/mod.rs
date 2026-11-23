@@ -32,11 +32,46 @@ pub const LATEST_COMPACTC_VERSION: &str = "0.36.1";
 #[allow(dead_code)]
 pub const PREVIOUS_COMPACTC_VERSION: &str = "0.36.0";
 
+/// The oldest release `compact update' offers: every release from it on has
+/// all four platforms, archives named alike, and the same packaging.
 #[allow(dead_code)]
-pub const OLDEST_COMPACTC_VERSION: &str = "0.22.0";
+pub const OLDEST_COMPACTC_VERSION: &str = "0.29.0";
 
+/// A release between the oldest and the previous one.
 #[allow(dead_code)]
-pub const VERSION_WITH_NO_FORMAT: &str = "0.24.0";
+pub const OTHER_COMPACTC_VERSION: &str = "0.30.0";
+
+/// A version no release offers, for a compiler made on disk by
+/// `make_compiler_without_formatter'.
+#[allow(dead_code)]
+pub const VERSION_ON_DISK_ONLY: &str = "0.24.0";
+
+/// A release candidate, for the tests that install one by name.
+#[allow(dead_code)]
+pub const CANDIDATE_COMPACTC_VERSION: &str = "0.35.0-rc.1";
+
+/// Make a compiler of `version' in the compact directory `directory' with
+/// nothing beside `compactc': no `format-compact', no `fixup-compact', as the
+/// releases before 0.25.0 shipped. Those are no longer offered, so a test that
+/// needs such a compiler makes one, and `compact update <version>' finds it
+/// installed. Running it prints its version.
+#[allow(dead_code)]
+pub fn make_compiler_without_formatter(directory: &Path, version: &str) {
+    let dir = directory.join("versions").join(version).join(get_version());
+    fs::create_dir_all(&dir).expect("Failed to create the compiler's directory");
+
+    let compactc = dir.join("compactc");
+    fs::write(&compactc, format!("#!/bin/sh\necho {version}\n"))
+        .expect("Failed to write the compiler");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(&compactc, fs::Permissions::from_mode(0o755))
+            .expect("Failed to make the compiler executable");
+    }
+}
 
 #[allow(dead_code)]
 pub fn get_version() -> &'static str {
@@ -236,6 +271,32 @@ pub fn run_command(
         &expected_stdout,
         &expected_stderr,
         exit_code,
+    );
+}
+
+/// Run `compact' and check that its standard output holds `expected' as one of
+/// its lines, for listings that grow with every release.
+#[allow(dead_code)]
+pub fn run_command_listing(args: &[&str], expected: &str) {
+    assert_directory_is_isolated(args, None);
+
+    let output = Command::new("../../target/debug/compact")
+        .env("COLUMNS", "10000")
+        .env("RUST_BACKTRACE", "0")
+        .args(args)
+        .output()
+        .expect("Failed to execute command");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    dbg!(args.join(" "));
+    dbg!(&stdout);
+    dbg!(String::from_utf8_lossy(&output.stderr));
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        stdout.lines().any(|line| line.trim_end() == expected),
+        "no line of the output is `{expected}'"
     );
 }
 

@@ -15,6 +15,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Compact toolchains are installed from the releases of
+  `LFDT-Minokawa/compact`, where release candidates are published, rather
+  than from `midnightntwrk/compact`, which only ever had releases. Only
+  releases tagged `compactc-v<version>` are toolchains; the repository's other
+  releases, such as dev builds, are passed over. Releases before 0.29.0 are no
+  longer offered: a version already installed keeps working, and `compact
+  update <version>` still makes it the default.
+
+- Every archive is checked against the size and SHA-256 that GitHub records
+  for it before it is unpacked, one left on disk by an interrupted run
+  included. An archive that differs is discarded and downloaded once more; one
+  with no SHA-256 is not installed.
+
+- The release listing is cached in a file of its own, still for fifteen
+  minutes, and an exact version missing from a cached listing is looked for in
+  a fresh one, so a release candidate is installable as soon as it is
+  published. `compact clean --cache` removes the earlier cache file as well.
+  When GitHub's rate limit stops a request, the error says so and that setting
+  `GITHUB_TOKEN` raises it.
+
 - A release candidate is only ever installed by its exact version
   (`compact update 0.36.0-rc.0`). `compact update` without a version installs
   the latest release, and `compact update 0.36` and `compact update 0` the

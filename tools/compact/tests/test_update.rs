@@ -14,7 +14,8 @@
 // limitations under the License.
 
 use crate::common::{
-    COMPACT_VERSION, LATEST_COMPACTC_VERSION, assert_path_contains_string, get_version, run_command,
+    CANDIDATE_COMPACTC_VERSION, COMPACT_VERSION, LATEST_COMPACTC_VERSION,
+    assert_path_contains_string, get_version, run_command, run_command_listing,
 };
 use std::collections::HashMap;
 use std::env;
@@ -140,9 +141,10 @@ fn test_compact_update_invalid_non_existing_version() {
     );
 }
 
+/// Releases before 0.29.0 are no longer offered, though `midnightntwrk/compact'
+/// still has them.
 #[test]
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn test_compact_update_missing_release_macos_arm() {
+fn test_compact_update_a_release_before_the_oldest_offered() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
 
@@ -151,34 +153,73 @@ fn test_compact_update_missing_release_macos_arm() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            "0.22.0",
+            "0.28.0",
         ],
         None,
         None,
-        Some("./output/update/err_no_release_macos_aarch64.txt"),
-        &[],
+        Some("./output/update/err_not_offered.txt"),
+        &[("[COMPACTC_VERSION]", "0.28.0")],
         Some(1),
     );
 }
 
+/// A release candidate is installed when it is named by its exact version, and
+/// is labelled as one.
 #[test]
-#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-fn test_compact_update_missing_release_macos_intel() {
+fn test_compact_update_a_release_candidate_by_its_exact_version() {
     let temp_dir = tempfile::tempdir().unwrap();
-    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_dir.path().display());
 
     run_command(
         &[
             "--directory",
-            &format!("{}", temp_path.display()),
+            &directory,
             "update",
-            "0.23.0",
+            CANDIDATE_COMPACTC_VERSION,
         ],
         None,
+        Some("./output/update/std_update_candidate.txt"),
         None,
-        Some("./output/update/err_no_release_macos_intel.txt"),
-        &[],
-        Some(1),
+        &[
+            ("[COMPACTC_VERSION]", CANDIDATE_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &[
+            "--directory",
+            &directory,
+            "compile",
+            &format!("+{CANDIDATE_COMPACTC_VERSION}"),
+            "--version",
+        ],
+        None,
+        Some("./output/compile/std_candidate_version.txt"),
+        None,
+        &[("[COMPACTC_VERSION]", CANDIDATE_COMPACTC_VERSION)],
+        None,
+    );
+}
+
+/// `compact list --pre' lists release candidates, each labelled; the listing
+/// grows with every candidate, so only the line for one is checked.
+#[test]
+fn test_compact_list_pre_lists_a_release_candidate() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    run_command_listing(
+        &[
+            "--directory",
+            &format!("{}", temp_dir.path().display()),
+            "list",
+            "--pre",
+        ],
+        &format!(
+            "{CANDIDATE_COMPACTC_VERSION} (release candidate, superseded by 0.35.0) - \
+             x86_macos, aarch64_macos, x86_linux, aarch64_linux"
+        ),
     );
 }
 

@@ -19,7 +19,7 @@
 
 use crate::{
     VersionSpec,
-    fetch::{MidnightArtifacts, MidnightCompiler},
+    fetch::{MidnightArtifacts, MidnightCompiler, SOURCE},
 };
 use anyhow::{Result, anyhow};
 use semver::Version;
@@ -102,8 +102,12 @@ impl Catalog {
 
         match (found, spec) {
             (Some((version, compiler)), _) => Ok((version.clone(), compiler.clone())),
-            (None, VersionSpec::Exact(version)) => Err(anyhow!("Couldn't find version {version}")),
-            (None, _) => Err(anyhow!("No version matching {spec} found")),
+            (None, VersionSpec::Exact(version)) => Err(anyhow!(
+                "Couldn't find version {version} in {SOURCE}'s releases"
+            )),
+            (None, _) => Err(anyhow!(
+                "No version matching {spec} found in {SOURCE}'s releases"
+            )),
         }
     }
 
@@ -251,7 +255,10 @@ mod tests {
     fn resolve_exact_version_not_found() {
         let catalog = make_catalog(&["0.28.0", "0.29.0"]);
         let err = resolve(&catalog, "0.30.0").unwrap_err();
-        assert_eq!(err.to_string(), "Couldn't find version 0.30.0");
+        assert_eq!(
+            err.to_string(),
+            "Couldn't find version 0.30.0 in LFDT-Minokawa/compact's releases"
+        );
     }
 
     #[test]
@@ -270,7 +277,10 @@ mod tests {
     fn resolve_partial_not_found() {
         let catalog = make_catalog(&["0.28.0", "0.29.0"]);
         let err = resolve(&catalog, "0.30").unwrap_err();
-        assert_eq!(err.to_string(), "No version matching 0.30 found");
+        assert_eq!(
+            err.to_string(),
+            "No version matching 0.30 found in LFDT-Minokawa/compact's releases"
+        );
     }
 
     #[test]
@@ -289,7 +299,10 @@ mod tests {
     fn resolve_major_not_found() {
         let catalog = make_catalog(&["0.28.0", "0.29.0"]);
         let err = resolve(&catalog, "1").unwrap_err();
-        assert_eq!(err.to_string(), "No version matching 1 found");
+        assert_eq!(
+            err.to_string(),
+            "No version matching 1 found in LFDT-Minokawa/compact's releases"
+        );
     }
 
     #[test]
@@ -302,7 +315,7 @@ mod tests {
         );
         assert_eq!(
             resolve(&catalog, "0.36.0-rc.2").unwrap_err().to_string(),
-            "Couldn't find version 0.36.0-rc.2"
+            "Couldn't find version 0.36.0-rc.2 in LFDT-Minokawa/compact's releases"
         );
     }
 
@@ -320,7 +333,7 @@ mod tests {
 
         assert_eq!(
             resolve(&catalog, "0.36").unwrap_err().to_string(),
-            "No version matching 0.36 found"
+            "No version matching 0.36 found in LFDT-Minokawa/compact's releases"
         );
         assert_eq!(resolve(&catalog, "0").unwrap(), Version::new(0, 35, 0));
         assert_eq!(resolve(&catalog, "0.35").unwrap(), Version::new(0, 35, 0));
