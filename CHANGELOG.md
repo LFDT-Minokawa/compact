@@ -11,15 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The compiler now complains if the constructor attempts to call an operation
   that requires the contract's state to be already initialized. This includes some
-  natives and some ledger operations which are declared by
-  `(allowed-in-constructor b)` where `b` is a boolean literal in
-  `midnight-natives.ss` and `midnight-ledger.ss`, respectively.
+  natives and some ledger operations as listed in Compact language reference.
   
 ### Internal notes
 
 - There is now a single pass (`reject-constructor-forbidden-ops`) that
   rejects some operations in the constructor, including contract calls, event emits,
   and calls to forbidden ledger operations or natives.
+- To determine if an operation is forbidden in the constructor,
+  natives and ledgger operation now use
+  `(allowed-in-constructor b)` where `b` is a boolean literal in
+  `midnight-natives.ss` and `midnight-ledger.ss`, respectively
 - The `ledger-adt.mdx` spells out which operations cannot be called in a constructor
   and is directly generated from `midnight-ledger.ss` upon running `./compiler/go`.
   However, for the natives, this is documented manually in

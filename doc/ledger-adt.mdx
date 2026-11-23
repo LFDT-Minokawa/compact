@@ -186,7 +186,7 @@ Overwrites the content of this Cell with the given value.
 writeCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Writes a ShieldedCoinInfo to this Cell, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this write fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary. It cannot be called in a contract's constructor.
+Writes a ShieldedCoinInfo to this Cell, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this write fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
 **available only for QualifiedShieldedCoinInfo value_type**
 
@@ -254,7 +254,7 @@ Updates this Set to include a given element.
 insertCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Inserts a ShieldedCoinInfo into this Set, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary. It cannot be called in a contract's constructor.
+Inserts a ShieldedCoinInfo into this Set, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
 **available only for QualifiedShieldedCoinInfo value_type**
 
@@ -332,7 +332,7 @@ Updates this Map to include a new value at a given key.
 insertCoin(key: key_type, coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary. It cannot be called in a contract's constructor.
+Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
 **available only for QualifiedShieldedCoinInfo value_type**
 
@@ -466,7 +466,7 @@ Pushes a new element onto the front of this list.
 pushFrontCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this push fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary. It cannot be called in a contract's constructor.
+Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this push fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
 **available only for QualifiedShieldedCoinInfo value_type**
 

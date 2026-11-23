@@ -629,7 +629,7 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) writeCoin (allowed-in-constructor #f)
+    (function (update-with-coin-check 0 1) writeCoin (allowed-in-constructor #t)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Writes a ShieldedCoinInfo to this Cell, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
@@ -733,7 +733,7 @@
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) insertCoin (allowed-in-constructor #f)
+    (function (update-with-coin-check 0 1) insertCoin (allowed-in-constructor #t)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Set, which is transformed into a \
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
@@ -833,7 +833,7 @@
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 1 2) insertCoin (allowed-in-constructor #f)
+    (function (update-with-coin-check 1 2) insertCoin (allowed-in-constructor #t)
       ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
@@ -984,7 +984,7 @@
      ;; [context, effects, state]
 
   (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) pushFrontCoin (allowed-in-constructor #f)
+    (function (update-with-coin-check 0 1) pushFrontCoin (allowed-in-constructor #t)
       ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
       "Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is \
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \

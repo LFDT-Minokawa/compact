@@ -31651,19 +31651,6 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coin: QualifiedShieldedCoinInfo;"
-      "constructor(c: ShieldedCoinInfo) {"
-      "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call writeCoin on ledger fields that contain a Cell ADT type" "line 4 char 7")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
       "export ledger b: Boolean;"
       "constructor() { b = kernel.blockTimeLessThan(4102444800); }"
       )
@@ -31683,57 +31670,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.blockTimeGreaterThan" "line 3 char 27")))
     )
 
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
-      "constructor(c: ShieldedCoinInfo) {"
-      "  coins.insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Set ADT type" "line 4 char 8")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
-      "constructor(c: ShieldedCoinInfo) {"
-      "  coins.insertCoin(1 as Field, disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Map ADT type" "line 4 char 8")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
-      "constructor(c: ShieldedCoinInfo) {"
-      "  coins.pushFrontCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call pushFrontCoin on ledger fields that contain a List ADT type" "line 4 char 8")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, Set<QualifiedShieldedCoinInfo>>;"
-      "constructor(c: ShieldedCoinInfo) {"
-      "  coins.lookup(1 as Field).insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call insertCoin on ledger fields that contain a Set ADT type" "line 4 char 27")))
-    )
   )
 
 (run-tests identify-pure-circuits
@@ -85856,21 +85792,118 @@ groups than for single tests.
         ))
     )
 
-  ; only included for review purposes, will be dropped after approval
-  ; before making writeCoin forbidden this is what one should expect
-  #;(test
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Set insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(1 as Field, disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Map insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.pushFrontCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('List pushFrontCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, Set<QualifiedShieldedCoinInfo>>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.lookup(1 as Field).insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('nested Map-to-Set insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
     '(
       "import CompactStandardLibrary;"
       "export ledger coin: QualifiedShieldedCoinInfo;"
-      "constructor(c: ShieldedCoinInfo) {"
+      "circuit store(c: ShieldedCoinInfo): [] {"
       "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      "constructor(c: ShieldedCoinInfo, write: Boolean) {"
+      "  if (disclose(write)) { store(c); }"
+      "}"
+      "export circuit storeFromCircuit(c: ShieldedCoinInfo): [] {"
+      "  store(c);"
       "}"
       )
     (stage-javascript
       `(
         "test('writeCoin in a constructor', async () => {"
         "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
-        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "  await expect(startContract(contractCode, {}, undefined, c, true)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        "test('writeCoin in a circuit', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  const [C, ctxt] = await startContract(contractCode, {}, undefined, c, false);"
+        "  await expect(C.circuits.storeFromCircuit(ctxt, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger ctorKey: Bytes<32>;"
+      "constructor() {"
+      "  ctorKey = ownPublicKey().bytes;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('ownPublicKey in a constructor', async () => {"
+        "  const key = 'ab'.repeat(32);"
+        "  const contract = new contractCode.Contract({});"
+        "  const result = await contract.initialState(runtime.createConstructorContext(undefined, key));"
+        "  const L = contractCode.ledger(result.currentContractState.data);"
+        "  expect(L.ctorKey).toEqual(Uint8Array.from(Buffer.from(key, 'hex')));"
         "});"
         ))
     )

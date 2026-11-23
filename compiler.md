@@ -1558,9 +1558,10 @@ sealed fields.
 This pass throws an error if the constructor tries to call a forbidden operation,
 either directly or indirectly. These operations are
 
+- calling circuits from an external contract
 - emitting events
-- natives declared with `(allowed-in-constructor #f)`
-- ledger operations declared with `(allowed-in-constructor #f)`.
+- natives declared to be forbidden in the constructor
+- ledger operations declared to be forbidden in the constructor.
 
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
 

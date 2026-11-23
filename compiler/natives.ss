@@ -41,7 +41,7 @@
 
     (define-syntax declare-native-entry
       (lambda (q)
-        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type constructor-flag)
+        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type constructor-ok?)
           (define (convert-outer-type type)
             (define (convert-native-type type)
               (define (convert-native-targ targ)
@@ -87,7 +87,7 @@
                              [else (syntax-error class "invalid class")])
                         '#,(map parse-disclosure disclosure*)
                         '#,(map maybe-type-param (append argument-type* (list result-type)))
-                        #,constructor-flag)
+                        #,constructor-ok?)
                      (#,@(map convert-type-param type-param*))
                      (#,@(map convert-native-argument argument-name* argument-type*))
                      #,(convert-outer-type result-type)))
