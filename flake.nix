@@ -229,7 +229,7 @@
 
             buildInputs = [
               pkgs.nodejs
-              pkgs.typescript
+              pkgs.nodePackages.typescript
               packages.runtime.package
               packages.runtime.node-modules
               chez
