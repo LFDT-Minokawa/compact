@@ -55,7 +55,60 @@ describe('[WPP] Compiler', () => {
         const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
 
         expectCompilerResult(result).toBeFailure(
-            'Exception: pm_16723.compact line 68 char 1:\n' +
+            'Exception: pm_16723_neg.compact line 22 char 11:\n' +
+                '  potential witness-value disclosure must be declared but is not:\n' +
+                '    witness value potentially disclosed:\n' +
+                '      the value of parameter b of exported circuit damian at line 21 char 23\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the right-hand side of += at line 22 char 11\n' +
+                'Exception: pm_16723_neg.compact line 26 char 11:\n' +
+                '  potential witness-value disclosure must be declared but is not:\n' +
+                '    witness value potentially disclosed:\n' +
+                '      the value of parameter a of exported circuit gary at line 25 char 21\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the right-hand side of -= at line 26 char 11\n' +
+                'Exception: pm_16723_neg.compact line 30 char 7:\n' +
+                '  potential witness-value disclosure must be declared but is not:\n' +
+                '    witness value potentially disclosed:\n' +
+                '      the value of parameter a of exported circuit edmund at line 29 char 23\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the argument to lookup at line 30 char 7\n' +
+                'Exception: pm_16723_neg.compact line 34 char 7:\n' +
+                '  potential witness-value disclosure must be declared but is not:\n' +
+                '    witness value potentially disclosed:\n' +
+                '      the value of parameter a of exported circuit barbara at line 33 char 24\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the first argument to insert at line 34 char 7\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the second argument to insert at line 34 char 7\n' +
+                'Exception: pm_16723_neg.compact line 39 char 7:\n' +
+                '  potential witness-value disclosure must be declared but is not:\n' +
+                '    witness value potentially disclosed:\n' +
+                '      the value of parameter a of exported circuit katie at line 38 char 22\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the argument to remove at line 39 char 7',
+            compilerDefaultOutput(),
+        );
+    });
+
+    test(`should not be able to compile contract: pm_16723.compact`, async () => {
+        const filePath = path.join(CONTRACTS_ROOT, 'negative', 'pm_16723.compact');
+        const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+
+        expectCompilerResult(result).toBeFailure(
+            'Exception: pm_16723.compact line 22 char 11:\n' +
                 '  constructor cannot call insertCoin on ledger fields that contain a Set ADT type but does so at\n' +
                 '  line 74 char 10\n',
             compilerDefaultOutput(),
