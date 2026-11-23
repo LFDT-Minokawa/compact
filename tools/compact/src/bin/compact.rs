@@ -246,7 +246,13 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
                 .latest()
                 .ok_or_else(|| anyhow!("No versions available"))?;
 
-            if let Some(default) = candidate_default_newer_than(cfg, latest).await {
+            // A plain `compact update' never moves the default back from a
+            // candidate newer than the latest release. `--no-set-default'
+            // leaves the default alone anyway, so with it the latest release
+            // is installed, as asked.
+            if !command.no_set_default
+                && let Some(default) = candidate_default_newer_than(cfg, latest).await
+            {
                 println!(
                     "{label}: {target} -- {version} -- {message}",
                     label = cfg.style.label(),

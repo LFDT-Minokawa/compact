@@ -77,8 +77,9 @@ pub enum Command {
     /// If the compiler was already downloaded it is not downloaded again
     ///
     /// A release candidate is installed only when named by its exact
-    /// version. Without a version this installs the latest release, unless
-    /// the default is a release candidate newer than it, which is kept.
+    /// version. Without a version this installs the latest release. If the
+    /// default is a release candidate newer than that release, the default is
+    /// kept, and the release is installed only with --no-set-default.
     #[command(
         verbatim_doc_comment,
         visible_alias = "u",

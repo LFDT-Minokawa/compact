@@ -15,7 +15,8 @@
 
 use crate::common::{
     CANDIDATE_COMPACTC_VERSION, COMPACT_VERSION, LATEST_COMPACTC_VERSION,
-    assert_path_contains_string, get_version, run_command, run_command_listing,
+    assert_path_contains_string, get_version, make_compiler_without_formatter, run_command,
+    run_command_listing,
 };
 use std::collections::HashMap;
 use std::env;
@@ -220,6 +221,73 @@ fn test_compact_list_pre_lists_a_release_candidate() {
             "{CANDIDATE_COMPACTC_VERSION} (release candidate, superseded by 0.35.0) - \
              x86_macos, aarch64_macos, x86_linux, aarch64_linux"
         ),
+    );
+}
+
+/// A plain `compact update' does not move the default back from a release
+/// candidate newer than the latest release, and installs nothing; with
+/// `--no-set-default', which leaves the default alone anyway, it installs the
+/// latest release. The candidate is one made on disk, since which candidates
+/// are newer than the latest release changes with every release.
+#[test]
+fn test_compact_update_keeps_a_candidate_default_ahead_of_the_latest_release() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+    let ahead = "0.99.0-rc.0";
+    let shown_as = format!("{ahead} (release candidate)");
+
+    make_compiler_without_formatter(temp_path, ahead);
+
+    run_command(
+        &["--directory", &directory, "update", ahead],
+        None,
+        Some("./output/update/std_already_installed.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", &shown_as),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &["--directory", &directory, "update"],
+        None,
+        Some("./output/update/std_candidate_default_kept.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", &shown_as),
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    let latest = temp_path.join("versions").join(LATEST_COMPACTC_VERSION);
+    assert!(!latest.exists(), "a plain update installs nothing here");
+
+    run_command(
+        &["--directory", &directory, "update", "--no-set-default"],
+        None,
+        Some("./output/scenarios/sc18_no_default_set.txt"),
+        None,
+        &[
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    assert!(
+        latest.join(get_version()).join("compactc").is_file(),
+        "--no-set-default installs the latest release"
+    );
+
+    let default = fs::read_link(temp_path.join("bin").join("compactc")).unwrap();
+    assert!(
+        default.to_string_lossy().contains(ahead),
+        "the default is still the candidate: {default:?}"
     );
 }
 

@@ -44,8 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `compact update` without a version leaves a default that is a release
   candidate newer than the latest release where it is, and says how to switch
-  to that release, rather than move the default backwards. `compact check`
-  reports such a default as ahead of the latest release.
+  to that release, rather than move the default backwards. With
+  `--no-set-default`, which leaves the default alone anyway, it installs that
+  release. `compact check` reports such a default as ahead of the latest
+  release.
 
 - `compact update`, `compact check` and `compact list --installed` mark a
   release candidate as one wherever they name a version, so a candidate is
