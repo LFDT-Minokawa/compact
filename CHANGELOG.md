@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Toolchain 0.36.111, language 0.28.100, runtime 0.21.104]
+
+### Changed
+
+- Pulls in onchain-runtime 4.0.2.
+
 ## [Toolchain 0.36.110, language 0.28.100, runtime 0.21.103]
 
 ### Fixed
