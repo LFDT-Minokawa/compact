@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.110, language 0.28.101, runtime 0.21.102]
+## [Toolchain 0.36.111, language 0.28.101, runtime 0.21.103]
 
 ### Added
 
@@ -32,6 +32,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   In TypeScript, a `NumberedSet` field is an object with a `read()` method,
   rather than a getter as for `Counter`, and iterating over a `NumberedSet` value
   yields `[element, number]` pairs, rather than just elements as for `Set`.
+
+## [Toolchain 0.36.110, language 0.28.100, runtime 0.21.103]
+
+### Fixed
+
+There are fixes for three small issues.
+
+- `sha512` now rejects inputs that contain opaque types.  This matches the other
+  byte-oriented hashing functions in the standard library (`persistentHash`,
+  `persistentCommit`, and `keccak256`).  `sha512` was inadvertently omitted from
+  the list.
+
+- The Compact runtime descriptor for `enum` types had a bug in `fromValue`
+  (deserialization).  The JS left shift uses the right operand mod 32.  This
+  function is hardened so that it (1) rejects encodings that are too long
+  outright, and (2) multiplies instead of bit shifting.  This issue could not be
+  triggered by a valid encoding of an enum unless it had more than 2^32
+  elements.
+
+- The Compact runtime used the `Field` descriptor for `JubjubScalar`.  This
+  allows encoding and decoding values outside the `JubjubScalar` range.  The
+  compiler is careful to avoid allowing such values but the runtime descriptor
+  did not prevent them.  A proper descriptor is implemented that rejects invalid
+  values on both encoding and decoding.
 
 ## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.102]
 

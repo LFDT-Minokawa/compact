@@ -81673,6 +81673,18 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(s: Opaque<'string'>): [] {"
+      "  hash = disclose(sha512<Opaque<'string'>>(s));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (sha512 "Opaque<\"string\">"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
