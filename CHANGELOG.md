@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Pulls in onchain-runtime 4.0.2.
+- Pulls in onchain-runtime 4.0.2 and updates `zkir-v3-wasm` input to match
+  `zkir-v3`.
 
 ## [Toolchain 0.36.110, language 0.28.100, runtime 0.21.103]
 

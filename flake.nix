@@ -44,7 +44,7 @@
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
