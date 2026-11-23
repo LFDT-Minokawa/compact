@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 20 char 1:\s+constructor cannot call external contracts but calls circuit values from external contract Other\s+at line 21 char 34/,
+        /line 20 char 1:\s+constructor cannot call circuit values from external contract Other but does so at line 21\s+char 34/,
 });
