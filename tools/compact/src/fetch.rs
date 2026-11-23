@@ -76,18 +76,18 @@ impl fmt::Display for Sha256 {
 impl FromStr for Sha256 {
     type Err = anyhow::Error;
 
-    /// Sixty-four hexadecimal digits.
+    /// Sixty-four hexadecimal digits, and nothing else: each is checked before
+    /// any pair is read, since `u8::from_str_radix' also takes a leading `+'.
     fn from_str(hex: &str) -> Result<Self> {
-        if hex.len() != 64 || !hex.is_ascii() {
+        if hex.len() != 64 || !hex.bytes().all(|digit| digit.is_ascii_hexdigit()) {
             bail!("`{hex}' is not 64 hexadecimal digits");
         }
 
         let mut bytes = [0u8; 32];
 
         for (byte, pair) in bytes.iter_mut().zip(hex.as_bytes().chunks(2)) {
-            let pair = std::str::from_utf8(pair).expect("ASCII is UTF-8");
-            *byte = u8::from_str_radix(pair, 16)
-                .map_err(|_| anyhow!("`{hex}' is not 64 hexadecimal digits"))?;
+            let pair = std::str::from_utf8(pair).expect("hexadecimal digits are ASCII");
+            *byte = u8::from_str_radix(pair, 16).expect("two hexadecimal digits are a byte");
         }
 
         Ok(Sha256(bytes))
@@ -284,8 +284,14 @@ async fn load_compiler_versions(
 /// someone else's release. A `compactc-v' tag that does not name a version is
 /// a release published in breach of the naming, and an error, since what it
 /// was meant to offer cannot be known.
+///
+/// A release can be listed twice. GitHub pages the listing by position, so a
+/// release published while the pages are read moves every later one down a
+/// place, and the last release of one page comes again at the top of the next.
+/// A tag seen again is that release again, and its later listing stands.
 fn compilers_of(listing: Vec<ListedRelease>) -> Result<BTreeMap<Version, MidnightCompiler>> {
     let mut compilers = BTreeMap::new();
+    let mut tags: BTreeMap<Version, String> = BTreeMap::new();
 
     for release in listing {
         if release.draft {
@@ -335,9 +341,20 @@ fn compilers_of(listing: Vec<ListedRelease>) -> Result<BTreeMap<Version, Midnigh
             aarch64_linux: take(Target::Aarch64UnknownLinuxMusl),
         };
 
-        if compilers.insert(version.clone(), compiler).is_some() {
-            bail!("{SOURCE} has more than one release of {version}");
+        // Two different tags of one version cannot be had while a tag is
+        // `compactc-v' and a version without build metadata, since semver
+        // writes each version one way only; were it ever so, neither could be
+        // chosen over the other.
+        if let Some(tag) = tags.insert(version.clone(), release.tag_name.clone())
+            && tag != release.tag_name
+        {
+            bail!(
+                "{SOURCE} has releases tagged `{tag}' and `{}', both of {version}",
+                release.tag_name
+            );
         }
+
+        compilers.insert(version, compiler);
     }
 
     Ok(compilers)
@@ -790,19 +807,73 @@ mod tests {
         );
         assert!(DIGEST.to_uppercase().parse::<Sha256>().is_ok());
         assert!(format!("{}g", &DIGEST[1..]).parse::<Sha256>().is_err());
+
+        // `u8::from_str_radix' reads `+f' as 15
+        let signed = "+f".repeat(32);
+        assert!(signed.parse::<Sha256>().is_err());
+        assert_eq!(
+            Digest::of(Some(&format!("sha256:{signed}"))),
+            Digest::Unsupported(format!("sha256:{signed}"))
+        );
     }
 
+    /// GitHub pages the listing by position: a release published while the
+    /// pages are read pushes the last release of one page onto the next.
     #[test]
-    fn two_releases_of_one_version_are_an_error() {
-        let error = compilers_of(listing(vec![
+    fn a_release_listed_twice_is_one_release_and_its_later_listing_stands() {
+        let mut again = release("compactc-v0.36.0", &ALL);
+        again["assets"][0]["size"] = json!(4);
+
+        let compilers = compilers_of(listing(vec![
             release("compactc-v0.36.1", &ALL),
-            release("compactc-v0.36.1", &ALL),
+            release("compactc-v0.36.0", &ALL),
+            again,
+            release("compactc-v0.35.0", &ALL),
         ]))
-        .unwrap_err();
+        .unwrap();
+
+        assert_eq!(versions(&compilers), ["0.35.0", "0.36.0", "0.36.1"]);
+        assert_eq!(
+            compilers[&Version::new(0, 36, 0)]
+                .archive(Target::x86_64AppleDarwin)
+                .map(|archive| archive.size),
+            Some(4)
+        );
+    }
+
+    #[tokio::test]
+    async fn a_release_pushed_onto_the_next_page_is_read_once() {
+        let (server, source) = server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/repos/LFDT-Minokawa/compact/releases"))
+            .and(query_param("page", "2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+                release("compactc-v0.36.0", &ALL),
+                release("compactc-v0.35.0", &ALL),
+            ])))
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/repos/LFDT-Minokawa/compact/releases"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header(
+                        "link",
+                        format!("<{source}?per_page=100&page=2>; rel=\"next\"").as_str(),
+                    )
+                    .set_body_json(json!([
+                        release("compactc-v0.36.1", &ALL),
+                        release("compactc-v0.36.0", &ALL),
+                    ])),
+            )
+            .mount(&server)
+            .await;
 
         assert_eq!(
-            error.to_string(),
-            "LFDT-Minokawa/compact has more than one release of 0.36.1"
+            versions(&load(&source, None).await.unwrap()),
+            ["0.35.0", "0.36.0", "0.36.1"]
         );
     }
 

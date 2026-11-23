@@ -51,6 +51,8 @@ sha2 = "0.10.9"
 similar = "3.2.1"
 tempfile = "3.20.0"
 tokio = { version = "1.42.0", features = ["full", "macros"] }
+# Named in the code only as `reqwest::Url'. Listed for its `serde' feature,
+# with which the cache of the release listing writes and reads archive URLs.
 url = { version = "2.5.8", features = ["serde"] }
 # Read-only deflate: the launcher never writes an archive, so this avoids the
 # compressor and the second inflate backend that the `deflate' feature pulls in.

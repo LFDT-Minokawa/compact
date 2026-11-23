@@ -337,26 +337,39 @@ fn test_compact_update_repairs_incomplete_installation() {
 /// original report. An unreadable archive is now discarded and fetched again.
 #[test]
 fn test_compact_update_repairs_a_corrupt_archive() {
+    repair_a_corrupt_archive(LATEST_COMPACTC_VERSION, LATEST_COMPACTC_VERSION);
+}
+
+/// The same repair of a release candidate, every line naming it as one.
+#[test]
+fn test_compact_update_repairs_a_corrupt_candidate_archive() {
+    repair_a_corrupt_archive(
+        CANDIDATE_COMPACTC_VERSION,
+        &format!("{CANDIDATE_COMPACTC_VERSION} (release candidate)"),
+    );
+}
+
+/// Install `version', poison its archive and remove what it produced, then
+/// update again: the retry has to discard the archive, fetch it once more and
+/// reinstall. `shown_as' is how `compact update' names the version.
+fn repair_a_corrupt_archive(version: &str, shown_as: &str) {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
     let directory = format!("{}", temp_path.display());
 
     run_command(
-        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        &["--directory", &directory, "update", version],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", shown_as),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
     );
 
-    let artifact_dir = temp_path
-        .join("versions")
-        .join(LATEST_COMPACTC_VERSION)
-        .join(get_version());
+    let artifact_dir = temp_path.join("versions").join(version).join(get_version());
 
     // Poison the archive and remove what it produced, so the retry has to read
     // the archive rather than trust the directory.
@@ -369,12 +382,12 @@ fn test_compact_update_repairs_a_corrupt_archive() {
     fs::remove_file(temp_path.join("bin").join("compactc")).unwrap();
 
     run_command(
-        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        &["--directory", &directory, "update", version],
         None,
         Some("./output/update/std_repair_corrupt_archive.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", shown_as),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,

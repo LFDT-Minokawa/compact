@@ -115,7 +115,9 @@ pub fn load_and_replace<P: AsRef<Path>>(path: P, replacements: &[(&str, &str)]) 
 ///
 /// Everything else has to name a directory: `--directory', or
 /// `COMPACT_DIRECTORY' or `HOME' -- the default directory is under it -- in
-/// the command's environment.
+/// the command's environment. A `COMPACT_DIRECTORY' in the caller's own
+/// environment is never passed on (`without_callers_directory'), since it
+/// would override that `HOME'.
 #[allow(dead_code)]
 fn assert_directory_is_isolated(args: &[&str], env: Option<&HashMap<String, String>>) {
     let reaches_a_handler = CommandLineArguments::try_parse_from(
@@ -139,6 +141,17 @@ fn assert_directory_is_isolated(args: &[&str], env: Option<&HashMap<String, Stri
     );
 }
 
+/// A command for the CLI that does not inherit the caller's
+/// `COMPACT_DIRECTORY': a test names its directory itself, and one exported by
+/// whoever runs the suite would otherwise override the `HOME' a test isolates
+/// a command with. A test may still set `COMPACT_DIRECTORY' for the command.
+#[allow(dead_code)]
+fn without_callers_directory(binary: &str) -> Command {
+    let mut cmd = Command::new(binary);
+    cmd.env_remove("COMPACT_DIRECTORY");
+    cmd
+}
+
 // probably need to rework it one day - normal assert
 #[allow(dead_code)]
 pub fn assert_command_output(
@@ -153,7 +166,7 @@ pub fn assert_command_output(
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
-    let mut cmd = Command::new(binary);
+    let mut cmd = without_callers_directory(binary);
 
     // Clap wraps help to the terminal width. Under test there is no terminal,
     // so it falls back to 100 columns, which makes the expected output depend
@@ -202,7 +215,7 @@ pub fn assert_command_output_sorted(
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
-    let mut cmd = Command::new(binary);
+    let mut cmd = without_callers_directory(binary);
 
     // Clap wraps help to the terminal width. Under test there is no terminal,
     // so it falls back to 100 columns, which makes the expected output depend
@@ -280,7 +293,7 @@ pub fn run_command(
 pub fn run_command_listing(args: &[&str], expected: &str) {
     assert_directory_is_isolated(args, None);
 
-    let output = Command::new("../../target/debug/compact")
+    let output = without_callers_directory("../../target/debug/compact")
         .env("COLUMNS", "10000")
         .env("RUST_BACKTRACE", "0")
         .args(args)

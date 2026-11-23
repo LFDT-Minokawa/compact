@@ -217,7 +217,7 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
                 "{label}: {target} -- {version} -- {message}",
                 label = cfg.style.label(),
                 target = cfg.style.target(cfg.target),
-                version = cfg.style.version(version.clone()),
+                version = cfg.style.version_in_channel(version.clone()),
                 message = cfg
                     .style
                     .warn("previous installation is incomplete, reinstalling"),
@@ -366,7 +366,7 @@ async fn download_and_install(
         "{label}: {target} -- {version} -- {message}",
         label = cfg.style.label(),
         target = cfg.style.target(cfg.target),
-        version = cfg.style.version(version.clone()),
+        version = cfg.style.version_in_channel(version.clone()),
         message = cfg
             .style
             .warn("downloaded archive is damaged, downloading it again"),

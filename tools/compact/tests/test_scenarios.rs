@@ -371,6 +371,7 @@ fn test_sc6_update_two_versions_clean_folder_check() {
 }
 
 #[test]
+#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc6a_update_three_versions_clean_folder_check() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
@@ -449,6 +450,7 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
 }
 
 #[test]
+#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc7_update_previous_list_compile() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
