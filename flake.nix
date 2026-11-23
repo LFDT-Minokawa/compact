@@ -34,7 +34,7 @@
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.2";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
