@@ -17,7 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@npmcli/arborist": "^9.3.0",
+    "@npmcli/arborist": "^10.0.5",
     "@types/npmcli__arborist": "^5.6.0",
     "fp-ts": "^2.13.1",
     "io-ts": "^2.2.20",
