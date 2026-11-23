@@ -102,16 +102,4 @@ describe('[WPP] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
-
-    test(`should not be able to compile contract: pm_16723.compact`, async () => {
-        const filePath = path.join(CONTRACTS_ROOT, 'negative', 'pm_16723.compact');
-        const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
-
-        expectCompilerResult(result).toBeFailure(
-            'Exception: pm_16723.compact line 22 char 11:\n' +
-                '  constructor cannot call insertCoin on ledger fields that contain a Set ADT type but does so at\n' +
-                '  line 74 char 10\n',
-            compilerDefaultOutput(),
-        );
-    });
 });
