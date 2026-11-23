@@ -43,3 +43,20 @@ export circuit test_big_increment(): [] {
 
   assert(c2.read() == 16 * 16 * 16 - 4, "Value is as defined");
 }
+
+export ledger c3: Counter;
+
+export circuit test_raise_and_lower(): [] {
+  c3.increment(5);
+  c3.raiseTo(3);
+  assert(c3.read() == 5, "Raising below the value is a no-op");
+  c3.raiseTo(9);
+  assert(c3.read() == 9, "Raising above the value takes the threshold");
+  c3.lowerTo(12);
+  assert(c3.read() == 9, "Lowering above the value is a no-op");
+  c3.lowerTo(4);
+  assert(c3.read() == 4, "Lowering below the value takes the threshold");
+  c3.raiseTo(4);
+  c3.lowerTo(4);
+  assert(c3.read() == 4, "Raising or lowering to the value is a no-op");
+}

@@ -651,7 +651,7 @@
      (idx [cached f-cached] [pushPath #f] [path f])
      (popeq [cached #t] [result (void)])))
   (function read lessThan ([threshold Uint64]) Boolean
-    "Returns if the counter is less than the given threshold value."
+    "Returns `true` if the counter is less than the given threshold value, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell threshold)])
@@ -667,6 +667,42 @@
     results in a run-time error."
     ((idx [cached f-cached] [pushPath #t] [path f])
      (subi [immediate (rt-value->int amount)])
+     (ins [cached #t] [n (length f)])))
+  (function update raiseTo ([threshold Uint64]) Void
+    "Sets the counter to the larger of its current value and the given threshold."
+    ;; [context, effects, path, counter]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     (push [storage #t] [value (state-value 'cell threshold)])
+     (dup [n 1])
+     (dup [n 1])
+     ;; [context, effects, path, counter, threshold, counter, threshold]
+     (lt)
+     (branch [skip 2])
+     ;; counter >= threshold: keep the counter
+     (pop)
+     (jmp [skip 2])
+     ;; counter < threshold: keep the threshold
+     (swap [n 0])
+     (pop)
+     ;; [context, effects, path, max(counter, threshold)]
+     (ins [cached #t] [n (length f)])))
+  (function update lowerTo ([threshold Uint64]) Void
+    "Sets the counter to the smaller of its current value and the given threshold."
+    ;; [context, effects, path, counter]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     (push [storage #t] [value (state-value 'cell threshold)])
+     (dup [n 1])
+     (dup [n 1])
+     ;; [context, effects, path, counter, threshold, counter, threshold]
+     (lt)
+     (branch [skip 3])
+     ;; counter >= threshold: keep the threshold
+     (swap [n 0])
+     (pop)
+     (jmp [skip 1])
+     ;; counter < threshold: keep the counter
+     (pop)
+     ;; [context, effects, path, min(counter, threshold)]
      (ins [cached #t] [n (length f)])))
   ;; Also used to setup initial Counter
   (function remove resetToDefault () Void
@@ -705,7 +741,7 @@
      (size)
      (popeq [cached #t] [result (void)])))
   (function read member ([elem value_type]) Boolean
-    "Returns if an element is contained within this Set."
+    "Returns `true` if an element is in the set, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell elem)])
@@ -754,6 +790,283 @@
        (ins [cached #t] [n (length f)])))))
        ;; [context, effects, state']
 
+(declare-ledger-adt NumberedSet ([Type key_type])
+  "like a `Set` of values of type `key_type` but numbers each element of the \
+  set with the value of an embedded counter at the time of its insertion.  \
+  Inserting an element that is not already in the set advances the counter by one, \
+  so successive new elements receive successive numbers"
+  (initial-value (state-value 'array ((state-value 'cell (align 0 8))
+                                      (state-value 'map ()))))
+  (function read read () Uint64
+    "Retrieves the current value of the embedded counter, i.e., the number the next inserted element \
+    will receive. Reading the field by name does the same."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (popeq [cached #t] [result (void)])))
+  (function read lessThan ([threshold Uint64]) Boolean
+    "Returns `true` if the embedded counter is less than the given threshold value, otherwise `false`."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (push [storage #f] [value (state-value 'cell threshold)])
+     (lt)
+     (popeq [cached #t] [result (void)])))
+  (function read lookup ([key key_type]) Uint64
+    "Retrieves the number an element received when it was inserted, failing if the \
+    element is not in the set."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (idx [cached #f] [pushPath #f] [path (list key)])
+     (popeq [cached #f] [result (void)])))
+  (function read member ([key key_type]) Boolean
+    "Returns `true` if an element is in the set, otherwise `false`."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (push [storage #f] [value (state-value 'cell key)])
+     (member)
+     (popeq [cached #t] [result (void)])))
+  (function read size () Uint64
+    "Returns the number of elements in the set."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (size)
+     (popeq [cached #t] [result (void)])))
+  (function read isEmpty () Boolean
+    "Returns `true` if the set has no elements, otherwise `false`."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (size)
+     (push [storage #f] [value (state-value 'cell (align 0 8))])
+     (eq)
+     (popeq [cached #t] [result (void)])))
+  (function js-only iter () "Iterator<[${key_type}, bigint]>"
+    "Iterates over the elements of the set and their numbers, in no particular order."
+    ("${this}.asArray()[1].asMap().keys().map("
+     "  (key) => {"
+     "    const num = ${this}.asArray()[1].asMap().get(key).asCell();"
+     "    return ["
+     "      ${key_type}.fromValue(key.value),"
+     "      new ${rtlib}CompactTypeUnsignedInteger(18446744073709551615n, 8).fromValue(num.value)"
+     "    ];"
+     "  }"
+     ")[Symbol.iterator]()"))
+  (function update insert ([key key_type]) Void
+    "Inserts the specified element if it is not already present, numbering it with the embedded counter's \
+    current value and then incrementing the embedded counter by one.  If the element is already present, \
+    this operation has no effect: the element keeps its number and the embedded counter is unchanged."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     ;; [context, effects, path, [counter, map], map]
+     (push [storage #f] [value (state-value 'cell key)])
+     ;; [context, effects, path, [counter, map], map, key]
+     (dup [n 1])
+     (dup [n 1])
+     (member)
+     ;; [context, effects, path, [counter, map], map, key, present]
+     (branch [skip 13])
+     ;; absent: number the key with the counter
+     (dup [n 2])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], map, key, counter]
+     (ins [cached #f] [n 1])
+     ;; [context, effects, path, [counter, map], map']
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map], 1, map']
+     (ins [cached #t] [n 1])
+     ;; [context, effects, path, [counter, map']]
+     ;; then advance the counter, so that the next new key gets the next number
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map'], counter]
+     (addi [immediate 1])
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map'], 0, counter + 1]
+     (ins [cached #t] [n 1])
+     ;; [context, effects, path, [counter + 1, map']]
+     (jmp [skip 2])
+     ;; present: leave the set and the counter as they are
+     (pop)
+     (pop)
+     ;; [context, effects, path, [counter, map]] or [counter + 1, map']
+     (ins [cached #t] [n (length f)])))
+     ;; [context, effects, state]
+  (function update increment ([amount Uint16]) Void
+    "Increments the embedded counter by the given amount.  Inserting a new element already increments \
+    the embedded counter by one, so this is needed only to skip numbers."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (addi [immediate (rt-value->int amount)])
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map], 0, counter + amount]
+     (ins [cached #t] [n 1])
+     ;; [context, effects, path, [counter + amount, map]]
+     (ins [cached #t] [n (length f)])))
+  (function update decrement ([amount Uint16]) Void
+    "Decrements the embedded counter by the given amount. Decrementing below zero results in \
+    a run-time error. Elements inserted afterwards can receive numbers already in use."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (subi [immediate (rt-value->int amount)])
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map], 0, counter - amount]
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function update raiseTo ([threshold Uint64]) Void
+    "Sets the embedded counter to the larger of its current value and the given threshold."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (push [storage #t] [value (state-value 'cell threshold)])
+     (dup [n 1])
+     (dup [n 1])
+     ;; [context, effects, path, [counter, map], counter, threshold, counter, threshold]
+     (lt)
+     (branch [skip 2])
+     ;; counter >= threshold: keep the counter
+     (pop)
+     (jmp [skip 2])
+     ;; counter < threshold: keep the threshold
+     (swap [n 0])
+     (pop)
+     ;; [context, effects, path, [counter, map], max(counter, threshold)]
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function update lowerTo ([threshold Uint64]) Void
+    "Sets the embedded counter to the smaller of its current value and the given threshold. \
+     Elements inserted afterwards can receive numbers already in use."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (push [storage #t] [value (state-value 'cell threshold)])
+     (dup [n 1])
+     (dup [n 1])
+     ;; [context, effects, path, [counter, map], counter, threshold, counter, threshold]
+     (lt)
+     (branch [skip 3])
+     ;; counter >= threshold: keep the threshold
+     (swap [n 0])
+     (pop)
+     (jmp [skip 1])
+     ;; counter < threshold: keep the counter
+     (pop)
+     ;; [context, effects, path, [counter, map], min(counter, threshold)]
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function remove remove ([key key_type]) Void
+    "Removes the specified element from the set."
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (push [storage #f] [value (state-value 'cell key)])
+     ;; [context, effects, path, [counter, map], map, key]
+     (rem [cached #f])
+     ;; [context, effects, path, [counter, map], map']
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     (swap [n 0])
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function remove resetToDefault () Void
+    "Resets the embedded counter to 0 and removes every element."
+    ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
+     (push [storage #f] [value (state-value 'cell (car (reverse f)))])
+     (push [storage #t] [value (state-value 'array ((state-value 'cell (align 0 8))
+                                                    (state-value 'map ())))])
+     (ins [cached #f] [n 1])
+     (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
+  (when (= key_type QualifiedShieldedCoinInfo)
+    (function (update-with-coin-check 0 1) insertCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+      "Inserts a ShieldedCoinInfo, numbering it with the embedded counter's current value \
+      and then incrementing the embedded counter by one, \
+      after transforming it into a QualifiedShieldedCoinInfo at runtime by looking up \
+      the relevant Merkle tree index.  This index must have been allocated within the \
+      current transaction or this insertion fails. As for insert, inserting a coin that \
+      is already in the set leaves it, its number, and the embedded counter unchanged. \
+      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in \
+      CompactStandardLibrary."
+      ;; [context, effects, state]
+      ((idx [cached f-cached] [pushPath #t] [path f])
+       ;; [context, effects, path, [counter, map]]
+       ;; Qualify `coin`, as for Set's insertCoin
+       (dup [n (+ 2 (* (length f) 2))])
+       ;; [context, effects, path, [counter, map], context]
+       (push [storage #f] [value (state-value 'cell (rt-coin-commit coin recipient))])
+       ;; [context, effects, path, [counter, map], context, coin_cm]
+       (idx [cached #t] [pushPath #f] [path (list (align 1 1) 'stack)])
+       ;; [context, effects, path, [counter, map], coin_idx]
+       (push [storage #f] [value (state-value 'cell coin)])
+       (swap [n 0])
+       ;; [context, effects, path, [counter, map], coin, coin_idx]
+       (concat [cached #t] [n 91])
+       ;; [context, effects, path, [counter, map], key]
+       (dup [n 1])
+       (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+       (swap [n 0])
+       ;; [context, effects, path, [counter, map], map, key]
+       ;; From here on, as for insert
+       (dup [n 1])
+       (dup [n 1])
+       (member)
+       ;; [context, effects, path, [counter, map], map, key, present]
+       (branch [skip 13])
+       ;; absent: number the key with the counter
+       (dup [n 2])
+       (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+       ;; [context, effects, path, [counter, map], map, key, counter]
+       (ins [cached #f] [n 1])
+       ;; [context, effects, path, [counter, map], map']
+       (push [storage #f] [value (state-value 'cell (align 1 1))])
+       (swap [n 0])
+       ;; [context, effects, path, [counter, map], 1, map']
+       (ins [cached #t] [n 1])
+       ;; [context, effects, path, [counter, map']]
+       ;; then advance the counter, so that the next new key gets the next number
+       (dup [n 0])
+       (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+       ;; [context, effects, path, [counter, map'], counter]
+       (addi [immediate 1])
+       (push [storage #f] [value (state-value 'cell (align 0 1))])
+       (swap [n 0])
+       ;; [context, effects, path, [counter, map'], 0, counter + 1]
+       (ins [cached #t] [n 1])
+       ;; [context, effects, path, [counter + 1, map']]
+       (jmp [skip 2])
+       ;; present: leave the set and the counter as they are
+       (pop)
+       (pop)
+       ;; [context, effects, path, [counter, map]] or [counter + 1, map']
+       (ins [cached #t] [n (length f)])))))
+
 (declare-ledger-adt Map ([Type key_type] [ADT/Type value_type])
   "an unbounded set of mappings between values of type key_type and values of type value_type"
   (initial-value (state-value 'map ()))
@@ -776,7 +1089,7 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (function read isEmpty () Boolean
-    "Returns if this Map is the empty map."
+    "Returns `true` if this Map is the empty map, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (size)
@@ -790,7 +1103,7 @@
      (size)
      (popeq [cached #t] [result (void)])))
   (function read member ([key key_type]) Boolean
-    "Returns if a key is contained within this Map."
+    "Returns `true` if the key is contained within this Map, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (push [storage #f] [value (state-value 'cell key)])
@@ -884,7 +1197,7 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (function read isEmpty () Boolean
-    "Returns if this List is the empty list."
+    "Returns `true` if this List is the empty list, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
@@ -1078,8 +1391,8 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (function read isFull () Boolean
-    "Returns if this Merkle tree is full and further items cannot be \
-    directly inserted."
+    "Returns `true` if this Merkle tree is full and further items cannot be \
+    directly inserted, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
@@ -1248,8 +1561,8 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
   (function read isFull () Boolean
-    "Returns if this Merkle tree is full and further items cannot be \
-    directly inserted."
+    "Returns `true` if this Merkle tree is full and further items cannot be \
+    directly inserted, otherwise `false`."
     ((dup [n 0])
      (idx [cached f-cached] [pushPath #f] [path f])
      (idx [cached #f] [pushPath #f] [path (list (align 1 1))])

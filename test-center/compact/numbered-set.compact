@@ -1,0 +1,159 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// An outbox: every call takes the next sequence number and a snapshot of the
+// highest response height seen so far; every response raises that height.
+// None of these circuits reads the shared counters, so none of them conflicts
+// with another landing first.
+export ledger nonces: NumberedSet<Uint<64>>;
+export ledger seen: NumberedSet<Uint<64>>;
+export ledger named: NumberedSet<Bytes<32>>;
+export ledger plain: Counter;
+export ledger deposits: NumberedSet<QualifiedShieldedCoinInfo>;
+export ledger groups: Map<Uint<8>, NumberedSet<Uint<64>>>;
+
+export circuit call(k: Uint<64>): [] {
+  nonces.insert(disclose(k));
+  seen.insert(disclose(k));
+}
+
+export circuit respond(k: Uint<64>, height: Uint<64>): [] {
+  assert(nonces.member(disclose(k)), "unknown key");
+  seen.raiseTo(disclose(height));
+  nonces.remove(disclose(k));
+  seen.remove(disclose(k));
+}
+
+export circuit nonceOf(k: Uint<64>): Uint<64> {
+  return nonces.lookup(disclose(k));
+}
+
+export circuit seenAt(k: Uint<64>): Uint<64> {
+  return seen.lookup(disclose(k));
+}
+
+export circuit isMember(k: Uint<64>): Boolean {
+  return nonces.member(disclose(k));
+}
+
+export circuit nonce(): Uint<64> {
+  return nonces;
+}
+
+export circuit lastSeen(): Uint<64> {
+  return seen.read();
+}
+
+export circuit reset(): [] {
+  nonces.resetToDefault();
+  seen.resetToDefault();
+}
+
+export circuit pending(): Uint<64> {
+  return nonces.size();
+}
+
+export circuit idle(): Boolean {
+  return nonces.isEmpty();
+}
+
+export circuit name(k: Bytes<32>): [] {
+  named.insert(disclose(k));
+}
+
+export circuit rewind(t: Uint<64>): [] {
+  nonces.lowerTo(disclose(t));
+}
+
+export circuit undo(): [] {
+  nonces -= 1;
+}
+
+export circuit skip(n: Uint<16>): [] {
+  nonces.increment(disclose(n));
+}
+
+export circuit plainRaise(t: Uint<64>): [] {
+  plain.raiseTo(disclose(t));
+}
+
+export circuit plainLower(t: Uint<64>): [] {
+  plain.lowerTo(disclose(t));
+}
+
+export circuit plainBump(): [] {
+  plain += 10;
+}
+
+// Receive a coin and number it in arrival order.
+export circuit deposit(coin: ShieldedCoinInfo): [] {
+  receiveShielded(disclose(coin));
+  deposits.insertCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+}
+
+export circuit depositNumber(coin: QualifiedShieldedCoinInfo): Uint<64> {
+  return deposits.lookup(disclose(coin));
+}
+
+// Insert a coin this transaction has not received, which must fail.
+export circuit depositUnreceived(coin: ShieldedCoinInfo): [] {
+  deposits.insertCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+}
+
+export circuit nonceBelow(t: Uint<64>): Boolean {
+  return nonces.lessThan(disclose(t));
+}
+
+export circuit advance(t: Uint<64>): [] {
+  nonces.raiseTo(disclose(t));
+}
+
+// Receive a coin and insert it twice; the second insertion finds it present.
+export circuit depositTwice(coin: ShieldedCoinInfo): [] {
+  const self = right<ZswapCoinPublicKey, ContractAddress>(kernel.self());
+  receiveShielded(disclose(coin));
+  deposits.insertCoin(disclose(coin), self);
+  deposits.insertCoin(disclose(coin), self);
+}
+
+// A NumberedSet nested in a Map: one independently numbered set per group.
+export circuit join(g: Uint<8>, k: Uint<64>): [] {
+  if (!groups.member(disclose(g))) {
+    groups.insertDefault(disclose(g));
+  }
+  groups.lookup(disclose(g)).insert(disclose(k));
+}
+
+export circuit leave(g: Uint<8>, k: Uint<64>): [] {
+  groups.lookup(disclose(g)).remove(disclose(k));
+}
+
+export circuit groupNumber(g: Uint<8>, k: Uint<64>): Uint<64> {
+  return groups.lookup(disclose(g)).lookup(disclose(k));
+}
+
+export circuit groupCounter(g: Uint<8>): Uint<64> {
+  return groups.lookup(disclose(g));
+}
+
+export circuit groupRaise(g: Uint<8>, t: Uint<64>): [] {
+  groups.lookup(disclose(g)).raiseTo(disclose(t));
+}
+
+export circuit groupSize(g: Uint<8>): Uint<64> {
+  return groups.lookup(disclose(g)).size();
+}

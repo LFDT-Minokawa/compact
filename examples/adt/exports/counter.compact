@@ -32,3 +32,11 @@ export circuit reset_to_default(): [] {
 export circuit read(): Uint<64> {
   return c.read();
 }
+
+export circuit raise_to(threshold: Uint<64>): [] {
+  return c.raiseTo(disclose(threshold));
+}
+
+export circuit lower_to(threshold: Uint<64>): [] {
+  return c.lowerTo(disclose(threshold));
+}

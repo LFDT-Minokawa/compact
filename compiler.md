@@ -1649,7 +1649,8 @@ by Compactc. For contract `C`, this file contains the following in this order:
   within `C`, whether, `C` actually calls them or not,
 - the ledger layout of `C`, listing every ledger field (both exported and
   non-exported) with its name, path index, export status, storage kind
-  (Cell, Counter, Map, Set, List, MerkleTree, HistoricMerkleTree), and
+  (Cell, Counter, Map, Set, NumberedSet, List, MerkleTree,
+  HistoricMerkleTree), and
   fully-resolved type tree. Non-exported fields are included because the
   full layout is required to navigate the on-chain state tree.
 

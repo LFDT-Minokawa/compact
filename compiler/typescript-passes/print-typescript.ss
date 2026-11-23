@@ -503,12 +503,18 @@
               query))
         ))
 
+    ;; A ledger field whose ADT has a read operation is exposed in TypeScript as
+    ;; a getter for that operation alone (as for Cell and Counter), unless the
+    ;; ADT also has JS-only operations: those would then be unreachable, so the
+    ;; field is exposed as an object with read() among its methods instead.
+    ;; Mirrored by read-getter? in ledger.ss for the generated documentation.
     (define (has-read? adt-op*)
-      (ormap (lambda (adt-op)
-               (and (eq? (op-name adt-op) 'read)
-                    (is-runtime-op? adt-op)
-                    adt-op))
-             adt-op*))
+      (and (not (ormap (lambda (adt-op) (not (Ltypescript-ADT-Op? adt-op))) adt-op*))
+           (ormap (lambda (adt-op)
+                    (and (eq? (op-name adt-op) 'read)
+                         (is-runtime-op? adt-op)
+                         adt-op))
+                  adt-op*)))
     (define (op-name adt-op)
       (if (Ltypescript-ADT-Op? adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
