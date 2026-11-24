@@ -316,19 +316,19 @@ acorn@^8.11.0, acorn@^8.4.1:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.19.0.tgz#6b26fd97ce1cc9dc50bdf7ad305e9f1384d4f28a"
   integrity sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==
 
-allure-js-commons@3.14.0:
-  version "3.14.0"
-  resolved "https://registry.yarnpkg.com/allure-js-commons/-/allure-js-commons-3.14.0.tgz#3cb2c92295e27c12f78e34079b31b8249de577cb"
-  integrity sha512-Qr/F/tvc+PJv7Q5mniFF2DUJIOvVXmfaFqDZMgSpM2dfzPmSO/D//zGiO8w6kidJMB0VHuPdHPLx5ncLcxj3Gg==
+allure-js-commons@3.15.0:
+  version "3.15.0"
+  resolved "https://registry.yarnpkg.com/allure-js-commons/-/allure-js-commons-3.15.0.tgz#83b3ea09bf150cd5afb57fc65972035b6e595885"
+  integrity sha512-UpRChK/WIqb/xJcXa8qOXx2k/AkNPDhqDCseNrvqpk6ZqmbMQIVoERA/kuCwhtssyR++74BY9zivcJZhAYxfrA==
   dependencies:
     md5 "^2.3.0"
 
-allure-vitest@^3.14.0:
-  version "3.14.0"
-  resolved "https://registry.yarnpkg.com/allure-vitest/-/allure-vitest-3.14.0.tgz#2b21c106782cc8c605383a5ba15adc8cc6cf2355"
-  integrity sha512-Lb1ongcInedW0sDMOm4gGAx6vOqJaVX2no2QK6hEfRvn5X0pb1M0gBwo5h0Wfmzh8eOMggG9iElAE5Mk1FLStg==
+allure-vitest@^3.15.0:
+  version "3.15.0"
+  resolved "https://registry.yarnpkg.com/allure-vitest/-/allure-vitest-3.15.0.tgz#2e126d7194a5d5614d6f4fe94ee9a2e04397ebfe"
+  integrity sha512-p55iofKXFS6XZnK17rUSmGTqk1vSt6qxNY9tnd1R2nBlDe+MugZQKq5JeHoVENz5MMKsOo12Pw+e2kpMxDjMyg==
   dependencies:
-    allure-js-commons "3.14.0"
+    allure-js-commons "3.15.0"
 
 arg@^4.1.0:
   version "4.1.3"
