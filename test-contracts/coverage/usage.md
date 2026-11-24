@@ -1,6 +1,6 @@
 # Compact language usage index
 
-Scanned the **399 fixtures** in `test-contracts/`.
+Scanned the **403 fixtures** in `test-contracts/`.
 
 ## Not covered by any fixture — 115
 
@@ -129,7 +129,7 @@ Declared in `parser.ss — keywordDataTypes`.
 | name | first usage | uses |
 |---|---|---:|
 | `Boolean` | [`test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact:21`](../../test-contracts/keywords/assert/old_statement_syntax/assert_old_statement_syntax.compact#L21) | 151 |
-| `Bytes` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 456 |
+| `Bytes` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 462 |
 | `Field` | [`test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact:16`](../../test-contracts/keywords/assert/in_untaken_branch/assert_in_untaken_branch.compact#L16) | 504 |
 | `Opaque` | [`test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact:16`](../../test-contracts/keywords/reserved/future/delete_as_identifier/reserved_future_delete_as_identifier.compact#L16) | 4 |
 | `Uint` | [`test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact:16`](../../test-contracts/keywords/circuit/duplicate_definitions_unused/circuit_duplicate_definitions_unused.compact#L16) | 218 |
@@ -324,7 +324,7 @@ Declared in `compiler sources — declare-native-type`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact#L20) | 38 |
+| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/from_bytes_length_mismatch/jubjub_scalar_casts_from_bytes_length_mismatch.compact:19`](../../test-contracts/stdlib/jubjub/scalar/casts/from_bytes_length_mismatch/jubjub_scalar_casts_from_bytes_length_mismatch.compact#L19) | 44 |
 | `JubjubPoint` | [`test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact:19`](../../test-contracts/stdlib/jubjub/scalar/keygen_without_jubjub_input_derived_point/jubjub_scalar_keygen_without_jubjub_input_derived_point.compact#L19) | 3 |
 | `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact#L20) | 8 |
 | `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 10 |
