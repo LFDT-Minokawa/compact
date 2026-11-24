@@ -3,6 +3,10 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    labels:
+      - "dependencies"
+      - "github_actions"
+      - "skip-changelog"
     schedule:
       interval: "weekly"
     cooldown:
@@ -19,6 +23,10 @@ updates:
 
   - package-ecosystem: "cargo"
     directory: "/"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "skip-changelog"
     schedule:
       interval: "weekly"
     cooldown:
@@ -42,6 +50,10 @@ updates:
       - "/test-src-maps"
       - "/debug-test"
       - "/nix/dry-install"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "skip-changelog"
     schedule:
       interval: "weekly"
     cooldown:
