@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.21.102",
+  "version": "0.21.104",
   "description": "Compact Runtime",
   "type": "module",
   "exports": {
@@ -34,24 +34,25 @@
     "@midnightntwrk/onchain-runtime-v4"
   ],
   "dependencies": {
-    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.3",
+    "@midnightntwrk/onchain-runtime-v4": "^4.0.2",
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",
     "object-inspect": "^1.12.3"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^26.6.6",
     "eslint": "^10.1.0",
     "typescript-eslint": "^8.58.0",
-    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.2.2",
-    "glob": "^13.0.6",
+    "glob": "^14.0.6",
     "prettier": "^3.4.2",
     "typedoc": "^0.28.19",
-    "typedoc-plugin-markdown": "4.6.4",
+    "typedoc-plugin-markdown": "4.14.1",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.2"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   },
   "repository": {
     "type": "git",

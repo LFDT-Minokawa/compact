@@ -1188,7 +1188,7 @@ witness ownPublicKey(): ZswapCoinPublicKey;
 
 ### `createZswapInput`
 
-This is a native witness.
+This is a native witness. It cannot be called in a contract's constructor.
 
 Notifies the context to create a new Zswap input originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
@@ -1203,7 +1203,7 @@ witness createZswapInput(coin: QualifiedShieldedCoinInfo): [];
 
 ### `createZswapOutput`
 
-This is a native witness.
+This is a native witness. It cannot be called in a contract's constructor.
 
 Notifies the context to create a new Zswap output originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
@@ -1329,31 +1329,47 @@ circuit blockTimeLte(time: Uint<64>): Boolean;
 
 ### `serialize<T, #N>`
 
-Returns the byte encoding of a Compact value of type `T`, padded with zero bytes
-to a length of `N` if `N` is larger than the serialized size of `T`.
+Returns a byte vector of length `N` holding the byte encoding of a value of type `T`,
+optionally followed by zeros.
 
-`T` can be any type other than those containing contract types, `Opaque` types,
-or curve point types.  `N` must be at least the serialized size of `T`, which is
-two version bytes plus the size of the encoding of the value.  If `N` is larger,
-the result is padded with zero bytes.
+The encoding is canonical: for each type `T` and length `N` that `serialize` accepts,
+every value has exactly one encoding, and `serialize` always produces it.
+Two values of such a type are equal if and only if their same-length encodings are equal.
+
+`T` can be any type other than those containing contract types, `Opaque` types, or curve point types.
+`N` must be at least the serialized size of `T`, which is determined by `T` alone;
+otherwise the program is rejected at compile time.
+If `N` is larger than the serialized size of `T`, the remaining bytes are zero.
+The serialized size of each standard library event type is given in its description.
+
+This is the same encoding that `emit` uses for event payloads, without any padding.
+The encoding is not versioned and may change between Compact releases,
+so bytes produced by `serialize` may not be accepted by `deserialize`
+in a program compiled with a different compiler version.
 
 ```compact
-circuit serialize<T, #N> (x: T): Bytes<N>;
+circuit serialize<T, #N> (value: T): Bytes<N>;
 ```
 
 ### `deserialize<T, #N>`
 
-Reconstructs a Compact value of type `T` from a byte encoding, optionally
-followed by arbitrary bytes.
+Reconstructs a value of type `T` from a byte vector of length `N` holding its byte encoding,
+optionally followed by arbitrary bytes.
 
-`T` can be any type other than those containing contract types, `Opaque` types,
-or curve point types.  `N` must be at least the serialized size of `T`.
-Trailing bytes beyond the serialized size of `T` are ignored and not checked.
-Deserialization fails at run time if the first two bytes are not the expected
-version bytes, or if the following bytes do not encode a value of type `T`.  For
-the foreign field types, an encoded integer that is not less than the field's
-order is reduced modulo the order rather than causing a failure.
+`T` and `N` are subject to the same requirements as for `serialize`.
+If `N` is larger than the serialized size of `T`, the remaining bytes are ignored and need not be zero.
+Deserialization fails at run time if the bytes do not encode a value of type `T`:
+for example, a `Boolean` encoded as a byte other than 0 or 1,
+a `Field` or unsigned integer greater than the maximum value of its type,
+or an enumeration index that is out of range.
+
+For the foreign field types, an encoded integer that is not less than the field's order
+is reduced modulo the order.
+As a result, different byte vectors can deserialize to the same value.
+Code that hashes, signs, or compares serialized bytes it has received
+should use the deserialized value, or its canonical encoding produced by `serialize`,
+rather than the bytes it received.
 
 ```compact
-circuit deserialize<T, #N> (x: Bytes<N>): T;
+circuit deserialize<T, #N> (bytes: Bytes<N>): T;
 ```

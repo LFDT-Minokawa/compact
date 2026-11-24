@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.107, language 0.28.1, runtime 0.21.102]
+## [Toolchain 0.36.113, language 0.28.102, runtime 0.21.104]
 
 ### Changed
 
@@ -22,6 +22,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calls to `serialize` and `deserialize` may need to be adjusted.  Contracts
   compiled with toolchain 0.36.106 or earlier will not be able to deserialize
   values serialized by 0.36.107 or later, and vice versa.
+
+## [Toolchain 0.36.112, language 0.28.101, runtime 0.21.104]
+
+### Changed
+
+- Pulls in onchain-runtime 4.0.2 and updates `zkir-v3-wasm` input to match
+  `zkir-v3`.
+
+## [Toolchain 0.36.111, language 0.28.101, runtime 0.21.103]
+
+### Changed
+
+- The compiler now complains if the constructor attempts to call an operation
+  that requires the contract's state to be already initialized. This includes some
+  natives and some ledger operations as listed in Compact language reference.
+  
+### Internal notes
+
+- There is now a single pass (`reject-constructor-forbidden-ops`) that
+  rejects some operations in the constructor, including contract calls, event emits,
+  and calls to forbidden ledger operations or natives.
+- To determine if an operation is forbidden in the constructor,
+  natives and ledgger operation now use
+  `(allowed-in-constructor b)` where `b` is a boolean literal in
+  `midnight-natives.ss` and `midnight-ledger.ss`, respectively
+- The `ledger-adt.mdx` spells out which operations cannot be called in a constructor
+  and is directly generated from `midnight-ledger.ss` upon running `./compiler/go`.
+  However, for the natives, this is documented manually in
+  `CompactStandardLibrary/exports.md`.
+
+## [Toolchain 0.36.110, language 0.28.100, runtime 0.21.103]
+
+### Fixed
+
+There are fixes for three small issues.
+
+- `sha512` now rejects inputs that contain opaque types.  This matches the other
+  byte-oriented hashing functions in the standard library (`persistentHash`,
+  `persistentCommit`, and `keccak256`).  `sha512` was inadvertently omitted from
+  the list.
+
+- The Compact runtime descriptor for `enum` types had a bug in `fromValue`
+  (deserialization).  The JS left shift uses the right operand mod 32.  This
+  function is hardened so that it (1) rejects encodings that are too long
+  outright, and (2) multiplies instead of bit shifting.  This issue could not be
+  triggered by a valid encoding of an enum unless it had more than 2^32
+  elements.
+
+- The Compact runtime used the `Field` descriptor for `JubjubScalar`.  This
+  allows encoding and decoding values outside the `JubjubScalar` range.  The
+  compiler is careful to avoid allowing such values but the runtime descriptor
+  did not prevent them.  A proper descriptor is implemented that rejects invalid
+  values on both encoding and decoding.
+
+## [Toolchain 0.36.109, language 0.28.100, runtime 0.21.102]
+
+### Added
+
+- The Compact language now allows casts in both directions between
+  `JubjubScalar` and `Bytes<32>`.  These follow the same rules as the foreign
+  field casts: casts to `Bytes<32>` cannot fail because every `JubjubScalar`
+  value is representable, and casts to `JubjubScalar` will reduce modulo the
+  field order if the represented value is too big.
+
+### Fixed
+
+- Serialization and deserialization of `JubjubScalar` failed, because they tried
+  to use `Bytes<32>` casts that were not supported in the language.  This change
+  fixes GitHub [issue #938](https://github.com/LFDT-Minokawa/compact/issues/938)
+  by adding the casts to the language rather than adding an internal-only
+  conversion facility.  This fits with the longer-term plan to make the
+  available casts more systematic and less ad hoc.
+
+## [Toolchain 0.36.108, language 0.28.0, runtime 0.21.102]
+
+### Fixed
+
+- Fix for GitHub [issue #943](https://github.com/LFDT-Minokawa/compact/issues/943).
+  A bug in `inline-circuits` could result in an internal error for calls to
+  `serialize` with certain deeply nested structures.
+
+## [Toolchain 0.36.107, language 0.28.0, runtime 0.21.102]
+
+### Changed
+
+- The standard library documentation for `serialize` and `deserialize` is
+  expanded to actually describe what is implemented and what programmers can and
+  should rely on.
+- There is a cosmetic change to the parameter name `x` to be more informative:
+  `value` for `serialize` and `bytes` for `deserialize`.  This was reflected in
+  the implementation in `midnight-natives.ss` for clarity.  This actually causes
+  a change in generated JS code so the compiler version is incremented.
 
 ## [Toolchain 0.36.106, language 0.28.0, runtime 0.21.102]
 
