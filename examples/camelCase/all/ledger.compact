@@ -24,7 +24,7 @@ export ledger list: List<QualifiedShieldedCoinInfo>;
 export ledger mt: MerkleTree<2, Field>;
 export ledger hmt: HistoricMerkleTree<2, Field>;
 
-constructor() {
+export circuit foo() : [] {
     kernel.checkpoint();
     kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, default<Field>);
     kernel.claimZswapCoinReceive(default<Bytes<32>>);
