@@ -1,0 +1,2 @@
+compact: [SYSTEM_VERSION] -- [COMPACTC_VERSION] -- newer than the latest release, [LATEST_COMPACTC_VERSION], so kept as the default
+compact: run `compact update [LATEST_COMPACTC_VERSION]' to switch to the latest release.

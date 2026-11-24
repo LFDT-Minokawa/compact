@@ -14,7 +14,9 @@
 // limitations under the License.
 
 use crate::common::{
-    COMPACT_VERSION, LATEST_COMPACTC_VERSION, assert_path_contains_string, get_version, run_command,
+    CANDIDATE_COMPACTC_VERSION, COMPACT_VERSION, LATEST_COMPACTC_VERSION,
+    assert_path_contains_string, get_version, make_compiler_without_formatter, run_command,
+    run_command_listing,
 };
 use std::collections::HashMap;
 use std::env;
@@ -140,9 +142,10 @@ fn test_compact_update_invalid_non_existing_version() {
     );
 }
 
+/// Releases before 0.29.0 are no longer offered, though `midnightntwrk/compact'
+/// still has them.
 #[test]
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn test_compact_update_missing_release_macos_arm() {
+fn test_compact_update_a_release_before_the_oldest_offered() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
 
@@ -151,34 +154,140 @@ fn test_compact_update_missing_release_macos_arm() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            "0.22.0",
+            "0.28.0",
         ],
         None,
         None,
-        Some("./output/update/err_no_release_macos_aarch64.txt"),
-        &[],
+        Some("./output/update/err_not_offered.txt"),
+        &[("[COMPACTC_VERSION]", "0.28.0")],
         Some(1),
     );
 }
 
+/// A release candidate is installed when it is named by its exact version, and
+/// is labelled as one.
 #[test]
-#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-fn test_compact_update_missing_release_macos_intel() {
+fn test_compact_update_a_release_candidate_by_its_exact_version() {
     let temp_dir = tempfile::tempdir().unwrap();
-    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_dir.path().display());
 
     run_command(
         &[
             "--directory",
-            &format!("{}", temp_path.display()),
+            &directory,
             "update",
-            "0.23.0",
+            CANDIDATE_COMPACTC_VERSION,
         ],
         None,
+        Some("./output/update/std_update_candidate.txt"),
         None,
-        Some("./output/update/err_no_release_macos_intel.txt"),
-        &[],
-        Some(1),
+        &[
+            ("[COMPACTC_VERSION]", CANDIDATE_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &[
+            "--directory",
+            &directory,
+            "compile",
+            &format!("+{CANDIDATE_COMPACTC_VERSION}"),
+            "--version",
+        ],
+        None,
+        Some("./output/compile/std_candidate_version.txt"),
+        None,
+        &[("[COMPACTC_VERSION]", CANDIDATE_COMPACTC_VERSION)],
+        None,
+    );
+}
+
+/// `compact list --pre' lists release candidates, each labelled; the listing
+/// grows with every candidate, so only the line for one is checked.
+#[test]
+fn test_compact_list_pre_lists_a_release_candidate() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    run_command_listing(
+        &[
+            "--directory",
+            &format!("{}", temp_dir.path().display()),
+            "list",
+            "--pre",
+        ],
+        &format!(
+            "{CANDIDATE_COMPACTC_VERSION} (release candidate, superseded by 0.35.0) - \
+             x86_macos, aarch64_macos, x86_linux, aarch64_linux"
+        ),
+    );
+}
+
+/// A plain `compact update' does not move the default back from a release
+/// candidate newer than the latest release, and installs nothing; with
+/// `--no-set-default', which leaves the default alone anyway, it installs the
+/// latest release. The candidate is one made on disk, since which candidates
+/// are newer than the latest release changes with every release.
+#[test]
+fn test_compact_update_keeps_a_candidate_default_ahead_of_the_latest_release() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+    let ahead = "0.99.0-rc.0";
+    let shown_as = format!("{ahead} (release candidate)");
+
+    make_compiler_without_formatter(temp_path, ahead);
+
+    run_command(
+        &["--directory", &directory, "update", ahead],
+        None,
+        Some("./output/update/std_already_installed.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", &shown_as),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &["--directory", &directory, "update"],
+        None,
+        Some("./output/update/std_candidate_default_kept.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", &shown_as),
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    let latest = temp_path.join("versions").join(LATEST_COMPACTC_VERSION);
+    assert!(!latest.exists(), "a plain update installs nothing here");
+
+    run_command(
+        &["--directory", &directory, "update", "--no-set-default"],
+        None,
+        Some("./output/scenarios/sc18_no_default_set.txt"),
+        None,
+        &[
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    assert!(
+        latest.join(get_version()).join("compactc").is_file(),
+        "--no-set-default installs the latest release"
+    );
+
+    let default = fs::read_link(temp_path.join("bin").join("compactc")).unwrap();
+    assert!(
+        default.to_string_lossy().contains(ahead),
+        "the default is still the candidate: {default:?}"
     );
 }
 
@@ -296,26 +405,39 @@ fn test_compact_update_repairs_incomplete_installation() {
 /// original report. An unreadable archive is now discarded and fetched again.
 #[test]
 fn test_compact_update_repairs_a_corrupt_archive() {
+    repair_a_corrupt_archive(LATEST_COMPACTC_VERSION, LATEST_COMPACTC_VERSION);
+}
+
+/// The same repair of a release candidate, every line naming it as one.
+#[test]
+fn test_compact_update_repairs_a_corrupt_candidate_archive() {
+    repair_a_corrupt_archive(
+        CANDIDATE_COMPACTC_VERSION,
+        &format!("{CANDIDATE_COMPACTC_VERSION} (release candidate)"),
+    );
+}
+
+/// Install `version', poison its archive and remove what it produced, then
+/// update again: the retry has to discard the archive, fetch it once more and
+/// reinstall. `shown_as' is how `compact update' names the version.
+fn repair_a_corrupt_archive(version: &str, shown_as: &str) {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
     let directory = format!("{}", temp_path.display());
 
     run_command(
-        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        &["--directory", &directory, "update", version],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", shown_as),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
     );
 
-    let artifact_dir = temp_path
-        .join("versions")
-        .join(LATEST_COMPACTC_VERSION)
-        .join(get_version());
+    let artifact_dir = temp_path.join("versions").join(version).join(get_version());
 
     // Poison the archive and remove what it produced, so the retry has to read
     // the archive rather than trust the directory.
@@ -328,12 +450,12 @@ fn test_compact_update_repairs_a_corrupt_archive() {
     fs::remove_file(temp_path.join("bin").join("compactc")).unwrap();
 
     run_command(
-        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        &["--directory", &directory, "update", version],
         None,
         Some("./output/update/std_repair_corrupt_archive.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", shown_as),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,

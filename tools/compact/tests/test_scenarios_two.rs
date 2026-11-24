@@ -14,8 +14,8 @@
 // limitations under the License.
 
 use crate::common::{
-    LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, PREVIOUS_COMPACTC_VERSION,
-    VERSION_WITH_NO_FORMAT, assert_path_contains_string, get_version, run_command,
+    LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, OTHER_COMPACTC_VERSION,
+    PREVIOUS_COMPACTC_VERSION, assert_path_contains_string, get_version, run_command,
 };
 
 mod common;
@@ -43,13 +43,13 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            VERSION_WITH_NO_FORMAT,
+            OTHER_COMPACTC_VERSION,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", OTHER_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -89,55 +89,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
         Some("./output/compile/std_compiling.txt"),
         Some("./output/compile/err_compiling.txt"),
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
-            ("[CONTRACT_DIR]", temp_output_path.to_str().unwrap()),
-        ],
-        None,
-    );
-}
-
-// compile with specific version before 0.25.0 so there should be no version printed
-#[test]
-fn test_sc10a_update_version_with_run_script_removed() {
-    // compi
-    let temp_dir = tempfile::tempdir().unwrap();
-    let temp_path = temp_dir.path();
-
-    run_command(
-        &[
-            "--directory",
-            &format!("{}", temp_path.display()),
-            "update",
-            VERSION_WITH_NO_FORMAT,
-        ],
-        None,
-        Some("./output/update/std_update_other.txt"),
-        None,
-        &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
-            ("[SYSTEM_VERSION]", get_version()),
-        ],
-        None,
-    );
-
-    let temp_output = tempfile::tempdir().unwrap();
-    let temp_output_path = temp_output.path();
-    let compiler = "+0.24.0";
-
-    run_command(
-        &[
-            "--directory",
-            &format!("{}", temp_path.display()),
-            "compile",
-            compiler,
-            "./contract/counter.compact",
-            temp_output_path.to_str().unwrap(),
-        ],
-        None,
-        Some("./output/compile/std_compiling_pre_0250.txt"),
-        Some("./output/compile/err_compiling.txt"),
-        &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
             ("[CONTRACT_DIR]", temp_output_path.to_str().unwrap()),
         ],
         None,
@@ -145,7 +97,6 @@ fn test_sc10a_update_version_with_run_script_removed() {
 }
 
 #[test]
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 fn test_sc11_update_two_versions_compile_contract_with_oldest() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
@@ -181,7 +132,7 @@ fn test_sc11_update_two_versions_compile_contract_with_oldest() {
 
     let temp_output = tempfile::tempdir().unwrap();
     let temp_output_path = temp_output.path();
-    let compiler = "+0.22.0";
+    let compiler = &format!("+{OLDEST_COMPACTC_VERSION}");
 
     run_command(
         &[
@@ -193,8 +144,8 @@ fn test_sc11_update_two_versions_compile_contract_with_oldest() {
             temp_output_path.to_str().unwrap(),
         ],
         None,
-        Some("./output/compile/std_compile_old_zkir.txt"),
-        None,
+        Some("./output/compile/std_compiling.txt"),
+        Some("./output/compile/err_compiling.txt"),
         &[
             ("[COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
             ("[CONTRACT_DIR]", temp_output_path.to_str().unwrap()),

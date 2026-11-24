@@ -75,6 +75,11 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
+    ///
+    /// A release candidate is installed only when named by its exact
+    /// version. Without a version this installs the latest release. If the
+    /// default is a release candidate newer than that release, the default is
+    /// kept, and the release is installed only with --no-set-default.
     #[command(
         verbatim_doc_comment,
         visible_alias = "u",
@@ -144,7 +149,7 @@ pub struct CheckCommand {}
 #[derive(Debug, Clone, Args)]
 #[command(version)]
 pub struct UpdateCommand {
-    /// Version to install, e.g. 0, 0.29, or 0.29.0
+    /// Version to install, e.g. 0, 0.29, 0.29.0, or a release candidate such as 0.36.0-rc.0
     #[arg(id = "COMPACT_VERSION")]
     pub version: Option<VersionSpec>,
 
@@ -281,6 +286,10 @@ pub struct ListCommand {
     /// Show installed versions
     #[arg(long, short, default_value_t = false)]
     pub installed: bool,
+
+    /// Also list release candidates
+    #[arg(long, default_value_t = false, conflicts_with = "installed")]
+    pub pre: bool,
 }
 
 /// Remove all compact versions

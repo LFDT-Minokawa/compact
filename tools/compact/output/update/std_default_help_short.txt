@@ -3,7 +3,7 @@ Update to the latest or a specific version of the Compact toolchain
 Usage: compact update [OPTIONS] [COMPACT_VERSION]
 
 Arguments:
-  [COMPACT_VERSION]  Version to install, e.g. 0, 0.29, or 0.29.0
+  [COMPACT_VERSION]  Version to install, e.g. 0, 0.29, 0.29.0, or a release candidate such as 0.36.0-rc.0
 
 Options:
       --no-set-default         Don't make the newly installed compiler the default one

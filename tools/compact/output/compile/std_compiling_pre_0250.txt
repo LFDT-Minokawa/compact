@@ -1,1 +1,0 @@
-Compactc version: [COMPACTC_VERSION]

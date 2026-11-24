@@ -1,0 +1,2 @@
+compact: [SYSTEM_VERSION] -- [COMPACTC_VERSION] (release candidate) -- installed
+compact: [SYSTEM_VERSION] -- [COMPACTC_VERSION] (release candidate) -- default.
