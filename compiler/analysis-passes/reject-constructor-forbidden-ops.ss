@@ -158,16 +158,16 @@
                   (when (forbidden-in-constructor? adt-op)
                     ; the kernel's ledger field name is internal.
                     (let* ([op-name (if (eq? adt-name 'Kernel)
-                                       (string->symbol (format "~a.~a" 'kernel ledger-op))
-                                       ; only kernel has forbidden ops atm.
-                                       ; so next line is not exercised.
-                                       ledger-op)]
-                          [what (if (eq? adt-name 'Kernel)
-                                    (format "call ~a" op-name)
-                                       ; only kernel has forbidden ops atm.
-                                       ; so next line is not exercised.
-                                       (format "call ~a on ledger fields that contain a ~a ADT type" op-name
-                                            (if (eq? adt-name '__compact_Cell) 'Cell adt-name)))])
+                                        (string->symbol (format "~a.~a" 'kernel ledger-op))
+                                        ; only kernel has forbidden ops atm.
+                                        ; so next line is not exercised.
+                                        ledger-op)]
+                           [what (if (eq? adt-name 'Kernel)
+                                     (format "call ~a" op-name)
+                                     ; only kernel has forbidden ops atm.
+                                     ; so next line is not exercised.
+                                     (format "call ~a on ledger fields that contain a ~a ADT type" op-name
+                                       (if (eq? adt-name '__compact_Cell) 'Cell adt-name)))])
                       (raise (make-forbidden-condition what op-name src^ '()))))
                   (let-values ([(adt-name^ adt-op*^) (adt-of-result adt-op)])
                     (loop (cdr accessor*) adt-name^ adt-op*^)))]))))
