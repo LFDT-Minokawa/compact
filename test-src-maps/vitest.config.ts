@@ -27,11 +27,11 @@ export default defineConfig({
             ? [
                 'github-actions',
                 ['junit', { outputFile: './reports/test-report.xml' }],
-                ['html', { outputFile: './reports/html/index.html' }],
+                ['html', { outputDir: './reports/html' }],
                 ['@d2t/vitest-ctrf-json-reporter', { outputDir: './reports', outputFile: 'ctrf-report.json' }],
                 ['allure-vitest/reporter', { resultsDir: './reports/allure-reports' }],
             ]
-            : ['verbose', ['html', { outputFile: './reports/html/index.html' }]],
+            : ['verbose', ['html', { outputDir: './reports/html' }]],
         setupFiles: ['allure-vitest/setup']
     },
     resolve: {
