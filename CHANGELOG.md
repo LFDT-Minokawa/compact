@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.113, language 0.28.102, runtime 0.21.104]
+
+### Fixed
+
+- A bug in which multiple uses of `return` in the same circuit to return values of
+  multiple types might result in a static type error even the types have a least
+  upper bound (and, if the return type is declared, even the least upper bound is a
+  subtype of the return type).
+  For example,
+  `circuit f(x: Boolean): [Uint<8>, Uint<8>] { if (x) return [5, 9]; return [9, 5]; }`
+  was previously rejected even though both `[5, 9]` and `[9, 5]` have types that
+  are subtypes of `[Uint<8>, Uint<8>]`.
+  The same issue also affected some tuples used as vector values in `for`,
+  `map`, `fold`, and `spreads` forms.
+  The elements of any such tuple must have a least upper bound, and previously this
+  meant that one element type had to be a supertype of the others.
+  For example, `map` over `[[5, 9], [9, 5]]` was rejected but is now accepted.
+  The root cause was that the rule for computing the least upper bound of a set of
+  types was too restrictive, requiring at least one of the types to be a supertype
+  of the others.
+  Specifically, this is incorrect for some sets of vector and tuple types, such
+  as `[5, 9]` and `[9, 5]`, which also have a least upper bound if the corresponding
+  elements have a least upper bound.
+
+### Changed
+
+- A conditional expression `e0 ? e1 : e2`, where the type of `e0` is `Boolean`,
+  previously failed to type-check unless the type of `e1` or the type of `e2`
+  is a subtype of the other.  It now type-checks if the types of the branches
+  have a least upper bound, using the corrected interpretation of least upper
+  bound described above.
+  For example, the type of `b ? [5, 9] : [9, 5]`, where `b` has type `Boolean`,
+  is `[Uint<0..10>, Uint<0..10>]`, whereas it previously failed to type-check.
+- The equality operators `==` and `!=` likewise type-checks if the types of the
+  operands have a least upper bound.
+  For example, `[5, 9] == [9, 5]` now type-checks.
+
 ## [Toolchain 0.36.112, language 0.28.101, runtime 0.21.104]
 
 ### Changed

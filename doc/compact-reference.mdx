@@ -912,10 +912,11 @@ Subtyping is exclusively defined by the following rules:
   tuple type `[`*S<sub>1</sub>*, ⋯, *S<sub>n</sub>*`]`
   if they have the same length and each type *T<sub>i</sub>* is a subtype of the
   corresponding type *S<sub>i</sub>*.
-- If the circuits declared in contract type `B` are a superset of
-  those declared in contract type `A`, then `B` is a subtype of `A`.
-  A contract type can therefore be a subtype of many disjoint
-  supertypes.
+- A contract type `B` is a subtype of a contract type `A` with the same name if
+  `B` declares every circuit declared in `A`, with the same `pure` status and the
+  same parameter and result types.
+  Contract types with different names are unrelated, even when one declares every
+  circuit of the other.
 
 The *least upper bound* (with respect to subtyping) of a non-empty set of types
 \{*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*} is a type *S* such that:
@@ -927,6 +928,31 @@ The *least upper bound* (with respect to subtyping) of a non-empty set of types
 
 Note that least upper bounds do not exist for all sets of types, because
 some types (such as `Boolean` and `Field`) are not related.
+
+**Finding least upper bounds:**
+If one of two types is a subtype of the other, their least upper bound is the
+other type.
+For example, the least upper bound of `Uint<0..`*m*`>` and `Uint<0..`*n*`>` is
+whichever has the larger upper bound.
+
+Otherwise, two types have a least upper bound only in the following cases:
+
+- for two vector types of the same length whose element types have a least upper
+  bound, it is the vector type of that length with that element type
+- for two tuple types of the same length whose corresponding element types have
+  least upper bounds, it is the tuple type with those element types
+- for a vector type and a tuple type of the same length, where the vector's
+  element type has a least upper bound with each element type of the tuple, it
+  is the tuple type with those least upper bounds as its element types
+
+For example, the least upper bound of `[Uint<8>, Uint<16>]` and
+`[Uint<16>, Uint<8>]` is `[Uint<16>, Uint<16>]`, although neither
+type is a subtype of the other.
+
+The least upper bound of three or more types is defined recursively as the
+least upper bound of *S<sub></sub>* and *S<sub>2</sub>* where *S<sub></sub>*
+is the least upper bound of one of the types and *S<sub>2</sub>* is the least
+upper bound of the remaining types.
 
 **Tuple and vector types:**
 Every vector type is equivalent to some tuple type.
@@ -959,21 +985,6 @@ type, but it might not be the same as the vector type.
 For example, `[Uint<16>, Uint<16>]` has the vector type `Vector<2, Uint<16>>`,
 and the two types are the same, whereas `[Uint<8>, Uint<16>]` also has the
 vector type `Vector<2, Uint<16>>`, but the types are not the same.
-
-**Contract types:**
-The least upper bound of a pair of contract types is the intersection
-of their declared circuits, which may be empty.  (The empty contract
-type is useless, but valid.)  Also, any pair of contract types has a
-greatest lower bound: the union of their declared circuits.
-
-The subtyping rule for contract types creates another way to define
-what it means for a contract to satisfy or implement a contract type.
-First, recognize that the entire set of circuits exported by a Compact
-program forms a "natural" contract type.  In other words, every
-Compact program induces a contract type that could be written as a
-`contract` declaration.  Then, if that "natural" contract type is a
-subtype of some other contract type `A`, then the contract
-implementation satisfies `A`.
 
 ## Patterns and destructuring
 
@@ -2517,13 +2528,10 @@ Compact supports conditional expressions of the form
 where *e<sub>0</sub>*, *e<sub>1</sub>*, and *e<sub>2</sub>* are expressions.
 
 The type of *e<sub>0</sub>* must be `Boolean`.
-The types of *e<sub>1</sub>* and *e<sub>2</sub>* must be related.
-That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
-or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
-
-The type of the entire expression is the type of *e<sub>2</sub>* if *e<sub>1</sub>*
-is a subtype of *e<sub>2</sub>* and the type of *e<sub>1</sub>* if *e<sub>2</sub>*
-is a subtype of *e<sub>1</sub>*.
+The types of *e<sub>1</sub>* and *e<sub>2</sub>* must have a
+[least upper bound](#subtyping-and-least-upper-bounds), and the type of the
+entire expression is that least upper bound.
+For example, the type of `b ? [5, 9] : [9, 5]` is `[Uint<0..10>, Uint<0..10>]`.
 
 A conditional expression *e<sub>0</sub>* `?` *e<sub>1</sub>* `:` *e<sub>2</sub>*
 is evaluated by first evaluating *e<sub>0</sub>*.  The value *v* of *e<sub>0</sub>*
@@ -2547,9 +2555,8 @@ than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
 **greater than or equals** (`>=`).
 
 Equals and not equals require the types of *e<sub>1</sub>* and *e<sub>2</sub>*
-to be related.
-That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
-or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
+to have a [least upper bound](#subtyping-and-least-upper-bounds), and the values
+are compared at that type.
 Otherwise, it is a static error.
 
 Less than, greater than, less than or equals, and greater than or equals require
@@ -2566,8 +2573,8 @@ comparing the resulting values as described below.
 **Equals and not equals**
 
 Equality depends on the types of the operands according to the following rules.
-The rules need not and therefore do not cover cases where one operand is not
-a subtype of the other, as required by typing rules above.
+The rules need not and therefore do not cover cases where the operand types have
+no least upper bound, as required by typing rules above.
 For example, if one operand has type `Boolean`, so does the other; if one
 operand has a `Bytes` type of length *n*, so does the other; and if one
 has a specific structure type, so does the other.

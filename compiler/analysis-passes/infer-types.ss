@@ -324,6 +324,49 @@
                           (andmap same-adt-arg? adt-arg1* adt-arg2*))])])
               (T type2
                  [(tundeclared) #t])))))
+    ;; the least upper bound of type1 and type2 if one exists, otherwise #f
+    (define (least-upper-bound type1 type2)
+      (cond
+        [(subtype? type1 type2) type2]
+        [(subtype? type2 type1) type1]
+        [else
+         (let ([t1 (de-alias type1 #f)] [t2 (de-alias type2 #f)])
+           (with-output-language (Ltypes Type)
+             (nanopass-case (Ltypes Type) t1
+               [(tvector ,src1 ,len1 ,type1)
+                (nanopass-case (Ltypes Type) t2
+                  [(tvector ,src2 ,len2 ,type2)
+                   (and (fx= len1 len2)
+                        (let ([type (least-upper-bound type1 type2)])
+                          (and type `(tvector ,src1 ,len1 ,type))))]
+                  ; a tuple is a subtype of every vector that bounds both, so the bound is a tuple
+                  [(ttuple ,src2 ,type2* ...)
+                   ; suboptimal on failure, acceptable because failure is always an error
+                   (and (fx= len1 (length type2*))
+                        (let ([type* (map (lambda (type2) (least-upper-bound type1 type2)) type2*)])
+                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                  [else #f])]
+               [(ttuple ,src1 ,type1* ...)
+                (nanopass-case (Ltypes Type) t2
+                  [(tvector ,src2 ,len2 ,type2)
+                   ; suboptimal on failure, acceptable because failure is always an error
+                   (and (fx= len2 (length type1*))
+                        (let ([type* (map (lambda (type1) (least-upper-bound type1 type2)) type1*)])
+                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                  [(ttuple ,src2 ,type2* ...)
+                   ; suboptimal on failure, acceptable because failure is always an error
+                   (and (fx= (length type1*) (length type2*))
+                        (let ([type* (map least-upper-bound type1* type2*)])
+                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                  [else #f])]
+               [else #f])))]))
+    ;; tunknown for the empty list, otherwise the least upper bound of type* if one exists, otherwise #f
+    (define (least-upper-bound* type*)
+      (let loop ([type* type*] [bound (with-output-language (Ltypes Type) `(tunknown))])
+        (if (null? type*)
+            bound
+            (let ([bound (least-upper-bound (car type*) bound)])
+              (and bound (loop (cdr type*) bound))))))
     (define (public-adt? type)
       (nanopass-case (Ltypes Type) (de-alias type #t)
         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
@@ -604,22 +647,13 @@
                  known-type
                  (with-output-language (Ltypes Function)
                    `(circuit ,src (,arg* ...) ,known-type ,expr))))))]))
-    (define (max-type type*)
-      (let loop ([type* type*] [max-type (with-output-language (Ltypes Type) `(tunknown))])
-        (if (null? type*)
-            max-type
-            (let ([type (car type*)] [type* (cdr type*)])
-              (cond
-                [(subtype? type max-type) (loop type* max-type)]
-                [(subtype? max-type type) (loop type* type)]
-                [else #f])))))
     (define (vector-element-type src what type)
       (nanopass-case (Ltypes Type) (de-alias type #t)
         [(ttuple ,src^ ,type^* ...)
          (values
            (length type^*)
-           (or (max-type type^*)
-               (source-errorf src "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated"
+           (or (least-upper-bound* type^*)
+               (source-errorf src "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound"
                               what
                               (format-type type))))]
         [(tbytes ,src^ ,len) (values len (with-output-language (Ltypes Type) `(tunsigned ,src 255)))]
@@ -788,10 +822,7 @@
       (let*-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
         (verify-non-adt-type! src type1 "equality-operator left operand")
         (verify-non-adt-type! src type2 "equality-operator right operand")
-        (let ([type (cond
-                      [(subtype? type1 type2) type2]
-                      [(subtype? type2 type1) type1]
-                      [else #f])])
+        (let ([type (least-upper-bound type1 type2)])
           (unless type
             (source-errorf src "incompatible types ~a and ~a for equality operator"
                            (format-type type1)
@@ -1243,12 +1274,10 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type0)))
      (let-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
-       (let ([type (cond
-                     [(subtype? type1 type2) type2]
-                     [(subtype? type2 type1) type1]
-                     [else (source-errorf src "mismatch between type ~a and type ~a of condition branches"
-                                          (format-type type1)
-                                          (format-type type2))])])
+       (let ([type (or (least-upper-bound type1 type2)
+                       (source-errorf src "mismatch between type ~a and type ~a of condition branches"
+                                      (format-type type1)
+                                      (format-type type2)))])
          (values
            `(if ,src
                 ,expr0
@@ -1342,13 +1371,15 @@
                        (format-type type))])]
     [(tuple ,src ,[Tuple-Argument : tuple-arg* -> expr* type* kind* nat* elt-type**] ...)
      (define (unrelated-elt-types elt-type+)
-       (let ([type (car elt-type+)])
-         (let loop ([type* (cdr elt-type+)])
-           (let ([type^ (car type*)])
-             (unless (or (subtype? type^ type) (subtype? type type^))
-               (source-errorf src "tuple/vector construction expression with vector-typed spreads has unrelated element types ~a and ~a"
-                              (format-type type) (format-type type^)))
-             (loop (cdr type*))))))
+       ;; least-upper-bound* failed, so some pair of element types has no upper bound
+       (let loop ([type+ elt-type+])
+         (let ([type (car type+)])
+           (cond
+             [(find (lambda (type^) (not (least-upper-bound type type^))) (cdr type+))
+              => (lambda (type^)
+                   (source-errorf src "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound"
+                                  (format-type type) (format-type type^)))]
+             [else (loop (cdr type+))]))))
      (if (memq 'vector-spread kind*)
          ; when a tuple expression contains a spread of a vector-typed value, the resulting value is a vector
          ; and must have a vector type, so the type of each non-spread element and the element type of each tuple or
@@ -1360,7 +1391,7 @@
          ; useful, if not critical, when spreading longer vectors: (ttuple (single Field) (spread 1000000 Boolean))
          ; would be rather large if uncompressed.
          (let ([elt-type (let ([elt-type* (apply append elt-type**)])
-                           (or (max-type elt-type*) (unrelated-elt-types elt-type*)))])
+                           (or (least-upper-bound* elt-type*) (unrelated-elt-types elt-type*)))])
            (define (make-vector-type len)
              (unless (len? len)
                (source-errorf src "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d"

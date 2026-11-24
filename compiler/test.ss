@@ -21905,7 +21905,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("map second argument" "[Uint<8>, Boolean]")))
+      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound" ("map second argument" "[Uint<8>, Boolean]")))
     )
 
   (test
@@ -21916,7 +21916,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("fold third argument" "[Uint<8>, Boolean]")))
+      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound" ("fold third argument" "[Uint<8>, Boolean]")))
     )
 
   (test
@@ -22798,7 +22798,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 7" "tuple/vector construction expression with vector-typed spreads has unrelated element types ~a and ~a" ("Uint<16>" "Boolean")))
+      irritants: '("testfile.compact line 4 char 7" "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound" ("Uint<16>" "Boolean")))
     )
 
   (test
@@ -25983,6 +25983,244 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "struct ShieldedSpend<nullifier: Bytes<32>>" "circuit foo")))
+    )
+
+  ; The type of a conditional is the least upper bound of the branch types: neither
+  ; [Uint<0..6>, Uint<0..10>] nor [Uint<0..10>, Uint<0..6>] is a subtype of the other.
+  (test
+    '(
+      "export circuit foo(b: Boolean): [Uint<8>, Uint<8>] {"
+      "  return b ? [5, 9] : [9, 5];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)])
+             (ttuple (tunsigned 255) (tunsigned 255))
+          (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                     (ttuple (tunsigned 9) (tunsigned 9))
+            (if %b.1
+                (safe-cast (ttuple (tunsigned 9) (tunsigned 9))
+                           (ttuple (tunsigned 5) (tunsigned 9))
+                  (tuple 5 9))
+                (safe-cast (ttuple (tunsigned 9) (tunsigned 9))
+                           (ttuple (tunsigned 9) (tunsigned 5))
+                  (tuple 9 5)))))))
+    )
+
+  ; Two vectors of the same length: a vector of the element types' bound.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<1, [Uint<4>, Uint<8>]>, w: Vector<1, [Uint<8>, Uint<4>]>): Vector<1, [Uint<8>, Uint<8>]> {"
+      "  return b ? v : w;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%v.2 (tvector
+                                 1
+                                 (ttuple (tunsigned 15) (tunsigned 255)))]
+                         [%w.3 (tvector
+                                 1
+                                 (ttuple (tunsigned 255) (tunsigned 15)))])
+             (tvector 1 (ttuple (tunsigned 255) (tunsigned 255)))
+          (if %b.1
+              (safe-cast (tvector
+                           1
+                           (ttuple (tunsigned 255) (tunsigned 255)))
+                         (tvector 1 (ttuple (tunsigned 15) (tunsigned 255)))
+                %v.2)
+              (safe-cast (tvector
+                           1
+                           (ttuple (tunsigned 255) (tunsigned 255)))
+                         (tvector 1 (ttuple (tunsigned 255) (tunsigned 15)))
+                %w.3)))))
+    )
+
+  ; A vector and a tuple of the same length: a tuple, which is below every vector
+  ; that bounds both.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<2, Uint<4>>): [Uint<8>, Uint<8>] {"
+      "  return b ? v : [9, 20];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%v.2 (tvector 2 (tunsigned 15))])
+             (ttuple (tunsigned 255) (tunsigned 255))
+          (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                     (ttuple (tunsigned 15) (tunsigned 20))
+            (if %b.1
+                (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                           (tvector 2 (tunsigned 15))
+                  %v.2)
+                (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                           (ttuple (tunsigned 9) (tunsigned 20))
+                  (tuple 9 20)))))))
+    )
+
+  ; Returns along different paths are combined the same way, so this circuit is
+  ; accepted whatever the order of its returns.
+  (test
+    '(
+      "export circuit foo(x: Boolean): [Uint<8>, Uint<8>] {"
+      "  if (x) return [5, 9];"
+      "  return [9, 5];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%x.1 (tboolean)])
+             (ttuple (tunsigned 255) (tunsigned 255))
+          (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                     (ttuple (tunsigned 9) (tunsigned 9))
+            (if %x.1
+                (safe-cast (ttuple (tunsigned 9) (tunsigned 9))
+                           (ttuple (tunsigned 5) (tunsigned 9))
+                  (tuple 5 9))
+                (safe-cast (ttuple (tunsigned 9) (tunsigned 9))
+                           (ttuple (tunsigned 9) (tunsigned 5))
+                  (tuple 9 5)))))))
+    )
+
+  ; No upper bound: an element pair has none.
+  (test
+    '(
+      "export circuit foo(b: Boolean): [Field, Uint<8>] {"
+      "  return b ? [1, 2] : [true, 2];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "mismatch between type ~a and type ~a of condition branches" ("[Uint<1>, Uint<0..3>]" "[Boolean, Uint<0..3>]")))
+    )
+
+  ; No upper bound: vectors of different lengths.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<2, Uint<4>>, w: Vector<3, Uint<4>>): Vector<2, Uint<4>> {"
+      "  return b ? v : w;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "mismatch between type ~a and type ~a of condition branches" ("Vector<2, Uint<4>>" "Vector<3, Uint<4>>")))
+    )
+
+  ; Equality operands are compared at the least upper bound of their types.
+  (test
+    '(
+      "export circuit foo(a: [Uint<4>, Uint<8>], b: [Uint<8>, Uint<4>]): Boolean {"
+      "  return a == b;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%a.1 (ttuple
+                                 (tunsigned 15)
+                                 (tunsigned 255))]
+                         [%b.2 (ttuple (tunsigned 255) (tunsigned 15))])
+             (tboolean)
+          (== (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                         (ttuple (tunsigned 15) (tunsigned 255))
+                %a.1)
+              (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                         (ttuple (tunsigned 255) (tunsigned 15))
+                %b.2)))))
+    )
+
+  ; Likewise for != on a vector and a tuple.
+  (test
+    '(
+      "export circuit foo(v: Vector<2, Uint<4>>): Boolean {"
+      "  return v != [9, 20];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 2 (tunsigned 15))])
+             (tboolean)
+          (!= (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                         (tvector 2 (tunsigned 15))
+                %v.1)
+              (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                         (ttuple (tunsigned 9) (tunsigned 20))
+                (tuple 9 20))))))
+    )
+
+  ; No upper bound: an element pair has none.
+  (test
+    '(
+      "export circuit foo(): Boolean {"
+      "  return [1, 2] == [true, 2];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "incompatible types ~a and ~a for equality operator" ("[Uint<1>, Uint<0..3>]" "[Boolean, Uint<0..3>]")))
+    )
+
+  ; A tuple has a vector type when its element types have a least upper bound, so
+  ; map accepts a tuple whose element types are not ordered by subtyping.
+  (test
+    '(
+      "export circuit foo(): Vector<2, Uint<8>> {"
+      "  return map((p: [Uint<8>, Uint<8>]) => p[0], [[5, 9], [9, 5]]);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ()
+             (tvector 2 (tunsigned 255))
+          (map
+            (circuit ([%p.1 (ttuple (tunsigned 255) (tunsigned 255))])
+                 (tunsigned 255)
+              (tuple-ref %p.1 0))
+            (tuple (tuple 5 9) (tuple 9 5))))))
+    )
+
+  ; Likewise for the elements of a tuple/vector construction with a vector-typed spread.
+  (test
+    '(
+      "export circuit foo(v: Vector<1, [Uint<4>, Uint<4>]>): Vector<2, [Uint<8>, Uint<8>]> {"
+      "  return [...v, [20, 1]];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector
+                                 1
+                                 (ttuple (tunsigned 15) (tunsigned 15)))])
+             (tvector 2 (ttuple (tunsigned 255) (tunsigned 255)))
+          (safe-cast (tvector
+                       2
+                       (ttuple (tunsigned 255) (tunsigned 255)))
+                     (tvector 2 (ttuple (tunsigned 20) (tunsigned 15)))
+            (vector
+              (spread 1
+                (safe-cast (tvector
+                             1
+                             (ttuple (tunsigned 20) (tunsigned 15)))
+                           (tvector 1 (ttuple (tunsigned 15) (tunsigned 15)))
+                  %v.1))
+              (safe-cast (ttuple (tunsigned 20) (tunsigned 15))
+                         (ttuple (tunsigned 20) (tunsigned 1))
+                (tuple 20 1)))))))
+    )
+
+  ; No upper bound: the message names a pair of element types that has none.
+  (test
+    '(
+      "export circuit foo(v: Vector<1, [Uint<4>, Uint<4>]>): Vector<3, [Uint<8>, Uint<8>]> {"
+      "  return [...v, [20, 1], [true, 1]];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound" ("[Uint<4>, Uint<4>]" "[Boolean, Uint<1>]")))
     )
 )
 
@@ -60595,6 +60833,56 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
+  ; Conditionals, returns, equality, and tuples used as vectors, typed by least upper
+  ; bounds, including a ledger write and an assert (checked against the ZKIR).
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Vector<2, Uint<8>>;"
+      "export circuit tern(b: Boolean): [Uint<8>, Uint<8>] { return b ? [5, 9] : [9, 5]; }"
+      "export circuit ret(x: Boolean): [Uint<8>, Uint<8>] {"
+      "  if (x) return [5, 9];"
+      "  return [9, 5];"
+      "}"
+      "export circuit vt(b: Boolean, v: Vector<2, Uint<4>>): [Uint<8>, Uint<8>] { return b ? v : [9, 20]; }"
+      "export circuit vv(b: Boolean, v: Vector<1, [Uint<4>, Uint<8>]>, w: Vector<1, [Uint<8>, Uint<4>]>): Vector<1, [Uint<8>, Uint<8>]> {"
+      "  return b ? v : w;"
+      "}"
+      "export circuit write(b: Boolean): [] { out = disclose(b) ? [5, 9] : [9, 5]; }"
+      "export circuit eq(a: [Uint<4>, Uint<8>], b: [Uint<8>, Uint<4>]): Boolean { return a == b; }"
+      "export circuit ne(v: Vector<2, Uint<4>>): Boolean { return v != [9, 15]; }"
+      "export circuit same(a: [Uint<4>, Uint<8>], b: [Uint<8>, Uint<4>]): [] { assert(disclose(a) == disclose(b), \"different\"); }"
+      "export circuit firsts(): Vector<2, Uint<8>> { return map((p: [Uint<8>, Uint<8>]) => p[0], [[5, 9], [9, 5]]); }"
+      "export circuit last(): Uint<8> { return fold((acc: Uint<8>, p: [Uint<8>, Uint<8>]): Uint<8> => p[1], 0 as Uint<8>, [[5, 9], [9, 5]]); }"
+      "export circuit spread(v: Vector<1, [Uint<4>, Uint<4>]>): Vector<2, [Uint<8>, Uint<8>]> { return [...v, [20, 1]]; }"
+      )
+    (stage-javascript
+      '(
+        "test('conditionals, returns, equality and tuples used as vectors use least upper bounds', async () => {"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.tern(Ctxt0, true)).result).toEqual([5n, 9n]);"
+        "  expect((await C.circuits.tern(Ctxt0, false)).result).toEqual([9n, 5n]);"
+        "  expect((await C.circuits.ret(Ctxt0, true)).result).toEqual([5n, 9n]);"
+        "  expect((await C.circuits.ret(Ctxt0, false)).result).toEqual([9n, 5n]);"
+        "  expect((await C.circuits.vt(Ctxt0, true, [1n, 2n])).result).toEqual([1n, 2n]);"
+        "  expect((await C.circuits.vt(Ctxt0, false, [1n, 2n])).result).toEqual([9n, 20n]);"
+        "  expect((await C.circuits.vv(Ctxt0, true, [[1n, 2n]], [[3n, 4n]])).result).toEqual([[1n, 2n]]);"
+        "  expect((await C.circuits.vv(Ctxt0, false, [[1n, 2n]], [[3n, 4n]])).result).toEqual([[3n, 4n]]);"
+        "  const Ctxt1 = (await C.circuits.write(Ctxt0, false)).context;"
+        "  expect(contractCode.ledger(Ctxt1.callContext.currentQueryContext.state).out).toEqual([9n, 5n]);"
+        "  expect((await C.circuits.eq(Ctxt0, [1n, 2n], [1n, 2n])).result).toEqual(true);"
+        "  expect((await C.circuits.eq(Ctxt0, [1n, 2n], [1n, 3n])).result).toEqual(false);"
+        "  expect((await C.circuits.ne(Ctxt0, [9n, 15n])).result).toEqual(false);"
+        "  expect((await C.circuits.ne(Ctxt0, [9n, 14n])).result).toEqual(true);"
+        "  expect((await C.circuits.same(Ctxt0, [3n, 4n], [3n, 4n])).result).toEqual([]);"
+        "  await expect(C.circuits.same(Ctxt0, [3n, 4n], [4n, 3n])).rejects.toThrow('failed assert: different');"
+        "  expect((await C.circuits.firsts(Ctxt0)).result).toEqual([5n, 9n]);"
+        "  expect((await C.circuits.last(Ctxt0)).result).toEqual(5n);"
+        "  expect((await C.circuits.spread(Ctxt0, [[1n, 2n]])).result).toEqual([[1n, 2n], [20n, 1n]]);"
+        "});"
+        ))
+    )
+
   ; change: " --> ' for message of assert
   (test
     '(
@@ -71202,7 +71490,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[Field, Boolean, Uint<16>]")))
+      irritants: '("testfile.compact line 3 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound" ("tuple slice with a non-constant index" "[Field, Boolean, Uint<16>]")))
     )
 
   (test
@@ -71400,7 +71688,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 7" "tuple/vector construction expression with vector-typed spreads has unrelated element types ~a and ~a" ("Uint<16>" "Boolean")))
+      irritants: '("testfile.compact line 5 char 7" "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound" ("Uint<16>" "Boolean")))
     )
 
   (test
@@ -71625,7 +71913,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[struct T<x: Bytes<3>>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct T<x: Bytes<3>>]")))
+      irritants: '("testfile.compact line 9 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound" ("tuple slice with a non-constant index" "[struct T<x: Bytes<3>>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct T<x: Bytes<3>>]")))
     )
 
   (test
@@ -72518,7 +72806,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 13" "tuple/vector construction expression with vector-typed spreads has unrelated element types ~a and ~a" ("Uint<8>" "Boolean")))
+      irritants: '("testfile.compact line 2 char 13" "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound" ("Uint<8>" "Boolean")))
     )
 
   (test
