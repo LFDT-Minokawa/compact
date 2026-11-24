@@ -34,7 +34,7 @@
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.2";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
@@ -44,7 +44,7 @@
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.2";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.1";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -210,7 +210,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.109"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.112"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

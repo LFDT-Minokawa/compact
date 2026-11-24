@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 23 char 1:\s+constructor cannot emit an event but calls \(directly or indirectly\) spend, which emits event\s+ShieldedSpend at line 19 char 3/,
+        /line 23 char 1:\s+constructor cannot emit event ShieldedSpend but does so at line 19 char 3 \(called via\s+constructor -> spend -> emit event ShieldedSpend\)/,
 });
