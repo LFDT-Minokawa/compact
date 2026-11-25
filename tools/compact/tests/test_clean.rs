@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::common::{COMPACT_VERSION, LATEST_COMPACTC_VERSION, run_command};
+use crate::common::{COMPACT_VERSION, LATEST_COMPACTC_VERSION, get_version, run_command};
 use std::env;
+use std::fs;
 
 mod common;
 
@@ -123,4 +124,43 @@ fn test_compact_clean_param_v() {
         &[("[COMPACT_VERSION]", COMPACT_VERSION)],
         Some(0),
     );
+}
+
+/// `--keep-current' keeps the default's own directory and no other. A release
+/// candidate whose name contains the default's version -- `0.36.0-rc.0'
+/// beside `0.36.0' -- is another version and is removed.
+#[test]
+fn test_compact_clean_keep_current_keeps_only_the_current_version() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+
+    for version in ["0.36.0", "0.36.0-rc.0"] {
+        let installed = temp_path.join("versions").join(version).join(get_version());
+        fs::create_dir_all(&installed).unwrap();
+        fs::write(installed.join("compactc"), "").unwrap();
+    }
+
+    fs::create_dir_all(temp_path.join("bin")).unwrap();
+    std::os::unix::fs::symlink(
+        temp_path
+            .join("versions")
+            .join("0.36.0")
+            .join(get_version())
+            .join("compactc"),
+        temp_path.join("bin").join("compactc"),
+    )
+    .unwrap();
+
+    run_command(
+        &["--directory", &directory, "clean", "--keep-current"],
+        None,
+        Some("./output/clean/std_keep_current_only.txt"),
+        None,
+        &[],
+        None,
+    );
+
+    assert!(temp_path.join("versions").join("0.36.0").is_dir());
+    assert!(!temp_path.join("versions").join("0.36.0-rc.0").exists());
 }

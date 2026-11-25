@@ -782,7 +782,7 @@
        (define (valid-length? ctype)
          (strict-nanopass-case (Lnodca Curve-Type) ctype
            [(curve-curve25519) (eqv? len 32)]
-           [(curve-jubjub) #f]
+           [(curve-jubjub) (eqv? len 32)]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
        (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
@@ -867,7 +867,7 @@
             (let find-adt-op ([adt-op* adt-op*])
               (assert (not (null? adt-op*)))
               (nanopass-case (Lnodca ADT-Op) (car adt-op*)
-                [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
+                [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
                  (guard (eq? ledger-op^ ledger-op))
                  (assert (fx=? (length type*) (length type^*)))
                  (for-each

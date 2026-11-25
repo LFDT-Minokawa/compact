@@ -648,7 +648,7 @@
              [(field-scalar ,ctype)
               (strict-nanopass-case (Lflattened Curve-Type) ctype
                 [(curve-curve25519) #t]
-                [(curve-jubjub) (assert cannot-happen)]
+                [(curve-jubjub) #t]
                 [(curve-secp256k1) #t]
                 [(curve-secp256r1) #t])])]
           [(vector->bytes ,triv ,triv* ...) #t]
