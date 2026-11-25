@@ -1,0 +1,38 @@
+# This file is part of Compact.
+# Copyright (C) 2026 Minokawa project contributors
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Read by osv-scanner in .github/workflows/scan.yml. Applies to the
+# package-lock.json in this directory only.
+#
+# minimatch@9.0.3 is pinned exactly by @typescript-eslint/typescript-estree@6,
+# which eslint-config-standard-with-typescript@43 pulls in. It is a lint-time
+# dev dependency: the globs it matches come from our own eslint config, never
+# from untrusted input, so the ReDoS issues below are not reachable. Remove
+# these entries once the eslint config is replaced or upgraded.
+
+[[IgnoredVulns]]
+id = "CVE-2026-26996"
+ignoreUntil = 2027-03-01
+reason = "minimatch ReDoS; lint-time dev dependency, patterns are not attacker-controlled"
+
+[[IgnoredVulns]]
+id = "CVE-2026-27903"
+ignoreUntil = 2027-03-01
+reason = "minimatch ReDoS; lint-time dev dependency, patterns are not attacker-controlled"
+
+[[IgnoredVulns]]
+id = "CVE-2026-27904"
+ignoreUntil = 2027-03-01
+reason = "minimatch ReDoS; lint-time dev dependency, patterns are not attacker-controlled"
