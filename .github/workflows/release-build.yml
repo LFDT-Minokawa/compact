@@ -41,6 +41,11 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      ATTIC_CACHE_TOKEN:
+        required: true
+      MIDNIGHTCI_PACKAGES_WRITE:
+        required: true
 
 permissions: {}
 
@@ -90,17 +95,21 @@ jobs:
           echo "EXPECTED_COMPILER_VERSION=$EXPECTED" >> "$GITHUB_ENV"
 
       - name: Create binary for specific system
+        env:
+          BUILD_COMMAND: ${{ inputs.buildCommand }}
+          INCLUDE_RELEASE_NOTES: ${{ inputs.include_release_notes }}
+          RELEASE_NOTES_FILE: ${{ inputs.release_notes_file }}
         run: |
-          ${{ inputs.buildCommand }}
-          if [ "${{ inputs.include_release_notes }}" = "true" ] && [ -n "${{ inputs.release_notes_file }}" ]; then
-            if [ -f "${{ inputs.release_notes_file }}" ]; then
-              zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/** "${{ inputs.release_notes_file }}"
+          eval "$BUILD_COMMAND"
+          if [ "$INCLUDE_RELEASE_NOTES" = "true" ] && [ -n "$RELEASE_NOTES_FILE" ]; then
+            if [ -f "$RELEASE_NOTES_FILE" ]; then
+              zip --junk-paths "$ARTIFACT_NAME.zip" result/**/** "$RELEASE_NOTES_FILE"
             else
-              echo "::error::Release notes file not found: ${{ inputs.release_notes_file }}"
+              echo "::error::Release notes file not found: $RELEASE_NOTES_FILE"
               exit 1
             fi
           else
-            zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/**
+            zip --junk-paths "$ARTIFACT_NAME.zip" result/**/**
           fi
 
       - name: Check the built compiler reports the stamped version

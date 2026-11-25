@@ -11,6 +11,7 @@ on:
       - Compiler fuzzer
       - Internal release of compact toolchain
       - Scan
+      - Scorecard
     types:
       - completed
 

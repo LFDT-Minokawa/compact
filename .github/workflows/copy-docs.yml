@@ -35,7 +35,10 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/generate-docs.yml
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+      MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}
     with:
       branch: ${{ inputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}

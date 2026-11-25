@@ -105,7 +105,9 @@ jobs:
     if: ${{ inputs.publish_compiler }}
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
@@ -123,7 +125,9 @@ jobs:
     if: ${{ inputs.publish_compiler && inputs.include_linux_arm }}
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
@@ -141,7 +145,9 @@ jobs:
     if: ${{ inputs.publish_compiler && inputs.include_macos_arm }}
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
@@ -159,7 +165,9 @@ jobs:
     if: ${{ inputs.publish_compiler && inputs.include_macos_intel }}
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
@@ -177,7 +185,6 @@ jobs:
     if: ${{ inputs.publish_compiler }}
     permissions:
       contents: read
-    secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}

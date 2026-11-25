@@ -34,8 +34,11 @@ jobs:
       contents: read
     steps:
       - name: Set name of artifact
+        env:
+          TAG: ${{ inputs.tag }}
+          ARCHITECTURE: ${{ inputs.architecture }}
         run: |
-          export ARTIFACT_NAME=compactc_${{ inputs.tag }}_${{ inputs.architecture }}
+          export ARTIFACT_NAME="compactc_${TAG}_${ARCHITECTURE}"
           echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
 
       - name: Checkout compactc repository

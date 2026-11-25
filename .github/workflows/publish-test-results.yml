@@ -54,8 +54,10 @@ jobs:
 
       - name: Set check names
         id: names
+        env:
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
         run: |
-          case "${{ github.event.workflow_run.name }}" in
+          case "$WORKFLOW_NAME" in
             "VSC Plugin Build")
               echo "report_name=Plugin Test Report" >> "$GITHUB_OUTPUT"
               echo "summary_name=Plugin Test Summary" >> "$GITHUB_OUTPUT"
@@ -95,17 +97,43 @@ jobs:
           event_file: artifacts/event/event.json
           event_name: ${{ github.event.workflow_run.event }}
 
-      # github-actions-ctrf: Posts a CTRF-format test summary to the
+      # ctrf-io/github-test-reporter: Posts a CTRF-format test summary to the
       # Actions run and as a PR comment. Only compactc workflows produce
       # CTRF reports.
-      - name: Update NPM
-        run: npm install -g npm@12.0.2
+      #
+      # This run's own event is workflow_run, so it has to find the pull request
+      # itself. The event file is an artifact of the triggering run, which a
+      # fork PR controls, so it is not trusted for this. Only the pull requests
+      # GitHub itself attached to the triggering run are: comment when there is
+      # exactly one and it is at the tested commit.
+      #
+      # GitHub attaches none to a run from a fork, so fork PRs get the job
+      # summary but no CTRF comment. Matching a fork PR by head repository,
+      # branch and commit instead cannot be made reliable: several PRs can
+      # share all three.
+      - name: Find the pull request for the triggering run
+        id: pr
+        if: always() && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.name != 'VSC Plugin Build' && github.event.workflow_run.name != 'Run compatibility tests'
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_PRS: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+        run: |
+          number=$(jq -n -r --arg sha "$HEAD_SHA" --argjson run "${RUN_PRS:-[]}" '
+            [($run // [])[] | select(.head.sha == $sha) | .number] as $attached
+            | if ($attached | length) == 1 then $attached[0] else empty end')
+          if [[ "$number" =~ ^[0-9]+$ ]]; then
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+          else
+            echo "GitHub attached no single pull request at $HEAD_SHA to the triggering run; publishing the job summary only."
+          fi
 
       - name: Publish CTRF Summary
         if: always() && github.event.workflow_run.name != 'VSC Plugin Build' && github.event.workflow_run.name != 'Run compatibility tests'
-        run: |
-          npx github-actions-ctrf artifacts/ctrf/ctrf-report.json --title "E2E test results"
-          npx github-actions-ctrf pull-request artifacts/ctrf/ctrf-report.json --title "E2E test results"
+        uses: ctrf-io/github-test-reporter@7974087018bf4857cf5a9d78723e152038c3fa31 # v1.3.0
+        with:
+          report-path: artifacts/ctrf/ctrf-report.json
+          title: E2E test results
+          summary: 'true'
+          issue: ${{ steps.pr.outputs.number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_EVENT_PATH: artifacts/event/event.json

@@ -1,0 +1,4 @@
+# Deliberate test vectors (well-known keys derived from the seeds "cow" and
+# "horse"), not credentials.
+test-contracts/support/crypto/data/keyaddrtest.json:generic-api-key:4
+test-contracts/support/crypto/data/keyaddrtest.json:generic-api-key:14

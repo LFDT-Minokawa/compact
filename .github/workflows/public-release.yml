@@ -172,7 +172,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/check-docs.yml
-    secrets: inherit
     with:
       branch: ${{ needs.setup.outputs.sha }}
 
@@ -371,7 +370,10 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/generate-docs.yml
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+      MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}
     with:
       branch: ${{ needs.setup.outputs.sha }}
       docs_branch: ${{ inputs.docs_branch }}
@@ -385,7 +387,8 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/compute-release-notes.yml
-    secrets: inherit
+    secrets:
+      MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}
     with:
       release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       branch: ${{ needs.setup.outputs.sha }}
