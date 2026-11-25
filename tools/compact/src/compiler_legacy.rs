@@ -13,22 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::fetch::{Archive, Digest, SOURCE, Sha256};
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::Url;
 use semver::Version;
+use sha2::Digest as _;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
-/// Marker attached to a failure caused by the archive itself -- unreadable, or
-/// an entry that failed its checksum -- rather than by the machine unpacking
-/// it. A caller discards such an archive and fetches it again; it must not do
-/// that for a full disk or a permission error, which re-downloading cannot fix.
+/// Marker attached to a failure caused by the archive itself -- not the size
+/// or SHA-256 the release listing gives, unreadable, or an entry that failed
+/// its checksum -- rather than by the machine unpacking it. A caller discards
+/// such an archive and fetches it again; it must not do that for a full disk or
+/// a permission error, which re-downloading cannot fix.
 #[derive(Debug)]
 pub struct CorruptArchive;
 
 impl std::fmt::Display for CorruptArchive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("the downloaded archive could not be read")
+        f.write_str("the downloaded archive is damaged")
     }
 }
 
@@ -50,7 +53,7 @@ const STAGING_DIR: &str = ".incoming";
 
 pub struct CompilerAsset {
     pub path: PathBuf,
-    pub asset: octocrab::models::repos::Asset,
+    pub archive: Archive,
     pub version: Version,
 }
 
@@ -67,12 +70,75 @@ impl CompilerAsset {
     }
 
     pub fn download_url(&self) -> &Url {
-        &self.asset.browser_download_url
+        &self.archive.url
     }
 
-    pub async fn install(&self) -> Result<()> {
-        install_archive(&self.path, &self.path_zip()).await
+    /// The SHA-256 the archive must have. An archive the release listing
+    /// gives no SHA-256 for is not installed, since nothing could show that
+    /// the bytes downloaded are the ones published.
+    pub fn sha256(&self) -> Result<Sha256> {
+        match &self.archive.digest {
+            Digest::Sha256(sha256) => Ok(*sha256),
+            Digest::Missing => bail!(
+                "{SOURCE} gives no SHA-256 for `{}', so it cannot be checked; not installing it",
+                self.archive.name
+            ),
+            Digest::Unsupported(digest) => bail!(
+                "{SOURCE} gives `{digest}' as the digest of `{}', which is not a SHA-256; not installing it",
+                self.archive.name
+            ),
+        }
     }
+
+    /// Check the downloaded archive against the release listing, then unpack
+    /// it.
+    pub async fn install(&self) -> Result<()> {
+        let sha256 = self.sha256()?;
+        let zip = self.path_zip();
+        let size = self.archive.size;
+        let name = self.archive.name.clone();
+
+        // reading and hashing an archive is blocking work
+        let check = zip.clone();
+        tokio::task::spawn_blocking(move || check_archive(&check, &name, size, &sha256))
+            .await
+            .context("The task checking the archive did not finish")??;
+
+        install_archive(&self.path, &zip).await
+    }
+}
+
+/// Whether `zip' has the size and SHA-256 that the release listing gives for
+/// `name'. A difference is the archive's fault -- a truncated or stitched
+/// download, or bytes that are not the ones published -- so it is marked as
+/// such, for the caller to fetch the archive again.
+fn check_archive(zip: &Path, name: &str, size: u64, sha256: &Sha256) -> Result<()> {
+    let damaged = |detail: String| {
+        Err(anyhow!(detail))
+            .context(CorruptArchive)
+            .with_context(|| anyhow!("`{zip:?}' is not `{name}' as {SOURCE} published it"))
+    };
+
+    let actual = std::fs::metadata(zip)
+        .with_context(|| anyhow!("Failed to read `{zip:?}'"))?
+        .len();
+
+    if actual != size {
+        return damaged(format!("it is {actual} bytes; the release lists {size}"));
+    }
+
+    let mut file = std::fs::File::open(zip).with_context(|| anyhow!("Failed to open `{zip:?}'"))?;
+    let mut hasher = sha2::Sha256::new();
+    std::io::copy(&mut file, &mut hasher).with_context(|| anyhow!("Failed to read `{zip:?}'"))?;
+    let actual = Sha256(hasher.finalize().into());
+
+    if actual != *sha256 {
+        return damaged(format!(
+            "its SHA-256 is {actual}; the release lists {sha256}"
+        ));
+    }
+
+    Ok(())
 }
 
 /// Unpack `zip` into `dir`.
@@ -253,7 +319,8 @@ async fn move_into(dir: &Path, path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_archive, install_archive, is_corrupt_archive};
+    use super::{CompilerAsset, extract_archive, install_archive, is_corrupt_archive};
+    use crate::fetch::{Archive, Digest, Sha256};
 
     /// Compression method 0: the payload is stored verbatim.
     const STORED: u16 = 0;
@@ -723,6 +790,104 @@ mod tests {
             !is_corrupt_archive(&error),
             "a write failure should not be blamed on the archive: {error:#}"
         );
+    }
+
+    fn sha256_of(bytes: &[u8]) -> Sha256 {
+        use sha2::Digest as _;
+
+        Sha256(sha2::Sha256::digest(bytes).into())
+    }
+
+    /// The asset for an archive of `bytes' in `dir', as the listing would
+    /// describe it, with `digest'.
+    fn asset_in(dir: &std::path::Path, bytes: &[u8], digest: Digest) -> CompilerAsset {
+        CompilerAsset {
+            path: dir.to_path_buf(),
+            archive: Archive {
+                name: "compactc_v0.36.1_x86_64-unknown-linux-musl.zip".to_owned(),
+                url: "https://example.com/compactc_v0.36.1_x86_64-unknown-linux-musl.zip"
+                    .parse()
+                    .unwrap(),
+                size: bytes.len() as u64,
+                digest,
+            },
+            version: semver::Version::new(0, 36, 1),
+        }
+    }
+
+    #[tokio::test]
+    async fn an_archive_as_the_listing_gives_it_is_installed() {
+        let bytes = zip_of(&[file("compactc", b"compiler", 0o755)]);
+        let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+        let asset = asset_in(dir.path(), &bytes, Digest::Sha256(sha256_of(&bytes)));
+
+        asset.install().await.expect("Installation should succeed");
+
+        assert!(asset.exist());
+    }
+
+    #[tokio::test]
+    async fn an_archive_of_another_size_is_damaged_and_not_unpacked() {
+        let bytes = zip_of(&[file("compactc", b"compiler", 0o755)]);
+        let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+        let mut asset = asset_in(dir.path(), &bytes, Digest::Sha256(sha256_of(&bytes)));
+        asset.archive.size += 1;
+
+        let error = asset
+            .install()
+            .await
+            .expect_err("A size that differs must fail");
+
+        assert!(is_corrupt_archive(&error), "{error:#}");
+        assert!(
+            format!("{error:#}").contains("bytes; the release lists"),
+            "{error:#}"
+        );
+        assert!(!asset.exist(), "nothing is unpacked from a damaged archive");
+    }
+
+    #[tokio::test]
+    async fn an_archive_with_another_sha256_is_damaged_and_not_unpacked() {
+        let bytes = zip_of(&[file("compactc", b"compiler", 0o755)]);
+        let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+        let asset = asset_in(
+            dir.path(),
+            &bytes,
+            Digest::Sha256(sha256_of(b"other bytes")),
+        );
+
+        let error = asset
+            .install()
+            .await
+            .expect_err("A SHA-256 that differs must fail");
+
+        assert!(is_corrupt_archive(&error), "{error:#}");
+        assert!(format!("{error:#}").contains("its SHA-256 is"), "{error:#}");
+        assert!(!asset.exist(), "nothing is unpacked from a damaged archive");
+    }
+
+    #[tokio::test]
+    async fn an_archive_without_a_sha256_is_not_installed() {
+        let bytes = zip_of(&[file("compactc", b"compiler", 0o755)]);
+
+        for digest in [Digest::Missing, Digest::Unsupported("sha512:00".to_owned())] {
+            let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+            let asset = asset_in(dir.path(), &bytes, digest);
+
+            let error = asset.install().await.expect_err("No SHA-256, no install");
+
+            assert!(
+                !is_corrupt_archive(&error),
+                "fetching it again would not help: {error:#}"
+            );
+            assert!(
+                error
+                    .to_string()
+                    .contains("compactc_v0.36.1_x86_64-unknown-linux-musl.zip"),
+                "{error}"
+            );
+            assert!(!asset.exist());
+        }
     }
 
     #[test]

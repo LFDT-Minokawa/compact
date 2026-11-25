@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use clap::Parser;
+use compact::CommandLineArguments;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -30,11 +32,46 @@ pub const LATEST_COMPACTC_VERSION: &str = "0.36.1";
 #[allow(dead_code)]
 pub const PREVIOUS_COMPACTC_VERSION: &str = "0.36.0";
 
+/// The oldest release `compact update' offers: every release from it on has
+/// all four platforms, archives named alike, and the same packaging.
 #[allow(dead_code)]
-pub const OLDEST_COMPACTC_VERSION: &str = "0.22.0";
+pub const OLDEST_COMPACTC_VERSION: &str = "0.29.0";
 
+/// A release between the oldest and the previous one.
 #[allow(dead_code)]
-pub const VERSION_WITH_NO_FORMAT: &str = "0.24.0";
+pub const OTHER_COMPACTC_VERSION: &str = "0.30.0";
+
+/// A version no release offers, for a compiler made on disk by
+/// `make_compiler_without_formatter'.
+#[allow(dead_code)]
+pub const VERSION_ON_DISK_ONLY: &str = "0.24.0";
+
+/// A release candidate, for the tests that install one by name.
+#[allow(dead_code)]
+pub const CANDIDATE_COMPACTC_VERSION: &str = "0.35.0-rc.1";
+
+/// Make a compiler of `version' in the compact directory `directory' with
+/// nothing beside `compactc': no `format-compact', no `fixup-compact', as the
+/// releases before 0.25.0 shipped. Those are no longer offered, so a test that
+/// needs such a compiler makes one, and `compact update <version>' finds it
+/// installed. Running it prints its version.
+#[allow(dead_code)]
+pub fn make_compiler_without_formatter(directory: &Path, version: &str) {
+    let dir = directory.join("versions").join(version).join(get_version());
+    fs::create_dir_all(&dir).expect("Failed to create the compiler's directory");
+
+    let compactc = dir.join("compactc");
+    fs::write(&compactc, format!("#!/bin/sh\necho {version}\n"))
+        .expect("Failed to write the compiler");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(&compactc, fs::Permissions::from_mode(0o755))
+            .expect("Failed to make the compiler executable");
+    }
+}
 
 #[allow(dead_code)]
 pub fn get_version() -> &'static str {
@@ -61,10 +98,6 @@ pub fn load_and_replace<P: AsRef<Path>>(path: P, replacements: &[(&str, &str)]) 
     result
 }
 
-/// Clap's exit code for an argument-parsing failure.
-#[allow(dead_code)]
-const USAGE_ERROR: i32 = 2;
-
 /// Fail loudly rather than let a test operate on the developer's real
 /// `~/.compact`.
 ///
@@ -73,31 +106,50 @@ const USAGE_ERROR: i32 = 2;
 /// their compilers -- the tests were named `*_nothing_installed' because
 /// whoever wrote them had nothing installed.
 ///
-/// An invocation is exempt only when it cannot reach a command handler: a
-/// `--help'/`--version' query, which clap answers and exits, or one the test
-/// expects clap to reject outright (`USAGE_ERROR'). Everything else has to name
-/// a directory.
+/// An invocation is exempt only when it cannot reach a command handler: when
+/// clap answers it (`--help', `--version', the `help' subcommand) or rejects
+/// it, and exits. The CLI's own parser decides, not a list of flags: `compile'
+/// hands `--help' and `--version' to the installed compiler (#649), so a list
+/// of them let `compact compile --help' read the caller's installation, and the
+/// tests expecting no compiler to be installed failed on any machine with one.
+///
+/// Everything else has to name a directory: `--directory', or
+/// `COMPACT_DIRECTORY' or `HOME' -- the default directory is under it -- in
+/// the command's environment. A `COMPACT_DIRECTORY' in the caller's own
+/// environment is never passed on (`without_callers_directory'), since it
+/// would override that `HOME'.
 #[allow(dead_code)]
-fn assert_directory_is_isolated(
-    args: &[&str],
-    env: Option<&HashMap<String, String>>,
-    expected_exit_code: i32,
-) {
-    // `help' is clap's built-in subcommand, answered and exited like the flags.
-    const HELP_OR_VERSION: [&str; 5] = ["--help", "-h", "--version", "-V", "help"];
+fn assert_directory_is_isolated(args: &[&str], env: Option<&HashMap<String, String>>) {
+    let reaches_a_handler = CommandLineArguments::try_parse_from(
+        std::iter::once("compact").chain(args.iter().copied()),
+    )
+    .is_ok();
 
-    if expected_exit_code == USAGE_ERROR || args.iter().any(|arg| HELP_OR_VERSION.contains(arg)) {
+    if !reaches_a_handler {
         return;
     }
 
     assert!(
         args.contains(&"--directory")
-            || env.is_some_and(|env| env.contains_key("COMPACT_DIRECTORY")),
-        "`compact {}' was invoked with neither --directory nor COMPACT_DIRECTORY. \
-         It would act on the real ~/.compact and can delete the caller's installed \
-         compilers. Pass --directory with a tempfile::tempdir() path.",
+            || env.is_some_and(|env| {
+                env.contains_key("COMPACT_DIRECTORY") || env.contains_key("HOME")
+            }),
+        "`compact {}' was invoked with no --directory, and with neither COMPACT_DIRECTORY \
+         nor HOME in its environment. It would act on the real ~/.compact and can delete \
+         the caller's installed compilers. Pass --directory with a tempfile::tempdir() path.",
         args.join(" ")
     );
+}
+
+/// A command for the CLI that does not inherit the caller's
+/// `COMPACT_DIRECTORY': a test names its directory itself, and one exported by
+/// whoever runs the suite would otherwise override the `HOME' a test isolates
+/// a command with. A test may still set `COMPACT_DIRECTORY' for the command.
+#[allow(dead_code)]
+fn without_callers_directory(binary: &str) -> Command {
+    let mut cmd = Command::new(binary);
+    cmd.env_remove("COMPACT_DIRECTORY");
+    cmd
 }
 
 // probably need to rework it one day - normal assert
@@ -110,11 +162,11 @@ pub fn assert_command_output(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
-    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+    assert_directory_is_isolated(args, env.as_ref());
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
-    let mut cmd = Command::new(binary);
+    let mut cmd = without_callers_directory(binary);
 
     // Clap wraps help to the terminal width. Under test there is no terminal,
     // so it falls back to 100 columns, which makes the expected output depend
@@ -159,11 +211,11 @@ pub fn assert_command_output_sorted(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
-    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+    assert_directory_is_isolated(args, env.as_ref());
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
-    let mut cmd = Command::new(binary);
+    let mut cmd = without_callers_directory(binary);
 
     // Clap wraps help to the terminal width. Under test there is no terminal,
     // so it falls back to 100 columns, which makes the expected output depend
@@ -232,6 +284,32 @@ pub fn run_command(
         &expected_stdout,
         &expected_stderr,
         exit_code,
+    );
+}
+
+/// Run `compact' and check that its standard output holds `expected' as one of
+/// its lines, for listings that grow with every release.
+#[allow(dead_code)]
+pub fn run_command_listing(args: &[&str], expected: &str) {
+    assert_directory_is_isolated(args, None);
+
+    let output = without_callers_directory("../../target/debug/compact")
+        .env("COLUMNS", "10000")
+        .env("RUST_BACKTRACE", "0")
+        .args(args)
+        .output()
+        .expect("Failed to execute command");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    dbg!(args.join(" "));
+    dbg!(&stdout);
+    dbg!(String::from_utf8_lossy(&output.stderr));
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        stdout.lines().any(|line| line.trim_end() == expected),
+        "no line of the output is `{expected}'"
     );
 }
 

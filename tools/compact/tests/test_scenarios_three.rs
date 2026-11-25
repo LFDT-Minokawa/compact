@@ -14,8 +14,8 @@
 // limitations under the License.
 
 use crate::common::{
-    LATEST_COMPACTC_VERSION, VERSION_WITH_NO_FORMAT, assert_files_equal, copy_file_to_dir,
-    get_version, run_command,
+    LATEST_COMPACTC_VERSION, VERSION_ON_DISK_ONLY, assert_files_equal, copy_file_to_dir,
+    get_version, make_compiler_without_formatter, run_command,
 };
 
 mod common;
@@ -25,18 +25,20 @@ fn test_sc19_update_to_no_formatter_compactc_format() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
 
+    make_compiler_without_formatter(temp_path, VERSION_ON_DISK_ONLY);
+
     run_command(
         &[
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            VERSION_WITH_NO_FORMAT,
+            VERSION_ON_DISK_ONLY,
         ],
         None,
-        Some("./output/update/std_update_other.txt"),
+        Some("./output/update/std_already_installed.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", VERSION_ON_DISK_ONLY),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,

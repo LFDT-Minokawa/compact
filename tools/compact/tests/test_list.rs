@@ -176,3 +176,60 @@ fn test_compact_list_installed_dangling_default() {
         Some(1),
     );
 }
+
+/// A release candidate is never listed as though it were a release: an
+/// installed one says what it is, and the arrow still marks it when it is the
+/// default.
+#[test]
+fn test_compact_list_installed_marks_a_release_candidate() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+
+    for version in ["0.35.0", "0.36.0-rc.0"] {
+        let installed = temp_path.join("versions").join(version).join(get_version());
+        fs::create_dir_all(&installed).unwrap();
+        fs::write(installed.join("compactc"), "").unwrap();
+    }
+
+    fs::create_dir_all(temp_path.join("bin")).unwrap();
+    std::os::unix::fs::symlink(
+        temp_path
+            .join("versions")
+            .join("0.36.0-rc.0")
+            .join(get_version())
+            .join("compactc"),
+        temp_path.join("bin").join("compactc"),
+    )
+    .unwrap();
+
+    run_command(
+        &["--directory", &directory, "list", "--installed"],
+        None,
+        Some("./output/list/std_list_installed_candidate.txt"),
+        None,
+        &[],
+        None,
+    );
+}
+
+/// `--pre' adds release candidates to the versions available, which
+/// `--installed' does not list, so asking for both is a usage error rather
+/// than a flag quietly ignored.
+#[test]
+fn test_compact_list_installed_with_pre_is_refused() {
+    run_command(
+        &[
+            "--directory",
+            &format!("{}", tempfile::tempdir().unwrap().path().display()),
+            "list",
+            "--installed",
+            "--pre",
+        ],
+        None,
+        None,
+        Some("./output/list/err_installed_with_pre.txt"),
+        &[],
+        Some(2),
+    );
+}

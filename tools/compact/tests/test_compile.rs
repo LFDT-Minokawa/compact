@@ -14,7 +14,7 @@
 // limitations under the License.
 
 use crate::common::{LATEST_COMPACTC_VERSION, get_version, run_command};
-use std::env;
+use std::collections::HashMap;
 
 mod common;
 
@@ -39,15 +39,19 @@ fn test_compact_compile_no_param() {
 
 #[test]
 fn test_compact_compile_no_compiler_installed_default_directory() {
+    // The default directory is the one under `HOME', so an empty home stands
+    // in for the caller's, whose installation is never read.
+    let home_dir = tempfile::tempdir().unwrap();
+    let home = home_dir.path().to_str().unwrap();
     let compiler = "+0.21.0";
 
     run_command(
         &["compile", compiler, "--version"],
-        None,
+        Some(HashMap::from([("HOME".to_owned(), home.to_owned())])),
         None,
         Some("./output/compile/err_invalid_compiler.txt"),
         &[
-            ("[USER_DIR]", env::home_dir().unwrap().to_str().unwrap()),
+            ("[USER_DIR]", home),
             ("[COMPILER]", compiler.strip_prefix("+").unwrap()),
             ("[SYSTEM_VERSION]", get_version()),
         ],

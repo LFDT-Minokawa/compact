@@ -16,6 +16,9 @@ Options:
           [env: COMPACT_DIRECTORY=]
           [default: [USER_DIR]/.compact]
 
+      --pre
+          Also list release candidates
+
   -h, --help
           Print help (see a summary with '-h')
 
