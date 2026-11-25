@@ -26151,6 +26151,427 @@ groups than for single tests.
                 (tuple 9 20))))))
     )
 
+  ; A tuple and a vector of the same length, with the tuple first: again a tuple.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<2, Uint<4>>): [Uint<8>, Uint<8>] {"
+      "  return b ? [9, 20] : v;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%v.2 (tvector 2 (tunsigned 15))])
+             (ttuple (tunsigned 255) (tunsigned 255))
+          (safe-cast (ttuple (tunsigned 255) (tunsigned 255))
+                     (ttuple (tunsigned 15) (tunsigned 20))
+            (if %b.1
+                (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                           (ttuple (tunsigned 9) (tunsigned 20))
+                  (tuple 9 20))
+                (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                           (tvector 2 (tunsigned 15))
+                  %v.2))))))
+    )
+
+  ; Likewise for == on a tuple and a vector.
+  (test
+    '(
+      "export circuit foo(v: Vector<2, Uint<4>>): Boolean {"
+      "  return [9, 20] == v;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 2 (tunsigned 15))])
+             (tboolean)
+          (== (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                         (ttuple (tunsigned 9) (tunsigned 20))
+                (tuple 9 20))
+              (safe-cast (ttuple (tunsigned 15) (tunsigned 20))
+                         (tvector 2 (tunsigned 15))
+                %v.1)))))
+    )
+
+  ; No upper bound: a tuple and a vector of different lengths.
+  (test
+    '(
+      "export circuit foo(v: Vector<3, Uint<4>>): Boolean {"
+      "  return [9, 20] == v;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "incompatible types ~a and ~a for equality operator" ("[Uint<0..10>, Uint<0..21>]" "Vector<3, Uint<4>>")))
+    )
+
+  ; No upper bound: the vector's element type has none with one of the tuple's.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<2, Uint<4>>): [Uint<8>, Uint<8>] {"
+      "  return b ? [9, true] : v;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "mismatch between type ~a and type ~a of condition branches" ("[Uint<0..10>, Boolean]" "Vector<2, Uint<4>>")))
+    )
+
+  ; Zero-length vectors have the same type whatever their element types.
+  (test
+    '(
+      "export circuit foo(b: Boolean, v: Vector<0, Field>, w: Vector<0, Boolean>): Vector<0, Uint<8>> {"
+      "  return b ? v : w;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%v.2 (tvector 0 (tfield (field-native)))]
+                         [%w.3 (tvector 0 (tboolean))])
+             (tvector 0 (tunsigned 255))
+          (if %b.1 %v.2 %w.3))))
+    )
+
+  ; So a tuple of them has a vector type in any order.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>, w: Vector<0, Boolean>): Uint<8> {"
+      "  return fold((a: Uint<8>, x: []): Uint<8> => a, 0 as Uint<8>, [v, [], w]);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))]
+                         [%w.2 (tvector 0 (tboolean))])
+             (tunsigned 255)
+          (fold
+            (circuit ([%a.3 (tunsigned 255)] [%x.4 (ttuple)])
+                 (tunsigned 255)
+              %a.3)
+            (safe-cast (tunsigned 255) (tunsigned 0) 0)
+            (tuple %v.1 (tuple) %w.2)))))
+    )
+
+  ; The element type of a zero-length vector is not held against the declared type
+  ; of the parameter that would receive its elements.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>): Vector<0, Boolean> {"
+      "  return map((x: Boolean) => !x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))])
+             (tvector 0 (tboolean))
+          (map
+            (circuit ([%x.2 (tboolean)]) (tboolean) (if %x.2 #f #t))
+            %v.1))))
+    )
+
+  ; Likewise for fold, and for a zero-length Bytes value.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>, b: Bytes<0>): Boolean {"
+      "  return fold((a: Boolean, x: Boolean, y: Boolean) => a && x && y, true, v, b);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))]
+                         [%b.2 (tbytes 0)])
+             (tboolean)
+          (fold
+            (circuit ([%a.3 (tboolean)]
+                      [%x.4 (tboolean)]
+                      [%y.5 (tboolean)])
+                 (tboolean)
+              (if (if %a.3 %x.4 #f) %y.5 #f))
+            #t
+            %v.1
+            %b.2))))
+    )
+
+  ; A parameter with no declared type still gets the element type, so the body is
+  ; checked as it is for longer vectors.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>): Vector<0, Field> {"
+      "  return map((x) => x + 1, v);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))])
+             (tvector 0 (tfield (field-native)))
+          (map
+            (circuit ([%x.2 (tfield (field-native))])
+                 (tfield (field-native))
+              (+ (tfield (field-native))
+                 %x.2
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+            %v.1))))
+    )
+
+  ; Nor does it constrain the element type of a tuple/vector construction.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>, b: Bytes<0>, w: Vector<2, Boolean>): Vector<3, Boolean> {"
+      "  return [...v, ...b, ...w, true];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))]
+                         [%b.2 (tbytes 0)]
+                         [%w.3 (tvector 2 (tboolean))])
+             (tvector 3 (tboolean))
+          (vector
+            (spread 0 %v.1)
+            (spread 0 (bytes->vector 0 %b.2))
+            (spread 2 %w.3)
+            #t))))
+    )
+
+  ; When every element is a spread of a zero-length vector, the result has no element type.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>, w: Vector<0, Boolean>): Vector<0, Uint<8>> {"
+      "  return [...v, ...w];"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))]
+                         [%w.2 (tvector 0 (tboolean))])
+             (tvector 0 (tunsigned 255))
+          (vector (spread 0 %v.1) (spread 0 %w.2)))))
+    )
+
+  ; A zero-length vector can be cast to Bytes<0> whatever its element type, and back.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>): Vector<0, Boolean> {"
+      "  return (v as Bytes<0>) as Vector<0, Boolean>;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))])
+             (tvector 0 (tboolean))
+          (bytes->vector 0 (vector->bytes 0 %v.1)))))
+    )
+
+  ; The element type still matters for a vector that has elements.
+  (test
+    '(
+      "export circuit foo(v: Vector<2, Field>): Vector<2, Boolean> {"
+      "  return map((x: Boolean) => !x, v);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Field") ("Boolean"))))
+    )
+
+  ; Contract types with the same name: the contract type declaring the circuits that
+  ; both declare, although neither is a subtype of the other.
+  (test
+    '(
+      "module M1 { export contract C { circuit a(): Field; circuit b(): []; circuit c(): []; } }"
+      "module M2 { export contract C { circuit a(): Field; circuit b(): []; } }"
+      "module M3 { export contract C { circuit a(): Field; circuit c(): []; } }"
+      "module M4 { export contract C { circuit a(): Field; } }"
+      "import M1 prefix m1_;"
+      "import M2 prefix m2_;"
+      "import M3 prefix m3_;"
+      "import M4 prefix m4_;"
+      "export circuit foo(b: Boolean, y: m2_C, z: m3_C): m4_C {"
+      "  return b ? y : z;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%b.2 (tboolean)]
+                         [%y.3 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (b #f () (ttuple)))]
+                         [%z.4 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (c #f () (ttuple)))])
+             (tcontract C (a #f () (tfield (field-native))))
+          (if %b.2
+              (safe-cast (tcontract C (a #f () (tfield (field-native))))
+                         (tcontract C
+                           (a #f () (tfield (field-native)))
+                           (b #f () (ttuple)))
+                %y.3)
+              (safe-cast (tcontract C (a #f () (tfield (field-native))))
+                         (tcontract C
+                           (a #f () (tfield (field-native)))
+                           (c #f () (ttuple)))
+                %z.4)))))
+    )
+
+  ; Likewise for ==.
+  (test
+    '(
+      "module M1 { export contract C { circuit a(): Field; circuit b(): []; circuit c(): []; } }"
+      "module M2 { export contract C { circuit a(): Field; circuit b(): []; } }"
+      "module M3 { export contract C { circuit a(): Field; circuit c(): []; } }"
+      "module M4 { export contract C { circuit a(): Field; } }"
+      "import M1 prefix m1_;"
+      "import M2 prefix m2_;"
+      "import M3 prefix m3_;"
+      "import M4 prefix m4_;"
+      "export circuit foo(y: m2_C, z: m3_C): Boolean {"
+      "  return y == z;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%y.2 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (b #f () (ttuple)))]
+                         [%z.3 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (c #f () (ttuple)))])
+             (tboolean)
+          (== (safe-cast (tcontract C
+                           (a #f () (tfield (field-native))))
+                         (tcontract C
+                           (a #f () (tfield (field-native)))
+                           (b #f () (ttuple)))
+                %y.2)
+              (safe-cast (tcontract C (a #f () (tfield (field-native))))
+                         (tcontract C
+                           (a #f () (tfield (field-native)))
+                           (c #f () (ttuple)))
+                %z.3)))))
+    )
+
+  ; So the elements of a tuple/vector construction with a vector-typed spread have a
+  ; least upper bound whatever their order.
+  (test
+    '(
+      "module M1 { export contract C { circuit a(): Field; circuit b(): []; circuit c(): []; } }"
+      "module M2 { export contract C { circuit a(): Field; circuit b(): []; } }"
+      "module M3 { export contract C { circuit a(): Field; circuit c(): []; } }"
+      "module M4 { export contract C { circuit a(): Field; } }"
+      "import M1 prefix m1_;"
+      "import M2 prefix m2_;"
+      "import M3 prefix m3_;"
+      "import M4 prefix m4_;"
+      "export circuit foo(v: Vector<1, m2_C>, y: m4_C, z: m3_C): Vector<3, m4_C> {"
+      "  return [...v, z, y];"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 1
+                                 (tcontract C
+                                   (a #f () (tfield (field-native)))
+                                   (b #f () (ttuple))))]
+                         [%y.3 (tcontract C (a #f () (tfield (field-native))))]
+                         [%z.4 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (c #f () (ttuple)))])
+             (tvector 3 (tcontract C (a #f () (tfield (field-native)))))
+          (vector
+            (spread 1
+              (safe-cast (tvector
+                           1
+                           (tcontract C (a #f () (tfield (field-native)))))
+                         (tvector
+                           1
+                           (tcontract C
+                             (a #f () (tfield (field-native)))
+                             (b #f () (ttuple))))
+                %v.2))
+            (safe-cast (tcontract C (a #f () (tfield (field-native))))
+                       (tcontract C
+                         (a #f () (tfield (field-native)))
+                         (c #f () (ttuple)))
+              %z.4)
+            %y.3))))
+    )
+
+  ; A circuit that the two declare differently is not common to both.
+  (test
+    '(
+      "module M1 { export contract C { circuit a(): Field; circuit b(x: Field): []; } }"
+      "module M2 { export contract C { circuit a(): Boolean; circuit b(x: Boolean): []; } }"
+      "import M1 prefix m1_;"
+      "import M2 prefix m2_;"
+      "contract C { }"
+      "export circuit foo(b: Boolean, y: m1_C, z: m2_C): C {"
+      "  return b ? y : z;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%b.2 (tboolean)]
+                         [%y.3 (tcontract C
+                                 (a #f () (tfield (field-native)))
+                                 (b #f ((tfield (field-native))) (ttuple)))]
+                         [%z.4 (tcontract C
+                                 (a #f () (tboolean))
+                                 (b #f ((tboolean)) (ttuple)))])
+             (tcontract C)
+          (if %b.2
+              (safe-cast (tcontract C)
+                         (tcontract C
+                           (a #f () (tfield (field-native)))
+                           (b #f ((tfield (field-native))) (ttuple)))
+                %y.3)
+              (safe-cast (tcontract C)
+                         (tcontract C
+                           (a #f () (tboolean))
+                           (b #f ((tboolean)) (ttuple)))
+                %z.4)))))
+    )
+
+  ; Only the common circuits can be called.  The bound was written nowhere, so the
+  ; message locates it at the conditional rather than at either contract declaration.
+  (test
+    '(
+      "module M1 { export contract C { circuit a(): Field; circuit b(): []; circuit c(): []; } }"
+      "module M2 { export contract C { circuit a(): Field; circuit b(): []; } }"
+      "module M3 { export contract C { circuit a(): Field; circuit c(): []; } }"
+      "module M4 { export contract C { circuit a(): Field; } }"
+      "import M1 prefix m1_;"
+      "import M2 prefix m2_;"
+      "import M3 prefix m3_;"
+      "import M4 prefix m4_;"
+      "export circuit foo(b: Boolean, y: m2_C, z: m3_C): [] {"
+      "  return (b ? y : z).b();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 11" "contract ~s has no circuit declaration named ~s" (C b)))
+    )
+
+  ; No upper bound: contract types with different names.
+  (test
+    '(
+      "contract C { circuit a(): Field; }"
+      "contract D { circuit a(): Field; }"
+      "export circuit foo(b: Boolean, y: C, z: D): C {"
+      "  return b ? y : z;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "mismatch between type ~a and type ~a of condition branches" ("contract C<a(): Field>" "contract D<a(): Field>")))
+    )
+
   ; No upper bound: an element pair has none.
   (test
     '(
@@ -27012,6 +27433,52 @@ groups than for single tests.
 )
 
 (run-tests resolve-indices/simplify
+  ; The downstream type checkers likewise ignore the element types of zero-length
+  ; vectors in tuple/vector constructions and casts to Bytes<0>.
+  (test
+    '(
+      "export circuit foo(v: Vector<0, Field>, w: Vector<0, Boolean>, x: Vector<2, Boolean>): [Vector<3, Boolean>, Vector<0, Field>, Bytes<0>] {"
+      "  return [[...v, ...x, true], [...v, ...w], v as Bytes<0>];"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration ())
+        (circuit %foo.0 ([%v.1 (tvector 0 (tfield (field-native)))]
+                         [%w.2 (tvector 0 (tboolean))]
+                         [%x.3 (tvector 2 (tboolean))])
+             (ttuple
+               (tvector 3 (tboolean))
+               (tvector 0 (tfield (field-native)))
+               (tbytes 0))
+          (tuple
+            (vector (spread 0 %v.1) (spread 2 %x.3) #t)
+            (vector (spread 0 %v.1) (spread 0 %w.2))
+            (vector->bytes 0 %v.1)))))
+    )
+
+  ; Zero-length vectors with different element types have the same type in every
+  ; pass, so the downstream type checkers accept what infer-types accepts.
+  (test
+    '(
+      "export circuit foo(b: Boolean, c: Boolean, v: Vector<0, Field>, w: Vector<0, Boolean>): [] {"
+      "  const t = b ? (c ? v : []) : w;"
+      "  return t;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration ())
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%c.2 (tboolean)]
+                         [%v.3 (tvector 0 (tfield (field-native)))]
+                         [%w.4 (tvector 0 (tboolean))])
+             (ttuple)
+          (let* ([[%t.5 (tvector 0 (tboolean))]
+                  (if %b.1 (if %c.2 %v.3 (tuple)) %w.4)])
+            %t.5))))
+    )
+
   (test
     `(
       "import CompactStandardLibrary;"
@@ -71686,9 +72153,64 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 7" "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound" ("Uint<16>" "Boolean")))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%F.1
+             (0)
+             (__compact_Cell
+               (ty ((abytes 4) (abytes 4) (abytes 4) (abytes 4) (abytes 4)
+                     (abytes 4))
+                   ((tunsigned 4294967295) (tunsigned 4294967295) (tunsigned 4294967295)
+                     (tunsigned 4294967295) (tunsigned 4294967295)
+                     (tunsigned 4294967295)))))))
+        (circuit %foo.2 ((argument
+                           (%iv.3 %iv.4 %iv.5 %iv.6 %iv.7 %iv.8 %iv.9 %iv.10
+                            %iv.11 %iv.12 %iv.13 %iv.14 %iv.15 %iv.16 %iv.17
+                            %iv.18 %iv.19 %iv.20 %iv.21 %iv.22 %iv.23 %iv.24
+                            %iv.25 %iv.26 %iv.27 %iv.28 %iv.29 %iv.30 %iv.31
+                            %iv.32 %iv.33 %iv.34)
+                           (ty ((abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2)
+                                (abytes 2) (abytes 2) (abytes 2) (abytes 2))
+                               ((tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)
+                                (tunsigned 65535) (tunsigned 65535)))))
+             (ty ((abytes 4) (abytes 4) (abytes 4) (abytes 4) (abytes 4)
+                   (abytes 4))
+                 ((tunsigned 4294967295) (tunsigned 4294967295) (tunsigned 4294967295)
+                   (tunsigned 4294967295) (tunsigned 4294967295)
+                   (tunsigned 4294967295)))
+          (= 1 ()
+             (public-ledger %F.1 (0) write
+               %iv.3
+               %iv.7
+               %iv.8
+               %iv.18
+               %iv.19
+               %iv.34))
+          (= 1 (%t.35 %t.36 %t.37 %t.38 %t.39 %t.40)
+             (public-ledger %F.1 (0) read))
+          (%t.35 %t.36 %t.37 %t.38 %t.39 %t.40))))
     )
 
   (test
@@ -73000,9 +73522,19 @@ groups than for single tests.
       " return F;"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>") ("Uint<7>"))))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%F.1 (0) (__compact_Cell (ty () ())))))
+        (circuit %foo.2 ((argument
+                           (%bv.3)
+                           (ty ((abytes 10))
+                               ((tunsigned 1208925819614629174706175)))))
+             (ty () ())
+          (= 1 () (public-ledger %F.1 (0) write))
+          (= 1 () (public-ledger %F.1 (0) read))
+          ())))
     )
 
   (test
@@ -73104,9 +73636,16 @@ groups than for single tests.
       " return F;"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>") ("Uint<7>"))))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%F.1 (0) (__compact_Cell (ty () ())))))
+        (circuit %foo.2 ()
+             (ty () ())
+          (= 1 () (public-ledger %F.1 (0) write))
+          (= 1 () (public-ledger %F.1 (0) read))
+          ())))
     )
 
   (test
@@ -73266,7 +73805,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<8>") ("Uint<7>" "Uint<8>"))))
+      irritants: '("testfile.compact line 3 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Vector<10, Uint<16>>" "Vector<0, Uint<0..510>>")))
     )
 
   (test
@@ -73279,7 +73818,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<8>") ("Uint<8>" "Uint<7>"))))
+      irritants: '("testfile.compact line 3 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Vector<10, Uint<16>>" "Vector<0, Uint<0..638>>")))
     )
 
   (test
@@ -73449,7 +73988,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<8>") ("Uint<7>" "Uint<8>"))))
+      irritants: '("testfile.compact line 4 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Vector<10, Uint<16>>" "Vector<0, Uint<0..510>>")))
     )
 
   (test
@@ -73463,7 +74002,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<8>") ("Uint<8>" "Uint<7>"))))
+      irritants: '("testfile.compact line 4 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Vector<10, Uint<16>>" "Vector<0, Uint<0..638>>")))
     )
 
   (test

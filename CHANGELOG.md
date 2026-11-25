@@ -12,9 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The compiler's rule for computing the least upper bound of a set of types
   was too restrictive, requiring at least one of the types to be a supertype
   of the others.
-  Specifically, this is incorrect for sets of tuple types, which also have a
-  least upper bound if each set of corresponding element types has a least
-  upper bound.
+  Specifically, this is incorrect for sets of tuple and vector types and for
+  sets of contract types:
+  A set of tuple and vector types more generally has a least upper bound if each
+  set of corresponding element types has a least upper bound.
+  A set of contract types has a least upper whenever they have the same name:
+  the contract type of the shared name with the set of circuits common to both.
   For example, neither `[Uint<8>, Uint<16>]` nor `[Uint<32>, Uint<8>]` is a
   subtype of the other, but the set of the two types has the least upper bound
   `[Uint<32>, Uint<16>]`.
@@ -27,12 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was previously rejected even though both `[5, 9]` and `[17, 4]` have types that
   are subtypes of `[Uint<8>, Uint<8>]`.
   Another effect is that uses of tuples as vector values in `for`, `map`, `fold`,
-  and `spreads` forms sometimes resulted in a static type error even when the
+  and `spread` forms sometimes resulted in a static type error even when the
   types of the tuple elements have a least upper bound.
   For example, `map` over `[[5, 9], [17, 4]]` was rejected but is now accepted.
 - The rules for subtyping and the computation of least upper bounds for contract
-  types were incorrect as described in the Compact reference and have now been
-  corrected.
+  types given in the Compact reference were incorrect and have now been corrected.
 
 ### Changed
 
@@ -43,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upper bounds for tuples described above.
   For example, the type of `b ? [5, 9] : [17, 4]`, where `b` has type `Boolean`,
   is `[Uint<0..18>, Uint<0..10>]`, whereas it previously failed to type-check.
-- The equality operators `==` and `!=` likewise now type-checks more generally
+- The equality operators `==` and `!=` likewise now type-check more generally
   when the types of the operands have a least upper bound using the corrected
   interpretation of least upper bounds for tuples above.
   For example, `[5, 9] == [17, 4]` now type-checks.

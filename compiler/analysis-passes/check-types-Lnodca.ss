@@ -182,7 +182,8 @@
            (T type2
               [(tvector ,src2 ,len2 ,type2)
                (and (= len1 len2)
-                    (same-type? type1 type2))]
+                    ; a zero-length vector has no elements, so its element type is immaterial
+                    (or (= len1 0) (same-type? type1 type2)))]
               [(ttuple ,src2 ,type2* ...)
                (and (= len1 (length type2*))
                     (andmap (lambda (type2) (same-type? type1 type2)) type2*))])]
@@ -735,15 +736,15 @@
                                                 (let ([type (Care expr)])
                                                   (nanopass-case (Lnodca Type) (de-alias type)
                                                     [(ttuple ,src ,type* ...) (values (length type*) type*)]
-                                                    [(tvector ,src ,len ,type) (values len (list type))]
-                                                    [(tbytes ,src ,len) (values len (list `(tunsigned ,src 255)))]
+                                                    ; a zero-length vector has no elements, so its element type does not constrain the result
+                                                    [(tvector ,src ,len ,type) (values len (if (= len 0) '() (list type)))]
+                                                    [(tbytes ,src ,len) (values len (if (= len 0) '() (list `(tunsigned ,src 255))))]
                                                     [else (source-errorf src "expected type of vector spread to be a ttuple, ttvector, or tbytes type but received ~a"
                                                                          (format-type type))]))]))
                                            tuple-arg*)])
          (let ([type* (apply append type**)])
            (let ([type (if (null? type*)
-                           ; this case isn't exercised at present since infer-type creates vector forms only when at least
-                           ; one element is a vector, and every vector type has an element type (possible tunknown)
+                           ; every element is a zero-length vector
                            `(tunknown)
                            (let ([type (car type*)])
                              (for-each (lambda (type^)
@@ -814,7 +815,7 @@
          [else #f]))
      (unless (nanopass-case (Lnodca Type) (de-alias type)
                [(ttuple ,src1 ,type* ...) (and (= (length type*) len) (andmap u8-subtype? type*))]
-               [(tvector ,src1 ,len1 ,type) (and (= len1 len) (u8-subtype? type))]
+               [(tvector ,src1 ,len1 ,type) (and (= len1 len) (or (= len1 0) (u8-subtype? type)))]
                [else #f])
        (source-errorf src "expected Vector<~d, Uint<8>> for vector->bytes call, received ~a"
                       len

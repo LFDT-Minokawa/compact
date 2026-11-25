@@ -204,7 +204,8 @@
                  (T type2
                     [(tvector ,src2 ,len2 ,type2)
                      (and (= len1 len2)
-                          (sametype? type1 type2))]
+                          ; a zero-length vector has no elements, so its element type is immaterial
+                          (or (= len1 0) (sametype? type1 type2)))]
                     [(ttuple ,src2 ,type2* ...)
                      (and (= len1 (length type2*))
                           (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
@@ -273,7 +274,8 @@
                  (T type2
                     [(tvector ,src2 ,len2 ,type2)
                      (and (= len1 len2)
-                          (subtype? type1 type2))]
+                          ; a zero-length vector has no elements, so its element type is immaterial
+                          (or (= len1 0) (subtype? type1 type2)))]
                     [(ttuple ,src2 ,type2* ...)
                      (and (= len1 (length type2*))
                           (andmap (lambda (type2) (subtype? type1 type2)) type2*))])]
@@ -324,8 +326,9 @@
                           (andmap same-adt-arg? adt-arg1* adt-arg2*))])])
               (T type2
                  [(tundeclared) #t])))))
-    ;; the least upper bound of type1 and type2 if one exists, otherwise #f
-    (define (least-upper-bound type1 type2)
+    ;; the least upper bound of type1 and type2 if one exists, otherwise #f; a bound that is neither
+    ;; type1 nor type2 was written at neither's location, so it gets src, that of the enclosing form
+    (define (least-upper-bound src type1 type2)
       (cond
         [(subtype? type1 type2) type2]
         [(subtype? type2 type1) type1]
@@ -337,35 +340,62 @@
                 (nanopass-case (Ltypes Type) t2
                   [(tvector ,src2 ,len2 ,type2)
                    (and (fx= len1 len2)
-                        (let ([type (least-upper-bound type1 type2)])
-                          (and type `(tvector ,src1 ,len1 ,type))))]
+                        (let ([type (least-upper-bound src type1 type2)])
+                          (and type `(tvector ,src ,len1 ,type))))]
                   ; a tuple is a subtype of every vector that bounds both, so the bound is a tuple
                   [(ttuple ,src2 ,type2* ...)
                    ; suboptimal on failure, acceptable because failure is always an error
                    (and (fx= len1 (length type2*))
-                        (let ([type* (map (lambda (type2) (least-upper-bound type1 type2)) type2*)])
-                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                        (let ([type* (map (lambda (type2) (least-upper-bound src type1 type2)) type2*)])
+                          (and (andmap values type*) `(ttuple ,src ,type* ...))))]
                   [else #f])]
                [(ttuple ,src1 ,type1* ...)
                 (nanopass-case (Ltypes Type) t2
                   [(tvector ,src2 ,len2 ,type2)
                    ; suboptimal on failure, acceptable because failure is always an error
                    (and (fx= len2 (length type1*))
-                        (let ([type* (map (lambda (type1) (least-upper-bound type1 type2)) type1*)])
-                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                        (let ([type* (map (lambda (type1) (least-upper-bound src type1 type2)) type1*)])
+                          (and (andmap values type*) `(ttuple ,src ,type* ...))))]
                   [(ttuple ,src2 ,type2* ...)
                    ; suboptimal on failure, acceptable because failure is always an error
                    (and (fx= (length type1*) (length type2*))
-                        (let ([type* (map least-upper-bound type1* type2*)])
-                          (and (andmap values type*) `(ttuple ,src1 ,type* ...))))]
+                        (let ([type* (map (lambda (type1 type2) (least-upper-bound src type1 type2)) type1* type2*)])
+                          (and (andmap values type*) `(ttuple ,src ,type* ...))))]
+                  [else #f])]
+               ; every contract type that bounds both declares only circuits that both declare, and
+               ; declare identically, so the bound is the contract type declaring all of those
+               [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                (nanopass-case (Ltypes Type) t2
+                  [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                   (and (eq? contract-name1 contract-name2)
+                        (let loop ([elt-name1* elt-name1*] [pure-dcl1* pure-dcl1*] [type1** type1**] [type1* type1*]
+                                   [elt-name* '()] [pure-dcl* '()] [type** '()] [type* '()])
+                          (if (null? elt-name1*)
+                              (let ([elt-name* (reverse elt-name*)] [pure-dcl* (reverse pure-dcl*)]
+                                    [type** (reverse type**)] [type* (reverse type*)])
+                                `(tcontract ,src ,contract-name1 (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...))
+                              (let ([elt-name1 (car elt-name1*)] [pure-dcl1 (car pure-dcl1*)]
+                                    [arg-type1* (car type1**)] [return-type1 (car type1*)])
+                                (if (ormap (lambda (elt-name2 pure-dcl2 arg-type2* return-type2)
+                                             (and (eq? elt-name1 elt-name2)
+                                                  (eq? pure-dcl1 pure-dcl2)
+                                                  (fx= (length arg-type1*) (length arg-type2*))
+                                                  (andmap sametype? arg-type1* arg-type2*)
+                                                  (sametype? return-type1 return-type2)))
+                                           elt-name2* pure-dcl2* type2** type2*)
+                                    (loop (cdr elt-name1*) (cdr pure-dcl1*) (cdr type1**) (cdr type1*)
+                                          (cons elt-name1 elt-name*) (cons pure-dcl1 pure-dcl*)
+                                          (cons arg-type1* type**) (cons return-type1 type*))
+                                    (loop (cdr elt-name1*) (cdr pure-dcl1*) (cdr type1**) (cdr type1*)
+                                          elt-name* pure-dcl* type** type*))))))]
                   [else #f])]
                [else #f])))]))
     ;; tunknown for the empty list, otherwise the least upper bound of type* if one exists, otherwise #f
-    (define (least-upper-bound* type*)
+    (define (least-upper-bound* src type*)
       (let loop ([type* type*] [bound (with-output-language (Ltypes Type) `(tunknown))])
         (if (null? type*)
             bound
-            (let ([bound (least-upper-bound (car type*) bound)])
+            (let ([bound (least-upper-bound src (car type*) bound)])
               (and bound (loop (cdr type*) bound))))))
     (define (public-adt? type)
       (nanopass-case (Ltypes Type) (de-alias type #t)
@@ -432,12 +462,14 @@
         (lambda (type)
           (T type
             [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]))))
-    (define (do-call src fold? fun actual-type* build-call)
+    ;; compat-type* is actual-type* except where the type of an argument should not be held against
+    ;; the declared type of the corresponding parameter
+    (define (do-call src fold? fun actual-type* compat-type* build-call)
       (define compatible-args?
         (let ([nactual (length actual-type*)])
           (lambda (arg-type*)
             (and (= (length arg-type*) nactual)
-                 (andmap subtype? actual-type* arg-type*)))))
+                 (andmap subtype? compat-type* arg-type*)))))
       (nanopass-case (Lexpanded Function) fun
         [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
                (,generic-value* ...)
@@ -652,7 +684,7 @@
         [(ttuple ,src^ ,type^* ...)
          (values
            (length type^*)
-           (or (least-upper-bound* type^*)
+           (or (least-upper-bound* src type^*)
                (source-errorf src "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types have no least upper bound"
                               what
                               (format-type type))))]
@@ -661,6 +693,11 @@
         [else (source-errorf src "~a should be a vector, tuple, or Bytes but has type ~a"
                              what
                              (format-type type))]))
+    ;; a zero-length vector has no elements, so its element type is compatible with any parameter type
+    (define (element-compat-types len elt-type*)
+      (if (fx= len 0)
+          (map (lambda (elt-type) (with-output-language (Ltypes Type) `(tunknown))) elt-type*)
+          elt-type*))
     (define (vector-element-types src who type+ argno)
       (let loop ([type+ type+] [n #f] [argno argno] [rtype* '()])
         (let ([type (car type+)] [type* (cdr type+)])
@@ -822,7 +859,7 @@
       (let*-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
         (verify-non-adt-type! src type1 "equality-operator left operand")
         (verify-non-adt-type! src type2 "equality-operator right operand")
-        (let ([type (least-upper-bound type1 type2)])
+        (let ([type (least-upper-bound src type1 type2)])
           (unless type
             (source-errorf src "incompatible types ~a and ~a for equality operator"
                            (format-type type1)
@@ -1274,7 +1311,7 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type0)))
      (let-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
-       (let ([type (or (least-upper-bound type1 type2)
+       (let ([type (or (least-upper-bound src type1 type2)
                        (source-errorf src "mismatch between type ~a and type ~a of condition branches"
                                       (format-type type1)
                                       (format-type type2)))])
@@ -1373,9 +1410,12 @@
      (define (unrelated-elt-types elt-type+)
        ;; least-upper-bound* failed, so some pair of element types has no upper bound
        (let loop ([type+ elt-type+])
+         (when (null? type+)
+           (assertf cannot-happen "no pair of element types lacks a least upper bound in ~s"
+                    (map format-type elt-type+)))
          (let ([type (car type+)])
            (cond
-             [(find (lambda (type^) (not (least-upper-bound type type^))) (cdr type+))
+             [(find (lambda (type^) (not (least-upper-bound src type type^))) (cdr type+))
               => (lambda (type^)
                    (source-errorf src "tuple/vector construction expression with vector-typed spreads has element types ~a and ~a with no least upper bound"
                                   (format-type type) (format-type type^)))]
@@ -1391,7 +1431,7 @@
          ; useful, if not critical, when spreading longer vectors: (ttuple (single Field) (spread 1000000 Boolean))
          ; would be rather large if uncompressed.
          (let ([elt-type (let ([elt-type* (apply append elt-type**)])
-                           (or (least-upper-bound* elt-type*) (unrelated-elt-types elt-type*)))])
+                           (or (least-upper-bound* src elt-type*) (unrelated-elt-types elt-type*)))])
            (define (make-vector-type len)
              (unless (len? len)
                (source-errorf src "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d"
@@ -1615,7 +1655,7 @@
     [(map ,src ,fun ,expr ,expr* ...)
      (let*-values ([(expr+ actual-type+) (maplr2 Care (cons expr expr*))]
                    [(len actual-elt-type+) (vector-element-types src 'map actual-type+ 2)])
-       (do-call src #f fun actual-elt-type+
+       (do-call src #f fun actual-elt-type+ (element-compat-types len actual-elt-type+)
          (lambda (declared-type+ return-type fun)
            (values
              `(map ,src ,len ,fun
@@ -1632,7 +1672,7 @@
      (let*-values ([(expr0 actual-type0) (Care expr0)]
                    [(expr+ actual-type+) (maplr2 Care (cons expr expr*))]
                    [(len actual-elt-type+) (vector-element-types src 'fold actual-type+ 3)])
-       (do-call src #t fun (cons actual-type0 actual-elt-type+)
+       (do-call src #t fun (cons actual-type0 actual-elt-type+) (cons actual-type0 (element-compat-types len actual-elt-type+))
          (lambda (declared-type+ return-type fun)
            (let ([declared-type0 (car declared-type+)] [declared-type+ (cdr declared-type+)])
              (let ([expr0 (maybe-safecast src declared-type0 actual-type0 expr0)])
@@ -1646,7 +1686,7 @@
                  return-type))))))]
     [(call ,src ,fun ,expr* ...)
      (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
-       (do-call src #f fun actual-type*
+       (do-call src #f fun actual-type* actual-type*
          (lambda (declared-type* return-type fun)
            (values
              `(call ,src ,fun ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
@@ -1929,7 +1969,7 @@
                      (andmap u8-subtype? type*))
                    `(vector->bytes ,src ,len1 ,expr)]
                   [(tvector ,src2 ,len2 ,type2)
-                   (guard (= len2 len1) (u8-subtype? type2))
+                   (guard (= len2 len1) (or (= len2 0) (u8-subtype? type2)))
                    `(vector->bytes ,src ,len1 ,expr)])]
               [(ttuple ,src1 ,type* ...)
                (T source-type
@@ -1942,7 +1982,7 @@
               [(tvector ,src1 ,len1 ,type)
                (T source-type
                   [(tbytes ,src2 ,len2)
-                   (guard (= len2 len1) (u8-supertype? type))
+                   (guard (= len2 len1) (or (= len1 0) (u8-supertype? type)))
                    (maybe-safecast src target-type
                      (with-output-language (Ltypes Type)
                        `(tvector ,src ,len2 (tunsigned ,src 255)))
@@ -2038,12 +2078,13 @@
     [(spread ,src ,[Care : expr type])
      (nanopass-case (Ltypes Type) (de-alias type #t)
        [(ttuple ,src ,type* ...) (values expr type 'tuple-spread (length type*) type*)]
-       [(tvector ,src ,len ,type^) (values expr type 'vector-spread len (list type^))]
+       ; a zero-length vector has no elements, so its element type does not constrain the result
+       [(tvector ,src ,len ,type^) (values expr type 'vector-spread len (if (fx= len 0) '() (list type^)))]
        [(tbytes ,src ,len)
         (let ([expr `(bytes->vector ,src ,len ,expr)])
           (let* ([type^ (with-output-language (Ltypes Type) `(tunsigned ,src 255))]
                  [type (with-output-language (Ltypes Type) `(tvector ,src ,len , type^))])
-            (values expr type 'vector-spread len (list type^))))]
+            (values expr type 'vector-spread len (if (fx= len 0) '() (list type^)))))]
        [else (source-errorf src "expected tuple/vector spread expression to have a tuple, Vector, or Bytes type but received ~a"
                             (format-type type))])])
   (Bytes-Argument : Tuple-Argument (ir) -> Tuple-Argument (nat)

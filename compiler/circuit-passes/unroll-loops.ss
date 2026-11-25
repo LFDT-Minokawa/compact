@@ -71,7 +71,8 @@
          (T type2
             [(tvector ,src2 ,len2 ,type2)
              (and (= len1 len2)
-                  (sametype? type1 type2))]
+                  ; a zero-length vector has no elements, so its element type is immaterial
+                  (or (= len1 0) (sametype? type1 type2)))]
             [(ttuple ,src2 ,type2* ...)
              (and (= len1 (length type2*))
                   (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]

@@ -894,15 +894,17 @@ Otherwise, two types have a least upper bound only in the following cases:
 - for a vector type and a tuple type of the same length, where the vector's
   element type has a least upper bound with each element type of the tuple, it
   is the tuple type with those least upper bounds as its element types
+- for two contract types with the same name, it is the contract type with that
+  name that declares exactly the circuits both declare with the same pure status
+  and the same parameter and result types.
 
 For example, the least upper bound of `[Uint<8>, Uint<16>]` and
 `[Uint<16>, Uint<8>]` is `[Uint<16>, Uint<16>]`, although neither
 type is a subtype of the other.
 
-The least upper bound of three or more types is defined recursively as the
-least upper bound of *S<sub>1</sub>* and *S<sub>2</sub>* where *S<sub>1</sub>*
-is the least upper bound of the first type and *S<sub>2</sub>* is the least
-upper bound of the remaining types.
+The least upper bound of three or more types is defined recursively as the least
+upper bound of the first type and *S* where *S* is the least upper bound of the
+remaining types.
 
 **Tuple and vector types:**
 Every vector type is equivalent to some tuple type.

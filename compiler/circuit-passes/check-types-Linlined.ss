@@ -169,7 +169,8 @@
           (T type2
              [(tvector ,src2 ,len2 ,type2)
               (and (= len1 len2)
-                   (same-type? type1 type2))]
+                   ; a zero-length vector has no elements, so its element type is immaterial
+                   (or (= len1 0) (same-type? type1 type2)))]
              [(ttuple ,src2 ,type2* ...)
               (and (= len1 (length type2*))
                    (andmap (lambda (type2) (same-type? type1 type2)) type2*))])]
@@ -589,7 +590,8 @@
                                                 (let ([type (Care expr)])
                                                   (nanopass-case (Linlined Type) type
                                                     [(ttuple ,src ,type* ...) (values (length type*) type*)]
-                                                    [(tvector ,src ,len ,type) (values len (list type))]
+                                                    ; a zero-length vector has no elements, so its element type does not constrain the result
+                                                    [(tvector ,src ,len ,type) (values len (if (= len 0) '() (list type)))]
                                                     [else (source-errorf src "expected type of vector spread to be a ttuple or ttvector type but received ~a"
                                                                          (format-type type))]))]))
                                          tuple-arg*)])
@@ -665,7 +667,7 @@
          [else #f]))
      (unless (nanopass-case (Linlined Type) type
                [(ttuple ,src1 ,type* ...) (and (= (length type*) len) (andmap u8-subtype? type*))]
-               [(tvector ,src1 ,len1 ,type) (and (= len1 len) (or (u8-subtype? type) (unknown? type)))]
+               [(tvector ,src1 ,len1 ,type) (and (= len1 len) (or (= len1 0) (u8-subtype? type) (unknown? type)))]
                [else #f])
        (source-errorf src "expected Vector<~d, Uint<8>> for vector->bytes call, received ~a"
                       len
