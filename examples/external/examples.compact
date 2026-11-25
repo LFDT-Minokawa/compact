@@ -30,5 +30,5 @@ export circuit nativeMethods(): [] {
   const j: JubjubPoint = hashToCurve<Field>(default<Field>);
   const k: ZswapCoinPublicKey = ownPublicKey();
   const l: [] = createZswapInput(default<QualifiedShieldedCoinInfo>);
-  const m: [] = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const m: [] = createZswapOutput(default<ShieldedCoinInfo>, default<ShieldedRecipient>);
 }

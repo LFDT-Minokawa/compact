@@ -36,11 +36,224 @@
       (define (unset-idtype! id)
         (hashtable-delete! ht id))
       (define (get-idtype src id)
+        (cond
+          [(eq-hashtable-ref pattern-variant-ht id #f) =>
+           (lambda (enum-name)
+             (source-errorf src "~a names a variant of enum ~a in the pattern of this match arm and cannot be used as a variable there"
+                            (id-sym id)
+                            enum-name))]
+          [(eq-hashtable-ref pattern-binding-ht id #f) => (lambda (used) (set-box! used #t))])
         (or (hashtable-ref ht id #f)
             (internal-errorf 'get-idtype! "type of identifier ~s at ~a has not been set"
               (id-sym id)
               (format-source-object src))))
       )
+    ; within a match arm, pattern-variant-ht maps each name its pattern uses as a variant to
+    ; the enum's name, and pattern-binding-ht maps each name its pattern binds to a box that
+    ; records whether the arm refers to it
+    (define pattern-variant-ht (make-eq-hashtable))
+    (define pattern-binding-ht (make-eq-hashtable))
+    (define (resolve-match-pattern mpattern type bind! variant!)
+      (define (variant-ctors elt-name* arity*)
+        (let ([ctor* (map (lambda (elt-name arity)
+                            (make-ctor elt-name arity '()
+                              (lambda (arg*)
+                                (format "~a~@[(~{~a~^, ~})~]" elt-name (and (not (null? arg*)) arg*)))))
+                          elt-name* arity*)])
+          (for-each (lambda (ctor) (ctor-siblings-set! ctor ctor*)) ctor*)
+          ctor*))
+      (define (single-ctor name arity format)
+        (let ([ctor (make-ctor name arity '() format)])
+          (ctor-siblings-set! ctor (list ctor))
+          ctor))
+      (define (variant-cpat elt-name elt-name* arity* cpat*)
+        (make-cpat
+          (cdr (assq elt-name (map cons elt-name* (variant-ctors elt-name* arity*))))
+          cpat*))
+      (let resolve ([mpattern mpattern] [type type])
+        (with-output-language (Ltypes Match-Pattern)
+          (let ([type^ (de-alias type #t)])
+            (nanopass-case (Lexpanded Match-Pattern) mpattern
+              [(mwild ,src) (values `(mwild ,src) '_)]
+              [(mvar ,src ,var-name)
+               (let ([name (id-sym var-name)])
+                 (nanopass-case (Ltypes Type) type^
+                   [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+                    (guard (memq name elt-name*))
+                    (let ([nfield (length (cdr (assq name (map cons elt-name* type**))))])
+                      (unless (fx= nfield 0)
+                        (source-errorf src "variant ~a of enum ~a has ~d field~:p, so its pattern requires ~:*~d subpattern~:p"
+                                       name enum-name nfield)))
+                    (variant! var-name enum-name)
+                    (values
+                      `(mvariant ,src ,type ,name)
+                      (variant-cpat name elt-name* (map length type**) '()))]
+                   [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                    (guard (memq name (cons elt-name elt-name*)))
+                    (variant! var-name enum-name)
+                    (let ([elt-name* (cons elt-name elt-name*)])
+                      (values
+                        `(menum ,src ,type ,name)
+                        (variant-cpat name elt-name* (map (lambda (x) 0) elt-name*) '())))]
+                   [else
+                    (bind! src var-name type)
+                    (values `(mbind ,src ,var-name ,type) '_)]))]
+              [(mapply ,src ,elt-name ,mpattern* ...)
+               (nanopass-case (Ltypes Type) type^
+                 [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+                  (let ([type* (cond
+                                 [(assq elt-name (map cons elt-name* type**)) => cdr]
+                                 [else (source-errorf src "enum ~s has no variant named ~s"
+                                                      enum-name
+                                                      elt-name)])])
+                    (let ([nactual (length mpattern*)] [ndeclared (length type*)])
+                      (unless (fx= nactual ndeclared)
+                        (source-errorf src "mismatch between the number ~s of subpatterns and the number ~s of fields of variant ~s of ~a"
+                                       nactual
+                                       ndeclared
+                                       elt-name
+                                       (format-type type))))
+                    (let-values ([(mpattern* cpat*) (maplr2 resolve mpattern* type*)])
+                      (values
+                        `(mvariant ,src ,type ,elt-name ,mpattern* ...)
+                        (variant-cpat elt-name elt-name* (map length type**) cpat*))))]
+                 [else (source-errorf src "pattern ~a(...) requires a value of an enum type with fields, but the value matched has type ~a"
+                                      elt-name
+                                      (format-type type))])]
+              [(mtuple ,src ,mpattern* ...)
+               (let ([type* (nanopass-case (Ltypes Type) type^
+                              [(ttuple ,src^ ,type* ...) type*]
+                              [(tvector ,src^ ,len ,type) (make-list len type)]
+                              [else (source-errorf src "tuple pattern requires a value of a tuple or vector type, but the value matched has type ~a"
+                                                   (format-type type))])])
+                 (let ([nactual (length mpattern*)] [ndeclared (length type*)])
+                   (unless (fx= nactual ndeclared)
+                     (source-errorf src "mismatch between the number ~s of subpatterns and the number ~s of elements of ~a"
+                                    nactual
+                                    ndeclared
+                                    (format-type type))))
+                 (let-values ([(mpattern* cpat*) (maplr2 resolve mpattern* type*)])
+                   (values
+                     `(mtuple ,src ,type ,mpattern* ...)
+                     (make-cpat
+                       (single-ctor 'tuple (length type*) (lambda (arg*) (format "[~{~a~^, ~}]" arg*)))
+                       cpat*))))]
+              [(mstruct ,src (,elt-name* ,mpattern*) ...)
+               (nanopass-case (Ltypes Type) type^
+                 [(tstruct ,src^ ,struct-name (,elt-name^* ,type*) ...)
+                  (let-values ([(mpattern* cpat* nat*)
+                                (let f ([elt-name* elt-name*] [mpattern* mpattern*] [seen* '()])
+                                  (if (null? elt-name*)
+                                      (values '() '() '())
+                                      (let ([elt-name (car elt-name*)])
+                                        (when (memq elt-name seen*)
+                                          (source-errorf src "field ~a appears more than once in struct pattern" elt-name))
+                                        (let ([nat (let find ([elt-name^* elt-name^*] [i 0])
+                                                     (cond
+                                                       [(null? elt-name^*)
+                                                        (source-errorf src "struct pattern names field ~a, which ~a does not have"
+                                                                       elt-name
+                                                                       (format-type type))]
+                                                       [(eq? (car elt-name^*) elt-name) i]
+                                                       [else (find (cdr elt-name^*) (fx+ i 1))]))])
+                                          (let*-values ([(mpattern cpat) (resolve (car mpattern*) (list-ref type* nat))]
+                                                        [(mpattern* cpat* nat*) (f (cdr elt-name*) (cdr mpattern*) (cons elt-name seen*))])
+                                            (values (cons mpattern mpattern*) (cons cpat cpat*) (cons nat nat*)))))))])
+                    (values
+                      `(mstruct ,src ,type (,elt-name* ,nat* ,mpattern*) ...)
+                      (make-cpat
+                        (single-ctor 'struct (length elt-name^*)
+                          (lambda (arg*)
+                            (format "{~{~a~^, ~}}"
+                              (fold-right
+                                (lambda (elt-name arg x*)
+                                  (if (string=? arg "_") x* (cons (format "~a: ~a" elt-name arg) x*)))
+                                '()
+                                elt-name^* arg*))))
+                        (map (lambda (i)
+                               (cond
+                                 [(assv i (map cons nat* cpat*)) => cdr]
+                                 [else '_]))
+                             (enumerate elt-name^*)))))]
+                 [else (source-errorf src "struct pattern requires a value of a structure type, but the value matched has type ~a"
+                                      (format-type type))])])))))
+    (define (do-match src expr mpattern* expr* care?)
+      (let-values ([(expr type) (Care expr)])
+        (verify-non-adt-type! src type "match scrutinee")
+        (let-values ([(src* mpattern* cpat* expr* type*)
+                      (let f ([mpattern* mpattern*] [expr* expr*])
+                        (if (null? mpattern*)
+                            (values '() '() '() '() '())
+                            (let ([binding* '()] [variant-id* '()])
+                              (define (variant! id enum-name)
+                                (set! variant-id* (cons id variant-id*))
+                                (eq-hashtable-set! pattern-variant-ht id enum-name))
+                              (define (bind! src id type)
+                                (when (assq id binding*)
+                                  (source-errorf src "match pattern binds ~a more than once" (id-sym id)))
+                                (set! binding* (cons (cons id src) binding*))
+                                (set-idtype! id (Idtype-Base type))
+                                (eq-hashtable-set! pattern-binding-ht id (box #f)))
+                              (let*-values ([(pattern-src) (nanopass-case (Lexpanded Match-Pattern) (car mpattern*)
+                                                             [(mwild ,src) src]
+                                                             [(mvar ,src ,var-name) src]
+                                                             [(mapply ,src ,elt-name ,mpattern* ...) src]
+                                                             [(mtuple ,src ,mpattern* ...) src]
+                                                             [(mstruct ,src (,elt-name* ,mpattern*) ...) src])]
+                                            [(mpattern cpat) (resolve-match-pattern (car mpattern*) type bind! variant!)]
+                                            [(expr type) (if care?
+                                                             (Care (car expr*))
+                                                             (values (CareNot (car expr*)) #f))])
+                                ; a misspelt variant is a binding, and is reported here rather than
+                                ; as the cause of an unreachable arm
+                                (for-each
+                                  (lambda (id.src)
+                                    (unless (unbox (eq-hashtable-ref pattern-binding-ht (car id.src) #f))
+                                      (source-errorf (cdr id.src) "match pattern binds ~a, which its arm does not use; a pattern that binds nothing is written _"
+                                                     (id-sym (car id.src)))))
+                                  (reverse binding*))
+                                (for-each
+                                  (lambda (id.src)
+                                    (unset-idtype! (car id.src))
+                                    (eq-hashtable-delete! pattern-binding-ht (car id.src)))
+                                  binding*)
+                                (for-each (lambda (id) (eq-hashtable-delete! pattern-variant-ht id)) variant-id*)
+                                (let-values ([(src* mpattern* cpat* expr* type*) (f (cdr mpattern*) (cdr expr*))])
+                                  (values
+                                    (cons pattern-src src*)
+                                    (cons mpattern mpattern*)
+                                    (cons cpat cpat*)
+                                    (cons expr expr*)
+                                    (cons type type*)))))))])
+          (let f ([src* src*] [cpat* cpat*] [rrow* '()])
+            (unless (null? cpat*)
+              (let ([row (list (car cpat*))])
+                (unless (match-row-useful? (reverse rrow*) row)
+                  (source-errorf (car src*) "unreachable match arm: earlier arms match every value this pattern matches"))
+                (f (cdr src*) (cdr cpat*) (cons row rrow*)))))
+          (let ([missing* (match-missing-rows (map list cpat*) 1)])
+            (unless (null? missing*)
+              (source-errorf src "match is not exhaustive: no arm matches ~{~a~^, ~}"
+                             (map (lambda (row) (format-coverage-pattern (car row))) missing*))))
+          (with-output-language (Ltypes Expression)
+            (if care?
+                (let ([result-type (fold-left
+                                     (lambda (result-type type)
+                                       (cond
+                                         [(subtype? type result-type) result-type]
+                                         [(subtype? result-type type) type]
+                                         [else (source-errorf src "mismatch between type ~a and type ~a of match arms"
+                                                              (format-type result-type)
+                                                              (format-type type))]))
+                                     (car type*)
+                                     (cdr type*))])
+                  (values
+                    `(match ,src ,type ,expr
+                       (,mpattern*
+                        ,(map (lambda (type expr) (maybe-safecast src result-type type expr)) type* expr*))
+                       ...)
+                    result-type))
+                `(match ,src ,type ,expr (,mpattern* ,expr*) ...))))))
     (define (arg->name arg)
       (nanopass-case (Ltypes Argument) arg
         [(,var-name ,type) var-name]))
@@ -116,6 +329,11 @@
                 elt-name* type*))]
         [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
          (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
+        [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+         (format "~:[~;ledger ~]enum ~a<~{~a~^, ~}>" ledger-layout? enum-name
+           (map (lambda (elt-name type*)
+                  (format "~a~@[(~{~a~^, ~})~]" elt-name (and (not (null? type*)) (map format-type type*))))
+                elt-name* type**))]
         [(talias ,src ,nominal? ,type-name ,type)
          (if nominal?
              (format "~a" type-name)
@@ -240,6 +458,17 @@
                           (eq? elt-name1 elt-name2)
                           (fx= (length elt-name1*) (length elt-name2*))
                           (andmap eq? elt-name1* elt-name2*))])]
+                [(tsum ,src1 ,enum-name1 ,ledger-layout1? (,elt-name1* ,type1** ...) ...)
+                 (T type2
+                    [(tsum ,src2 ,enum-name2 ,ledger-layout2? (,elt-name2* ,type2** ...) ...)
+                     (and (eq? enum-name1 enum-name2)
+                          (eq? ledger-layout1? ledger-layout2?)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*)
+                          (andmap (lambda (type1* type2*)
+                                    (and (fx= (length type1*) (length type2*))
+                                         (andmap sametype? type1* type2*)))
+                                  type1** type2**))])]
                 [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                  (assert nominal1?)
                  (T type2
@@ -309,6 +538,17 @@
                           (eq? elt-name1 elt-name2)
                           (fx= (length elt-name1*) (length elt-name2*))
                           (andmap eq? elt-name1* elt-name2*))])]
+                [(tsum ,src1 ,enum-name1 ,ledger-layout1? (,elt-name1* ,type1** ...) ...)
+                 (T type2
+                    [(tsum ,src2 ,enum-name2 ,ledger-layout2? (,elt-name2* ,type2** ...) ...)
+                     (and (eq? enum-name1 enum-name2)
+                          (eq? ledger-layout1? ledger-layout2?)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*)
+                          (andmap (lambda (type1* type2*)
+                                    (and (fx= (length type1*) (length type2*))
+                                         (andmap sametype? type1* type2*)))
+                                  type1** type2**))])]
                 [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                  (assert nominal1?)
                  (T type2
@@ -346,6 +586,8 @@
           [(tvector ,src ,len ,type) (recur type)]
           [(ttuple ,src ,type* ...) (ormap recur type*)]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap recur type*)]
+          [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+           (ormap (lambda (type*) (ormap recur type*)) type**)]
           [(talias ,src ,nominal ,type-name ,type) (recur type)]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (ormap (lambda (adt-arg)
@@ -1080,6 +1322,15 @@
        `(tstruct ,src ,struct-name (,elt-name* ,type*) ...))]
     [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
      `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
+    [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+     (let ([type** (map (lambda (elt-name type*)
+                          (map (lambda (type i)
+                                 (Non-ADT-Type type src "field ~d of enum variant '~a'" (fx+ i 1) elt-name))
+                               type*
+                               (enumerate type*)))
+                        elt-name*
+                        type**)])
+       `(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...))]
     [(talias ,src ,nominal? ,type-name ,[type])
      `(talias ,src ,nominal? ,type-name ,type)]
     [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
@@ -1101,6 +1352,8 @@
                       (format-type type0)))
      (let ([expr1 (CareNot expr1)] [expr2 (CareNot expr2)])
        `(if ,src ,expr0 ,expr1 ,expr2))]
+    [(match ,src ,expr (,mpattern* ,expr*) ...)
+     (do-match src expr mpattern* expr* #f)]
     [(seq ,src ,expr* ... ,expr)
      (let* ([expr* (maplr CareNot expr*)] [expr (CareNot expr)])
        `(seq ,src ,expr* ... ,expr))]
@@ -1277,6 +1530,10 @@
                       `(elt-ref ,src ,expr ,elt-name ,i)
                       (car type*))
                     (loop (cdr elt-name*) (cdr type*) (fx+ i 1))))))]
+       [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+        (source-errorf src "expected structure type, received ~a; an enum has no field named ~s and is taken apart with match"
+                       (format-type type)
+                       elt-name)]
        [else (source-errorf src "expected structure type, received ~a"
                             (format-type type))])]
     [(elt-call ,src ,expr ,elt-name ,expr* ...)
@@ -1338,6 +1595,41 @@
           type)]
        [else
         ; can't presently happen: we never construct an enum-ref unless we have an enum type
+        (source-errorf src "expected enum type, received ~a"
+                       (format-type type))])]
+    [(match ,src ,expr (,mpattern* ,expr*) ...)
+     (do-match src expr mpattern* expr* #t)]
+    [(variant-new ,src ,[type] ,elt-name ,expr* ...)
+     (nanopass-case (Ltypes Type) (de-alias type #t)
+       [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+        (let ([declared-type* (cond
+                                [(assq elt-name (map cons elt-name* type**)) => cdr]
+                                [else (source-errorf src "enum ~s has no variant named ~s"
+                                                     enum-name
+                                                     elt-name)])])
+          (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
+            (let ([nactual (length expr*)] [ndeclared (length declared-type*)])
+              (unless (fx= nactual ndeclared)
+                (source-errorf src "mismatch between actual number ~s and declared number ~s of fields for variant ~s of ~a"
+                               nactual
+                               ndeclared
+                               elt-name
+                               (format-type type))))
+            (for-each
+              (lambda (actual-type declared-type i)
+                (unless (subtype? actual-type declared-type)
+                  (source-errorf src "mismatch between actual type ~a and declared type ~a for field ~d of variant ~s of ~a"
+                                 (format-type actual-type)
+                                 (format-type declared-type)
+                                 (fx+ i 1)
+                                 elt-name
+                                 (format-type type))))
+              actual-type* declared-type* (enumerate expr*))
+            (values
+              `(variant-new ,src ,type ,elt-name ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
+              type)))]
+       [else
+        ; can't presently happen: we never construct a variant-new unless we have an enum type with fields
         (source-errorf src "expected enum type, received ~a"
                        (format-type type))])]
     [(tuple ,src ,[Tuple-Argument : tuple-arg* -> expr* type* kind* nat* elt-type**] ...)
@@ -1759,6 +2051,9 @@
                        `(new ,src ,type ,expr* ...)))))
                 type))))
         (s0)]
+       [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+        (source-errorf src "expected structure type, received ~a; an enum value is created by naming one of its variants"
+                       (format-type type))]
        [else (source-errorf src "expected structure type, received ~a"
                             (format-type type))])]
     [(seq ,src ,expr* ... ,expr)

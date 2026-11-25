@@ -91,6 +91,21 @@
                    `(if ,src ,expr0
                         ,(make-seq src tail1)
                         ,(make-seq src tail2))))))))]
+    [(match ,src ,[expr0] (,[mpattern*] ,blck*) ...)
+     ; as for if: the arms share the rest of the block unless one of them returns
+     (with-output-language (Lexpr Expression)
+       (let ([tail* (map (lambda (blck) (Statement blck tail)) blck*)])
+         (let* ([n (length tail)] [n* (map (lambda (tail^) (fx- (length tail^) n)) tail*)])
+           (if (andmap (lambda (tail^ n^) (and (fx>= n^ 0) (eq? (list-tail tail^ n^) tail))) tail* n*)
+               (cons
+                 `(match ,src ,expr0
+                    (,mpattern* ,(map (lambda (tail^ n^) (make-seq src (list-head tail^ n^))) tail* n*))
+                    ...)
+                 tail)
+               (list
+                 `(match ,src ,expr0
+                    (,mpattern* ,(map (lambda (tail^) (make-seq src tail^)) tail*))
+                    ...))))))]
     [(for ,src ,var-name ,[tsize0] ,[tsize1] ,stmt)
      (with-output-language (Lexpr Expression)
        (cons

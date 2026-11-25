@@ -49,7 +49,7 @@ export circuit enqueue(i: Inner): [] {
 }
 
 export circuit peek(): Inner {
-  return queue.head().value;
+  return match queue.head() { Some(i) => i, None => default<Inner> };
 }
 
 // --- MerkleTree<2, Inner> ----------------------------------------------------

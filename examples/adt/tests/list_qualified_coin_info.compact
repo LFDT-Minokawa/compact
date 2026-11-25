@@ -26,15 +26,15 @@ export circuit test(): [] {
 
   c.pushFront(qcoin);
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == qcoin, "Head should have value 1");
+  assert(c.head() == some<QualifiedShieldedCoinInfo>(qcoin), "Head should have value 1");
 
   c.pushFront(qcoin2);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().value == qcoin2, "Head should have value 2");
+  assert(c.head() == some<QualifiedShieldedCoinInfo>(qcoin2), "Head should have value 2");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == qcoin, "Head should have value 0");
+  assert(c.head() == some<QualifiedShieldedCoinInfo>(qcoin), "Head should have value 0");
 
   c.resetToDefault();
   assert(c.length() == 0, "Size should be 0");

@@ -32,32 +32,59 @@ The generated TypeScript API will include definitions for `JubjubPoint` and
 other curve types besides Jubjub) but the exported version only works for
 `JubjubPoint`.
 
-## Structure types
+## Enumeration types
 
 ### `Maybe`
 
-Encapsulates an optionally present value. If `is_some` is `false`, `value`
-should be `default<T>` by convention.
+An optionally present value: `None`, or `Some` with a value of type `T`.
+`None` is the default.
 
 ```compact
-struct Maybe<T> {
-  is_some: Boolean;
-  value: T;
-}
+enum Maybe<T> { None, Some(T) }
 ```
 
 ### `Either`
 
-Disjoint union of `A` and `B`. Iff `is_left` is `true`, `left` should be
-populated, otherwise `right`. The other should be `default< >` by convention.
+A value of type `L` or a value of type `R`. `Right` is the default.
 
 ```compact
-struct Either<A, B> {
-  is_left: Boolean;
-  left: A;
-  right: B;
-}
+enum Either<L, R> { Right(R), Left(L) }
 ```
+
+### `PublicAddress`
+
+A user's address or a contract's address.  This is the recipient type used by
+the unshielded token operations and the type of the caller that
+`kernel.caller()` returns.  `User` is the default.
+
+```compact
+enum PublicAddress { User(UserAddress), Contract(ContractAddress) }
+```
+
+### `ShieldedRecipient`
+
+The recipient of a shielded coin: a contract, or a user identified by a Zswap
+coin public key.  `Contract` is the default.
+
+```compact
+enum ShieldedRecipient { Contract(ContractAddress), User(ZswapCoinPublicKey) }
+```
+
+### `TokenType`
+
+The type of a token as the ledger identifies it: a shielded or an unshielded
+token with the given color, or Dust.
+
+```compact
+enum TokenType { Shielded(Bytes<32>), Unshielded(Bytes<32>), Dust }
+```
+
+`PublicAddress`, `ShieldedRecipient` and `TokenType` are declared by the
+compiler rather than by the library's source, because their encoding is fixed by
+the ledger and differs from the encoding of an enum declared in Compact: each
+variant with a field has a slot of its own.
+
+## Structure types
 
 ### `JubjubSchnorrSignature`
 
@@ -233,17 +260,6 @@ and [`mintUnshieldedToken`](#mintunshieldedtoken).
 struct UserAddress { bytes: Bytes<32>; }
 ```
 
-## Type aliases
-
-### `PublicAddress`
-
-Either a contract's address or a user's address.  This is the recipient type
-used by the unshielded token operations.
-
-```compact
-type PublicAddress = Either<ContractAddress, UserAddress>;
-```
-
 ## Ledger fields
 
 ### `kernel`
@@ -259,7 +275,7 @@ export ledger kernel: Kernel;
 ```
 
 Several circuits below are defined in terms of it, for example
-`right<ZswapCoinPublicKey, ContractAddress>(kernel.self())` to name the current
+`ShieldedRecipient::Contract(kernel.self())` to name the current
 contract as a recipient.
 
 ## Events
@@ -333,7 +349,7 @@ Serialized size is 145.
 
 ```compact
 struct UnshieldedSpend {
-  sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  sender: ShieldedRecipient, // indexed
   domainSep: Bytes<32>, // indexed
   tokenType: Bytes<32>, // indexed
   amount: Uint<128>
@@ -348,7 +364,7 @@ Serialized size is 145.
 
 ```compact
 struct UnshieldedReceive {
-  recipient: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  recipient: ShieldedRecipient, // indexed
   domainSep: Bytes<32>, // indexed
   tokenType: Bytes<32>, // indexed
   amount: Uint<128>
@@ -377,7 +393,7 @@ Serialized size is 113.
 
 ```compact
 struct UnshieldedBurn {
-  sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  sender: ShieldedRecipient, // indexed
   tokenType: Bytes<32>, // indexed
   amount: Uint<128>
 }
@@ -434,22 +450,52 @@ Constructs a [`Maybe<T>`](#maybe) containing nothing
 circuit none<T>(): Maybe<T>;
 ```
 
-### `left`
+### `isSome`
 
-Construct an [`Either<A, B>`](#either) containing the `A` item of the disjoint
-union
+Returns `true` if a [`Maybe<T>`](#maybe) contains an element
 
 ```compact
-circuit left<A, B>(value: A): Either<A, B>;
+circuit isSome<T>(m: Maybe<T>): Boolean;
+```
+
+### `isNone`
+
+Returns `true` if a [`Maybe<T>`](#maybe) contains nothing
+
+```compact
+circuit isNone<T>(m: Maybe<T>): Boolean;
+```
+
+### `left`
+
+Constructs an [`Either<L, R>`](#either) containing a value of type `L`
+
+```compact
+circuit left<L, R>(value: L): Either<L, R>;
 ```
 
 ### `right`
 
-Constructs an [`Either<A, B>`](#either) containing the `B` item of the disjoint
-union
+Constructs an [`Either<L, R>`](#either) containing a value of type `R`
 
 ```compact
-circuit right<A, B>(value: B): Either<A, B>;
+circuit right<L, R>(value: R): Either<L, R>;
+```
+
+### `isLeft`
+
+Returns `true` if an [`Either<L, R>`](#either) contains a value of type `L`
+
+```compact
+circuit isLeft<L, R>(e: Either<L, R>): Boolean;
+```
+
+### `isRight`
+
+Returns `true` if an [`Either<L, R>`](#either) contains a value of type `R`
+
+```compact
+circuit isRight<L, R>(e: Either<L, R>): Boolean;
 ```
 
 ### `transientHash`
@@ -1089,14 +1135,14 @@ Creates a new shielded coin, minted by this contract, and sends it to the given
 recipient. Returns the corresponding [`ShieldedCoinInfo`](#shieldedcoininfo). This requires
 inputting a unique nonce to function securely, it is left to the user how to
 produce this. To mint a shielded token to the current contract, pass
-`right<ZswapCoinPublicKey, ContractAddress>(kernel.self())` as the `recipient`.
+`ShieldedRecipient::Contract(kernel.self())` as the `recipient`.
 
 ```compact
 circuit mintShieldedToken(
   domain_sep: Bytes<32>,
   value: Uint<64>,
   nonce: Bytes<32>,
-  recipient: Either<ZswapCoinPublicKey, ContractAddress>
+  recipient: ShieldedRecipient
 ): ShieldedCoinInfo;
 ```
 
@@ -1117,7 +1163,7 @@ circuit evolveNonce(
 Returns a payment address that guarantees any shielded coins sent to it are burned.
 
 ```compact
-circuit shieldedBurnAddress(): Either<ZswapCoinPublicKey, ContractAddress>;
+circuit shieldedBurnAddress(): ShieldedRecipient;
 ```
 
 ### `receiveShielded`
@@ -1138,10 +1184,10 @@ is returned and should be managed by the contract.
 Note that this does not currently create coin ciphertexts, so sending to a user
 public key except for the current user will not lead to this user being
 informed of the coin they've been sent. To send a shielded token to the current contract, pass
-`right<ZswapCoinPublicKey, ContractAddress>(kernel.self())` as the `recipient`.
+`ShieldedRecipient::Contract(kernel.self())` as the `recipient`.
 
 ```compact
-circuit sendShielded(input: QualifiedShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
+circuit sendShielded(input: QualifiedShieldedCoinInfo, recipient: ShieldedRecipient, value: Uint<128>): ShieldedSendResult;
 ```
 
 ### `sendImmediateShielded`
@@ -1149,7 +1195,7 @@ circuit sendShielded(input: QualifiedShieldedCoinInfo, recipient: Either<ZswapCo
 Like [`sendShielded`](#sendshielded), but for coins created within this transaction
 
 ```compact
-circuit sendImmediateShielded(input: ShieldedCoinInfo, target: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
+circuit sendImmediateShielded(input: ShieldedCoinInfo, target: ShieldedRecipient, value: Uint<128>): ShieldedSendResult;
 ```
 
 ### `mergeCoin`
@@ -1213,20 +1259,20 @@ Like `transientCommit`, this function does not itself disclose its argument, so
 passing witness-derived data to it does not require a `disclose` wrapper.
 
 ```compact
-witness createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
+witness createZswapOutput(coin: ShieldedCoinInfo, recipient: ShieldedRecipient): [];
 ```
 
 ### `mintUnshieldedToken`
 
 Creates a new unshielded coin, minted by this contract, and sends it to the given
 recipient. Returns the corresponding coin color. To mint an unshielded token to the current contract, pass
-`left<ContractAddress, UserAddress>(kernel.self())` as the `recipient`.
+`PublicAddress::Contract(kernel.self())` as the `recipient`.
 
 ```compact
 circuit mintUnshieldedToken(
   domainSep: Bytes<32>,
   amount: Uint<64>,
-  recipient: Either<ContractAddress, UserAddress>
+  recipient: PublicAddress
 ): Bytes<32>;
 ```
 
@@ -1234,10 +1280,10 @@ circuit mintUnshieldedToken(
 
 Sends the given amount of the given unshielded token (identified by the color) to the given recipient. No change is 
 returned from this function. To send an unshielded token to the current contract, pass
-`left<ContractAddress, UserAddress>(kernel.self())` as the `recipient`.
+`PublicAddress::Contract(kernel.self())` as the `recipient`.
 
 ```compact
-circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [];
+circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: PublicAddress): [];
 ```
 
 ### `receiveUnshielded`

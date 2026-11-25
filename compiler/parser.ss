@@ -95,6 +95,7 @@
      include
      ledger
      map
+     match
      new
      of
      pad
@@ -565,12 +566,22 @@
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))])
     (Enum-declaration (enum-declaration)
-      [enum-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
-       (lambda (src kwd-export? kwd enum-name lbrace elt-name-sep+ rbrace semicolon?)
-         (assert (not (null? elt-name-sep+)))
+      [enum-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name (OPT gparams #f) #\{ (SEP+ variant #\, #t) #\} (OPT #\; #f) =>
+       (lambda (src kwd-export? kwd enum-name generic-param-list? lbrace variant-sep+ rbrace semicolon?)
+         (assert (not (null? variant-sep+)))
          (with-output-language (Lparser Enum-Definition)
-           (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
-             `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+           (let-values ([(variant+ sep*) (split-sep variant-sep+)])
+             `(enum ,src ,kwd-export? ,kwd ,enum-name ,generic-param-list? ,lbrace (,(car variant+) ,(cdr variant+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (Enum-variant (variant)
+      [variant-fields :: src id #\( (SEP+ type #\, #t) #\) =>
+       (lambda (src elt-name lparen type-sep+ rparen)
+         (let-values ([(type+ sep*) (split-sep type-sep+)])
+           (with-output-language (Lparser Variant)
+             `(,src ,elt-name ,lparen (,type+ ...) (,sep* ...) ,rparen))))]
+      [variant-plain :: src id =>
+       (lambda (src elt-name)
+         (with-output-language (Lparser Variant)
+           `(,src ,elt-name)))])
     (Contract-Implements-declaration (implements-declaration)
       [contract-implements-declaration :: src (KEYWORD contract) (KEYWORD implements) type #\; =>
        (lambda (src kwd kwd-implements type semicolon)
@@ -710,8 +721,48 @@
        (lambda (src kwd semicolon)
          (with-output-language (Lparser Statement)
            `(return ,src ,kwd ,semicolon)))]
+      [statement-match :: src (KEYWORD match) expr #\{ (K+ match-block-arm) #\} =>
+       (lambda (src kwd expr lbrace match-block-arm+ rbrace)
+         (with-output-language (Lparser Statement)
+           `(match ,src ,kwd ,expr ,lbrace (,match-block-arm+ ...) ,rbrace)))]
       [statement-block :: block =>
        (lambda (block) block)])
+    (Match-block-arm (match-block-arm)
+      [match-block-arm :: src mpattern "=>" block =>
+       (lambda (src mpattern arrow blck)
+         (with-output-language (Lparser Match-Block-Arm)
+           `(,src ,mpattern ,arrow ,blck)))])
+    (Match-arm (match-arm)
+      [match-arm :: src mpattern "=>" expr =>
+       (lambda (src mpattern arrow expr)
+         (with-output-language (Lparser Match-Arm)
+           `(,src ,mpattern ,arrow ,expr)))])
+    (Match-pattern (mpattern)
+      [mpattern-variant :: src id #\( (SEP+ mpattern #\, #t) #\) =>
+       (lambda (src elt-name lparen mpattern-sep+ rparen)
+         (let-values ([(mpattern+ sep*) (split-sep mpattern-sep+)])
+           (with-output-language (Lparser Match-Pattern)
+             `(mapply ,src ,elt-name ,lparen (,mpattern+ ...) (,sep* ...) ,rparen))))]
+      [mpattern-id :: src id =>
+       (lambda (src var-name)
+         (with-output-language (Lparser Match-Pattern)
+           `(mvar ,src ,var-name)))]
+      [mpattern-tuple :: src #\[ (SEP* mpattern #\, #t) #\] =>
+       (lambda (src lbracket mpattern-sep* rbracket)
+         (let-values ([(mpattern* sep*) (split-sep mpattern-sep*)])
+           (with-output-language (Lparser Match-Pattern)
+             `(mtuple ,src ,lbracket (,mpattern* ...) (,sep* ...) ,rbracket))))]
+      [mpattern-struct :: src #\{ (SEP* mpattern-struct-elt #\, #t) #\} =>
+       (lambda (src lbrace mpattern-struct-elt-sep* rbrace)
+         (let-values ([(mpattern-struct-elt* sep*) (split-sep mpattern-struct-elt-sep*)])
+           (with-output-language (Lparser Match-Pattern)
+             `(mstruct ,src ,lbrace (,mpattern-struct-elt* ...) (,sep* ...) ,rbrace))))])
+    (Match-pattern-struct-element (mpattern-struct-elt)
+      [mpattern-struct-elt-id :: id => values]
+      [mpattern-struct-elt-pattern :: id #\: mpattern =>
+       (lambda (id colon mpattern)
+         (with-output-language (Lparser Match-Pattern-Struct-Elt)
+           `(,id ,colon ,mpattern)))])
     (Pattern (pattern)
       [pattern-id :: id => values]
       [pattern-tuple :: src #\[ (SEP* (OPT pattern #f) #\, #t) #\] =>
@@ -840,6 +891,20 @@
          (let-values ([(new-field* sep*) (split-sep new-field-sep*)])
            (with-output-language (Lparser Expression)
              `(new ,src ,tref ,lbrace (,new-field* ...) (,sep* ...) ,rbrace))))]
+      [term-match :: src (KEYWORD match) expr #\{ (SEP+ match-arm #\, #t) #\} =>
+       (lambda (src kwd expr lbrace match-arm-sep+ rbrace)
+         (let-values ([(match-arm+ sep*) (split-sep match-arm-sep+)])
+           (with-output-language (Lparser Expression)
+             `(match ,src ,kwd ,expr ,lbrace (,match-arm+ ...) (,sep* ...) ,rbrace))))]
+      [term-variant-call :: src tref "::" id #\( (SEP* expr #\, #t) #\) =>
+       (lambda (src tref coloncolon elt-name lparen expr-sep* rparen)
+         (let-values ([(expr* sep*) (split-sep expr-sep*)])
+           (with-output-language (Lparser Expression)
+             `(variant-call ,src ,tref ,coloncolon ,elt-name ,lparen (,expr* ...) (,sep* ...) ,rparen))))]
+      [term-variant :: src tref "::" id =>
+       (lambda (src tref coloncolon elt-name)
+         (with-output-language (Lparser Expression)
+           `(variant-ref ,src ,tref ,coloncolon ,elt-name)))]
       [term-assert :: src (KEYWORD assert) #\( expr #\, str #\) =>
        (lambda (src kwd lparen e comma str rparen)
          (with-output-language (Lparser Expression)

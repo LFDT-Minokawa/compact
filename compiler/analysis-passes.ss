@@ -37,7 +37,11 @@
 
   (include "analysis-passes/expand-modules-and-types.ss")
 
+  (include "analysis-passes/match-coverage.ss")
+
   (include "analysis-passes/infer-types.ss")
+
+  (include "analysis-passes/compile-match.ss")
 
   (include "analysis-passes/remove-tundeclared.ss")
 
@@ -65,6 +69,10 @@
 
   (include "analysis-passes/remove-disclose.ss")
 
+  (include "analysis-passes/guard-enum-inputs.ss")
+
+  (include "analysis-passes/lower-enums.ss")
+
   (include "analysis-passes/expand-serialize.ss")
 
   (include "analysis-passes/lower-emit.ss")
@@ -72,6 +80,7 @@
   (define-passes analysis-passes
     (expand-modules-and-types         Lexpanded)
     (infer-types                      Ltypes)
+    (compile-match                   Lnomatch)
     (remove-tundeclared               Lnotundeclared)
     (combine-ledger-declarations      Loneledger)
     (discard-unused-functions         Loneledger)
@@ -84,6 +93,8 @@
     (propagate-ledger-paths           Lwithpaths)
     (track-witness-data               Lwithpaths)
     (remove-disclose                  Lnodisclose)
+    (guard-enum-inputs               Lguarded)
+    (lower-enums                     Lnosum)
     (expand-serialize                 Lnoserialize)
     (lower-emit                       Lloweredemit))
 

@@ -25,7 +25,7 @@ export circuit insert(value: QualifiedShieldedCoinInfo): [] {
   return c.insert(disclose(value));
 }
 
-export circuit insert_coin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {
+export circuit insert_coin(coin: ShieldedCoinInfo, recipient: ShieldedRecipient): [] {
   return c.insertCoin(disclose(coin), disclose(recipient));
 }
 

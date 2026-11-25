@@ -48,5 +48,5 @@ constructor() {
 export circuit test(): [] {
   assert(c.isEmpty() == false, "Structure should be empty");
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
+  assert(isSome<Complex>(c.head()), "Head should exist");
 }

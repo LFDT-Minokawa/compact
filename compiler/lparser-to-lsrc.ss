@@ -94,8 +94,13 @@
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())])
          `(struct ,src ,(and kwd-export? #t) ,(token-value struct-name) (,type-param* ...) ,arg* ...))])
     (Enum-Definition : Enum-Definition (ir) -> Enum-Definition ()
-      [(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,elt-name ,elt-name* ...) (,sep* ...) ,rbrace ,semicolon?)
-       `(enum ,src ,(and kwd-export? #t) ,(token-value enum-name) ,(token-value elt-name) ,(map token-value elt-name*) ...)])
+      [(enum ,src ,kwd-export? ,kwd ,enum-name ,generic-param-list? ,lbrace (,[variant] ,[variant*] ...) (,sep* ...) ,rbrace ,semicolon?)
+       (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())])
+         `(enum ,src ,(and kwd-export? #t) ,(token-value enum-name) (,type-param* ...) ,variant ,variant* ...))])
+    (Variant : Variant (ir) -> Variant ()
+      [(,src ,elt-name) `(,src ,(token-value elt-name))]
+      [(,src ,elt-name ,lparen (,[type*] ...) (,comma* ...) ,rparen)
+       `(,src ,(token-value elt-name) ,type* ...)])
     (Type-Definition : Type-Definition (ir) -> Type-Definition ()
       [(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,[type] ,semicolon)
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())])
@@ -153,7 +158,32 @@
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[tsize0] ,dotdot ,[tsize1] ,rparen ,[stmt])
        `(for ,src ,(token-value var-name) ,tsize0 ,tsize1 ,stmt)]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[expr] ,rparen ,[stmt])
-       `(for ,src ,(token-value var-name) ,expr ,stmt)])
+       `(for ,src ,(token-value var-name) ,expr ,stmt)]
+      [(match ,src ,kwd ,[expr] ,lbrace ((,src* ,[mpattern*] ,arrow* ,[blck*]) ...) ,rbrace)
+       `(match ,src ,expr (,mpattern* ,blck*) ...)])
+    (Match-Pattern : Match-Pattern (ir) -> Match-Pattern ()
+      [(mvar ,src ,var-name)
+       (if (eq? (token-value var-name) '_)
+           `(mwild ,src)
+           `(mvar ,src ,(token-value var-name)))]
+      [(mapply ,src ,elt-name ,lparen (,[mpattern*] ...) (,comma* ...) ,rparen)
+       `(mapply ,src ,(token-value elt-name) ,mpattern* ...)]
+      [(mtuple ,src ,lbracket (,[mpattern*] ...) (,comma* ...) ,rbracket)
+       `(mtuple ,src ,mpattern* ...)]
+      [(mstruct ,src ,lbrace (,mpattern-struct-elt* ...) (,comma* ...) ,rbrace)
+       (let-values ([(elt-name* mpattern*)
+                     (maplr2 (lambda (mpattern-struct-elt)
+                               (nanopass-case (Lparser Match-Pattern-Struct-Elt) mpattern-struct-elt
+                                 [,elt-name
+                                  (values
+                                    (token-value elt-name)
+                                    (if (eq? (token-value elt-name) '_)
+                                        `(mwild ,(token-src elt-name))
+                                        `(mvar ,(token-src elt-name) ,(token-value elt-name))))]
+                                 [(,elt-name ,colon ,mpattern)
+                                  (values (token-value elt-name) (Match-Pattern mpattern))]))
+                             mpattern-struct-elt*)])
+         `(mstruct ,src (,elt-name* ,mpattern*) ...))])
     (Expression : Expression (ir) -> Expression ()
       [(true ,src ,kwd) `(quote ,src #t)]
       [(false ,src ,kwd) `(quote ,src #f)]
@@ -236,6 +266,12 @@
        `(call ,src ,fun ,expr* ...)]
       [(new ,src ,[tref] ,lbrace (,[new-field*] ...) (,comma* ...) ,rbrace)
        `(new ,src ,tref ,new-field* ...)]
+      [(match ,src ,kwd ,[expr] ,lbrace ((,src* ,[mpattern*] ,arrow* ,[expr*]) ...) (,comma* ...) ,rbrace)
+       `(match ,src ,expr (,mpattern* ,expr*) ...)]
+      [(variant-ref ,src ,[tref] ,coloncolon ,elt-name)
+       `(variant-ref ,src ,tref ,(token-value elt-name))]
+      [(variant-call ,src ,[tref] ,coloncolon ,elt-name ,lparen (,[expr*] ...) (,comma* ...) ,rparen)
+       `(variant-call ,src ,tref ,(token-value elt-name) ,expr* ...)]
       [(seq ,src (,[expr*] ...) (,comma* ...) ,[expr])
        `(seq ,src ,expr* ... ,expr)]
       [(cast ,src ,[type] ,kwd ,[expr])

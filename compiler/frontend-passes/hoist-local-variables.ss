@@ -55,6 +55,7 @@
      `(for ,src ,var-name ,tsize0 ,tsize1 ,stmt)]
     [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt vars -> stmt])
      `(for ,src ,var-name ,expr ,stmt)]
+    [(match ,src ,[expr] (,[mpattern*] ,[blck*]) ...) `(match ,src ,expr (,mpattern* ,blck*) ...)]
     [(statement-expression ,src ,[expr]) `(statement-expression ,src ,expr)]
     [(return ,src) `(return ,src)]
     [(return ,src ,[expr]) `(return ,src ,expr)]

@@ -20,14 +20,11 @@
 
 const ZERO32 = new Uint8Array(32);
 
-const none = () => ({
-  is_some: false,
-  value: { is_left: false, left: { bytes: ZERO32 }, right: { bytes: ZERO32 } },
-});
+const none = () => ({ tag: 'None' });
 
 const calledByContract = (encodedAddress: { bytes: Uint8Array }) => ({
-  is_some: true,
-  value: { is_left: true, left: { bytes: encodedAddress.bytes }, right: { bytes: ZERO32 } },
+  tag: 'Some',
+  value: { tag: 'Contract', value: { bytes: encodedAddress.bytes } },
 });
 
 const call = (
@@ -74,7 +71,7 @@ describe('kernel.caller() through the runtime call path', () => {
     expect(ledger.deployer).toEqual(none());
   });
 
-  test('a callee sees left(parent)', async () => {
+  test('a callee sees Contract(parent)', async () => {
     const { chain, outer } = await deployAll();
     const { result } = await call(chain, outerCode, outer.address, 'viaInner');
     expect(result).toEqual(calledByContract(outer.encodedAddress));

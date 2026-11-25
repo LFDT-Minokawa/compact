@@ -16,31 +16,41 @@
 export ledger kernel: Kernel;
 
 // Generic Data
-export struct Maybe<T> {
-  is_some: Boolean;
-  value: T;
-}
+export enum Maybe<T> { None, Some(T) }
 
 export circuit some<T>(value: T): Maybe<T> {
-  return Maybe<T>{ is_some: true, value: value };
+  return Maybe<T>::Some(value);
 }
 
 export circuit none<T>(): Maybe<T> {
-  return Maybe<T>{ is_some: false, value: default<T> };
+  return Maybe<T>::None;
 }
 
-export struct Either<A, B> {
-  is_left: Boolean;
-  left: A;
-  right: B;
+export circuit isSome<T>(m: Maybe<T>): Boolean {
+  return match m { Some(_) => true, None => false };
 }
 
-export circuit left<A, B>(value: A): Either<A, B> {
-  return Either<A, B>{ is_left: true, left: value, right: default<B> };
+export circuit isNone<T>(m: Maybe<T>): Boolean {
+  return match m { Some(_) => false, None => true };
 }
 
-export circuit right<A, B>(value: B): Either<A, B> {
-  return Either<A, B>{ is_left: false, left: default<A>, right: value };
+// Right comes first so that it is the default, as it was when Either was a struct.
+export enum Either<L, R> { Right(R), Left(L) }
+
+export circuit left<L, R>(value: L): Either<L, R> {
+  return Either<L, R>::Left(value);
+}
+
+export circuit right<L, R>(value: R): Either<L, R> {
+  return Either<L, R>::Right(value);
+}
+
+export circuit isLeft<L, R>(e: Either<L, R>): Boolean {
+  return match e { Left(_) => true, Right(_) => false };
+}
+
+export circuit isRight<L, R>(e: Either<L, R>): Boolean {
+  return match e { Left(_) => false, Right(_) => true };
 }
 
 // Merkle trees
@@ -123,7 +133,7 @@ export circuit mintShieldedToken(
   domain_sep: Bytes<32>,
   value: Uint<64>,
   nonce: Bytes<32>,
-  recipient: Either<ZswapCoinPublicKey, ContractAddress>
+  recipient: ShieldedRecipient
 ): ShieldedCoinInfo {
   const coin = ShieldedCoinInfo { nonce: nonce, color: tokenType(domain_sep, kernel.self()), value: value };
   kernel.mintShielded(domain_sep, value);
@@ -131,8 +141,13 @@ export circuit mintShieldedToken(
   const cm = coinCommitment(coin, recipient);
   kernel.claimZswapCoinSpend(cm);
   // Auto-receive when minting to self
-  if (!recipient.is_left && recipient.right.bytes == kernel.self().bytes) {
-    kernel.claimZswapCoinReceive(cm);
+  match recipient {
+    Contract(addr) => {
+      if (addr.bytes == kernel.self().bytes) {
+        kernel.claimZswapCoinReceive(cm);
+      }
+    }
+    User(_) => {}
   }
   return coin;
 }
@@ -145,19 +160,19 @@ export circuit evolveNonce(index: Uint<128>, nonce: Bytes<32>): Bytes<32> {
   ]));
 }
 
-export circuit shieldedBurnAddress(): Either<ZswapCoinPublicKey, ContractAddress> {
-  return left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>);
+export circuit shieldedBurnAddress(): ShieldedRecipient {
+  return ShieldedRecipient::User(default<ZswapCoinPublicKey>);
 }
 
 export circuit receiveShielded(coin: ShieldedCoinInfo): [] {
-  const recipient = right<ZswapCoinPublicKey, ContractAddress>(kernel.self());
+  const recipient = ShieldedRecipient::Contract(kernel.self());
   createZswapOutput(coin, recipient);
   kernel.claimZswapCoinReceive(coinCommitment(coin, recipient));
 }
 
 export circuit sendShielded(
   input: QualifiedShieldedCoinInfo,
-  recipient: Either<ZswapCoinPublicKey, ContractAddress>,
+  recipient: ShieldedRecipient,
   value: Uint<128>
 ): ShieldedSendResult {
   const selfAddr = kernel.self();
@@ -173,8 +188,13 @@ export circuit sendShielded(
   kernel.claimZswapCoinSpend(coinCommitment(output, recipient));
 
   // Auto-receive when sending to self
-  if (!recipient.is_left && recipient.right.bytes == selfAddr.bytes) {
-    kernel.claimZswapCoinReceive(coinCommitment(output, recipient));
+  match recipient {
+    Contract(addr) => {
+      if (addr.bytes == selfAddr.bytes) {
+        kernel.claimZswapCoinReceive(coinCommitment(output, recipient));
+      }
+    }
+    User(_) => {}
   }
 
   if (change == 0) {
@@ -185,8 +205,8 @@ export circuit sendShielded(
                          color: input.color,
                          value: change
                        };
-    createZswapOutput(changeCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
-    const cm = coinCommitment(changeCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+    createZswapOutput(changeCoin, ShieldedRecipient::Contract(selfAddr));
+    const cm = coinCommitment(changeCoin, ShieldedRecipient::Contract(selfAddr));
     kernel.claimZswapCoinSpend(cm);
     kernel.claimZswapCoinReceive(cm);
     return ShieldedSendResult{ change: some<ShieldedCoinInfo>(changeCoin), sent: output };
@@ -195,7 +215,7 @@ export circuit sendShielded(
 
 export circuit sendImmediateShielded(
   input: ShieldedCoinInfo,
-  target: Either<ZswapCoinPublicKey, ContractAddress>,
+  target: ShieldedRecipient,
   value: Uint<128>
 ): ShieldedSendResult {
   return sendShielded(upcastQualifiedCoin(input), target, value);
@@ -216,8 +236,8 @@ export circuit mergeCoin(
                      color: a.color,
                      value: (a.value + b.value) as Uint<128>
                    };
-  createZswapOutput(newCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
-  const cm = coinCommitment(newCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+  createZswapOutput(newCoin, ShieldedRecipient::Contract(selfAddr));
+  const cm = coinCommitment(newCoin, ShieldedRecipient::Contract(selfAddr));
   kernel.claimZswapCoinSpend(cm);
   kernel.claimZswapCoinReceive(cm);
   return newCoin;
@@ -248,14 +268,14 @@ struct CoinPreimage {
 
 circuit coinCommitment(
   coin: ShieldedCoinInfo,
-  recipient: Either<ZswapCoinPublicKey, ContractAddress>
+  recipient: ShieldedRecipient
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
     CoinPreimage{
       domain_sep: "midnight:zswap-cc[v1]",
       info: coin,
-      dataType: recipient.is_left,
-      data: recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
+      dataType: match recipient { User(_) => true, Contract(_) => false },
+      data: match recipient { User(pk) => pk.bytes, Contract(addr) => addr.bytes },
     });
 }
 
@@ -267,7 +287,7 @@ circuit coinNullifier(
     CoinPreimage{
       domain_sep: "midnight:zswap-cn[v1]",
       info: coin,
-      dataType: false, // The hypothetical is_left of Either<ZSwapCoinSecretKey, ContractAddress>
+      dataType: false, // a contract, as in coinCommitment
       data: addr.bytes,
     });
 }
@@ -293,34 +313,42 @@ export circuit blockTimeLte(time: Uint<64>): Boolean {
 
 export struct UserAddress { bytes: Bytes<32>; }
 
-export type PublicAddress = Either<ContractAddress, UserAddress>;
-
 export circuit mintUnshieldedToken(
   domainSep: Bytes<32>,
   amount: Uint<64>,
-  recipient: Either<ContractAddress, UserAddress>
+  recipient: PublicAddress
 ): Bytes<32> {
   kernel.mintUnshielded(domainSep, amount);
   const color = tokenType(domainSep, kernel.self());
-  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+  kernel.claimUnshieldedCoinSpend(TokenType::Unshielded(color), recipient, amount);
   // Auto-receive when minting to self
-  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
-    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  match recipient {
+    Contract(addr) => {
+      if (addr.bytes == kernel.self().bytes) {
+        kernel.incUnshieldedInputs(TokenType::Unshielded(color), amount);
+      }
+    }
+    User(_) => {}
   }
   return color;
 }
 
-export circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [] {
-  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), amount);
-  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+export circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: PublicAddress): [] {
+  kernel.incUnshieldedOutputs(TokenType::Unshielded(color), amount);
+  kernel.claimUnshieldedCoinSpend(TokenType::Unshielded(color), recipient, amount);
   // Auto-receive when sending to self
-  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
-    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  match recipient {
+    Contract(addr) => {
+      if (addr.bytes == kernel.self().bytes) {
+        kernel.incUnshieldedInputs(TokenType::Unshielded(color), amount);
+      }
+    }
+    User(_) => {}
   }
 }
 
 export circuit receiveUnshielded(color: Bytes<32>, amount: Uint<128>): [] {
-  kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  kernel.incUnshieldedInputs(TokenType::Unshielded(color), amount);
 }
 
 // Using the 'unshieldedBalance' function imposes the requirement that the balance for a token at transaction construction
@@ -331,11 +359,11 @@ export circuit receiveUnshielded(color: Bytes<32>, amount: Uint<128>): [] {
 // updated with unshielded send, receive, or mint calls.
 
 export circuit unshieldedBalance(color: Bytes<32>): Uint<128> {
-  return kernel.balance(left<Bytes<32>, Bytes<32>>(color));
+  return kernel.balance(TokenType::Unshielded(color));
 }
 
 export circuit unshieldedBalanceLt(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return kernel.balanceLessThan(left<Bytes<32>, Bytes<32>>(color), amount);
+  return kernel.balanceLessThan(TokenType::Unshielded(color), amount);
 }
 
 export circuit unshieldedBalanceGte(color: Bytes<32>, amount: Uint<128>): Boolean {
@@ -343,7 +371,7 @@ export circuit unshieldedBalanceGte(color: Bytes<32>, amount: Uint<128>): Boolea
 }
 
 export circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return kernel.balanceGreaterThan(left<Bytes<32>, Bytes<32>>(color), amount);
+  return kernel.balanceGreaterThan(TokenType::Unshielded(color), amount);
 }
 
 export circuit unshieldedBalanceLte(color: Bytes<32>, amount: Uint<128>): Boolean {

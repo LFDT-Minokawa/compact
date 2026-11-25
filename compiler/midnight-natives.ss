@@ -327,5 +327,5 @@
   "__compactRuntime.createZswapOutput"
   (allowed-in-constructor #f)
   ([coin (TypeRef ShieldedCoinInfo) (discloses nothing)]
-   [recipient (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (discloses nothing)])
+   [recipient (TypeRef ShieldedRecipient) (discloses nothing)])
   Void)

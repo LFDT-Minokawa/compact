@@ -27,8 +27,8 @@
          ; this is the op code from the vm and has to stay log
          (log))))
   (Program : Program (ir) -> Program ()
-    [(program ,src (,[contract-type*] ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,[pelt*] ...)
-     `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)])
+    [(program ,src (,[contract-type*] ...) ((,struct-name* ,[type*]) ...) (,[elayout*] ...) ((,export-name* ,name*) ...) ,[pelt*] ...)
+     `(program ,src (,contract-type* ...) (,elayout* ...) ((,export-name* ,name*) ...) ,pelt* ...)])
   (Expression : Expression (ir) -> Expression ()
     [(emit ,src ,[type] ,len ,[expr])
      (nanopass-case (Lloweredemit Type) type

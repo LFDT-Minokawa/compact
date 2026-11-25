@@ -52,7 +52,7 @@ export ledger costs: Costs;
 // Taking organizer secret key through a constructor allows for separating deploy from contract ownership
 constructor(organizer_secret_key: Bytes<32>, costs_param: Costs) {
   organizer = public_key(organizer_secret_key);
-  state = LedgerState.setup;
+  state = LedgerState::setup;
   costs = disclose(costs_param);
 }
 
@@ -67,14 +67,14 @@ witness local_path_of_cm(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; /
  * Commits to a vote without revealing its contents
  */
 circuit vote_commit(ballot: Boolean, votingCoin: ShieldedCoinInfo): [] {
-  assert(state == LedgerState.commit && local_state() == LocalState.initial, "In illegal state for committing");
+  assert(state == LedgerState::commit && local_state() == LocalState::initial, "In illegal state for committing");
   assert((votingCoin.color == dao_voting_token()), "Expected own voting token to provided");
   assert((votingCoin.value == 1), "Expected only one voting token");
   const sk = local_secret_key();
   const nullifier = commitment_nullifier(sk);
   assert(!committed_participants.member(nullifier), "Attempted to double commit a vote");
   receiveShielded(disclose(votingCoin));
-  sendImmediateShielded(disclose(votingCoin), left<ZswapCoinPublicKey, ContractAddress>(ZswapCoinPublicKey{pad(32, "")}), 1); // Burn the token to prevent usage in the future
+  sendImmediateShielded(disclose(votingCoin), ShieldedRecipient::User(ZswapCoinPublicKey{pad(32, "")}), 1); // Burn the token to prevent usage in the future
   local_record_vote(ballot);
   const vote_commitment = commit_with_sk(ballot ? pad(32, "yes") : pad(32, "no"), sk);
   committed_votes.insert(vote_commitment);
@@ -86,18 +86,20 @@ circuit vote_commit(ballot: Boolean, votingCoin: ShieldedCoinInfo): [] {
  * Reveals a previously commited vote.
  */
 circuit vote_reveal(): [] {
-  assert(state == LedgerState.reveal && local_state() == LocalState.committed, "In illegal state for revealing");
+  assert(state == LedgerState::reveal && local_state() == LocalState::committed, "In illegal state for revealing");
   const sk = local_secret_key();
   const rev_nul = reveal_nullifier(sk);
   assert(!revealed_participants.member(rev_nul), "Attempted to double vote");
   const vote = local_vote_cast();
-  assert(vote.is_some, "Must have voted to reveal");
-  const cm = commit_with_sk(vote.value ? pad(32, "yes") : pad(32, "no"), sk);
+  assert(isSome<Boolean>(vote), "Must have voted to reveal");
+  const voted_yes = match vote { Some(v) => v, None => false };
+  const cm = commit_with_sk(voted_yes ? pad(32, "yes") : pad(32, "no"), sk);
   const path = disclose(local_path_of_cm(cm));
-  assert(path.is_some &&
-          committed_votes.checkRoot(path_root(path.value)) &&
-          cm == path.value.leaf, "Attempted to reveal incorrectly");
-  if(disclose(vote.value)) {
+  assert(match path {
+           Some(p) => committed_votes.checkRoot(path_root(p)) && cm == p.leaf,
+           None => false,
+         }, "Attempted to reveal incorrectly");
+  if(disclose(voted_yes)) {
     yes.increment(1);
   } else {
     no.increment(1);
@@ -115,9 +117,9 @@ circuit vote_reveal(): [] {
 circuit advance(): [] {
   const sk = local_secret_key();
   const apk = public_key(sk);
-  assert(!(state == LedgerState.setup), "Leave setup phase by setting the topic");
+  assert(!(state == LedgerState::setup), "Leave setup phase by setting the topic");
   assert(apk == organizer, "Attempted to advance state without authorization");
-  if (state == LedgerState.final) {
+  if (state == LedgerState::final) {
     assert(yes.lessThan((no.read() + 1) as Uint<64>), "Attempted to advance state when a cash out is expected");
     reset_state(false);
   } else {
@@ -126,12 +128,12 @@ circuit advance(): [] {
 }
 
 circuit successor(state: LedgerState): LedgerState {
-  if (state == LedgerState.setup)
-    return LedgerState.commit;
-  else if (state == LedgerState.commit)
-    return LedgerState.reveal;
+  if (state == LedgerState::setup)
+    return LedgerState::commit;
+  else if (state == LedgerState::commit)
+    return LedgerState::reveal;
   else
-    return LedgerState.final;
+    return LedgerState::final;
 }
 
 /**
@@ -145,17 +147,17 @@ circuit set_topic(topic_param: Opaque<"string">, beneficiary_param: ZswapCoinPub
   const sk = local_secret_key();
   const apk = public_key(sk);
   assert(organizer == apk, "Attempted to set topic without authorization");
-  assert(state == LedgerState.setup, "Attempted to set topic after setup phase");
+  assert(state == LedgerState::setup, "Attempted to set topic after setup phase");
   receiveShielded(disclose(seedCoin));
   if(!pot_has_coin) {
-    pot.writeCoin(disclose(seedCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.writeCoin(disclose(seedCoin), ShieldedRecipient::Contract(kernel.self()));
     pot_has_coin = true;
   } else {
-    pot.writeCoin(mergeCoinImmediate(pot, disclose(seedCoin)), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.writeCoin(mergeCoinImmediate(pot, disclose(seedCoin)), ShieldedRecipient::Contract(kernel.self()));
   }
   topic = some<Opaque<"string">>(disclose(topic_param));
   beneficiary = some<ZswapCoinPublicKey>(disclose(beneficiary_param));
-  state = LedgerState.commit;
+  state = LedgerState::commit;
 }
 
 /**
@@ -168,16 +170,16 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
     "Invalid buy-in, expected configured buy_in for each voting token");
   receiveShielded(disclose(coin));
   if(!pot_has_coin) {
-    pot.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.writeCoin(disclose(coin), ShieldedRecipient::Contract(kernel.self()));
     pot_has_coin = true;
   } else {
-    pot.writeCoin(mergeCoinImmediate(pot, disclose(coin)), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.writeCoin(mergeCoinImmediate(pot, disclose(coin)), ShieldedRecipient::Contract(kernel.self()));
   }
   return mintShieldedToken(
     dao_token_domain_separator(),
     disclose(amount),
     evolveNonce(0, disclose(coin.nonce)),
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+    ShieldedRecipient::User(ownPublicKey())
   );
 }
 
@@ -186,20 +188,19 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
  */
 circuit cash_out(): ShieldedCoinInfo {
   const addr = ownPublicKey();
-  assert(state == LedgerState.final &&
-         beneficiary.is_some &&
-         beneficiary.value == addr &&
+  assert(state == LedgerState::final &&
+         beneficiary == some<ZswapCoinPublicKey>(addr) &&
          no.lessThan(yes), "Attempted illegal cash-out.");
   const coin = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(addr),
+    ShieldedRecipient::User(addr),
     pot.value);
   reset_state(true);
   return coin.sent;
 }
 
 circuit reset_state(reset_pot: Boolean): [] {
-  state = LedgerState.setup;
+  state = LedgerState::setup;
   topic = none<Opaque<"string">>();
   yes.resetToDefault();
   no.resetToDefault();

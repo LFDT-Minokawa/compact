@@ -33,12 +33,12 @@ export circuit foo() : [] {
     kernel.mintShielded(default<Bytes<32>>, default<Uint<64>>);
     kernel.self();
     kernel.mintUnshielded(default<Bytes<32>>, default<Uint<64>>);
-    kernel.claimUnshieldedCoinSpend(default<Either<Bytes<32>, Bytes<32>>>, default<Either<ContractAddress, UserAddress>>, default<Uint<64>>);
-    kernel.incUnshieldedOutputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
-    kernel.incUnshieldedInputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
-    kernel.balance(default<Either<Bytes<32>, Bytes<32>>>);
-    kernel.balanceLessThan(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
-    kernel.balanceGreaterThan(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
+    kernel.claimUnshieldedCoinSpend(default<TokenType>, default<PublicAddress>, default<Uint<64>>);
+    kernel.incUnshieldedOutputs(default<TokenType>, default<Uint<64>>);
+    kernel.incUnshieldedInputs(default<TokenType>, default<Uint<64>>);
+    kernel.balance(default<TokenType>);
+    kernel.balanceLessThan(default<TokenType>, default<Uint<64>>);
+    kernel.balanceGreaterThan(default<TokenType>, default<Uint<64>>);
 
     counter.decrement(1);
     counter.increment(1);
@@ -47,7 +47,7 @@ export circuit foo() : [] {
     counter.resetToDefault();
 
     set.insert(default<QualifiedShieldedCoinInfo>);
-    set.insertCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    set.insertCoin(default<ShieldedCoinInfo>, default<ShieldedRecipient>);
     set.isEmpty();
     set.member(default<QualifiedShieldedCoinInfo>);
     set.remove(default<QualifiedShieldedCoinInfo>);
@@ -55,7 +55,7 @@ export circuit foo() : [] {
     set.size();
 
     maps.insert(1 as Field, default<QualifiedShieldedCoinInfo>);
-    maps.insertCoin(1 as Field, default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    maps.insertCoin(1 as Field, default<ShieldedCoinInfo>, default<ShieldedRecipient>);
     maps.insertDefault(1 as Field);
     maps.isEmpty();
     maps.lookup(1 as Field);
@@ -69,7 +69,7 @@ export circuit foo() : [] {
     list.length();
     list.popFront();
     list.pushFront(default<QualifiedShieldedCoinInfo>);
-    list.pushFrontCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    list.pushFrontCoin(default<ShieldedCoinInfo>, default<ShieldedRecipient>);
     list.resetToDefault();
 
     mt.checkRoot(default<MerkleTreeDigest>);

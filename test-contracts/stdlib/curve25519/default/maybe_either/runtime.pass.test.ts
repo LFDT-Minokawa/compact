@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { curve25519MulGenerator } from '@midnight-ntwrk/compact-runtime';
 import { expect } from 'vitest';
 
 import type { Contract } from './.build/contract/index.js';
@@ -31,11 +30,8 @@ export default defineRuntimeTest<typeof Contract>(
         const scalar = (await contract.circuits.none_scalar(ctx)).result;
         const base = (await contract.circuits.right_of_base(ctx, 1n)).result;
 
-        expect(point).toEqual({
-            is_some: false,
-            value: curve25519MulGenerator(0n),
-        });
-        expect(scalar).toEqual({ is_some: false, value: 0n });
-        expect(base).toEqual({ is_left: false, left: 0n, right: 1n });
+        expect(point).toEqual({ tag: 'None' });
+        expect(scalar).toEqual({ tag: 'None' });
+        expect(base).toEqual({ tag: 'Right', value: 1n });
     },
 );

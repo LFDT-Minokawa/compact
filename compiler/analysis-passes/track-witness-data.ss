@@ -451,6 +451,11 @@
            (nanopass-case (Lwithpaths Type) type
              [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
               (Abs-multiple (map default-value type*))]
+             ; an enum value is its tag followed by each variant's fields, kept apart
+             [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+              (Abs-multiple
+                (cons (Abs-atomic witness*)
+                      (map (lambda (type*) (Abs-multiple (map default-value type*))) type**)))]
              [(ttuple ,src ,type* ...)
               (Abs-multiple (map default-value type*))]
              [(tvector ,src ,len ,type)
@@ -799,6 +804,37 @@
     [(disclose ,src ,[* abs]) (disclose abs)]
 
     [(new ,src ,type ,[* abs*] ...) (Abs-multiple abs*)]
+
+    [(variant-test ,src ,type ,[* abs] ,elt-name)
+     (Abs-case abs
+       [(Abs-multiple abs*)
+        (add-path-point src "the variant test" "the variant of" (Abs-atomic (abs->witnesses (car abs*))))]
+       [else (assert cannot-happen)])]
+
+    ; compile-match evaluates a variant-field only where the value is that variant, so the
+    ; other variants' fields do not reach the result
+    [(variant-field ,src ,type ,[* abs] ,elt-name ,nat)
+     (nanopass-case (Lwithpaths Type) (de-alias type)
+       [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+        (Abs-case abs
+          [(Abs-multiple abs*)
+           (Abs-case (cdr (assq elt-name (map cons elt-name* (cdr abs*))))
+             [(Abs-multiple abs*) (list-ref abs* nat)]
+             [else (assert cannot-happen)])]
+          [else (assert cannot-happen)])]
+       [else (assert cannot-happen)])]
+
+    [(variant-new ,src ,type ,elt-name ,[* abs*] ...)
+     (nanopass-case (Lwithpaths Type) (de-alias type)
+       [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+        (Abs-multiple
+          (cons (Abs-atomic '())
+                (map (lambda (elt-name^ type*)
+                       (if (eq? elt-name^ elt-name)
+                           (Abs-multiple abs*)
+                           (Abs-multiple (map default-value type*))))
+                     elt-name* type**)))]
+       [else (assert cannot-happen)])]
 
     [(tuple ,src ,tuple-arg* ...)
      (Abs-multiple

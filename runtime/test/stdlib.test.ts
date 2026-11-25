@@ -33,9 +33,9 @@ describe('createCoinCommitment', () => {
       value: 572290297060094569n,
     };
     const recipient = {
-      is_left: false,
-      left: { bytes: new Uint8Array(32) },
-      right: { bytes: ocrt.encodeContractAddress(ocrt.sampleContractAddress()) },
+      tag: false,
+      User: { bytes: new Uint8Array(32) },
+      Contract: { bytes: ocrt.encodeContractAddress(ocrt.sampleContractAddress()) },
     };
     compactRuntime.createZswapOutput(context, ocrt.encodeShieldedCoinInfo(coinInfo), recipient);
     expect(context.callContext.currentZswapLocalState!.outputs.length).toBe(1);
@@ -69,8 +69,8 @@ const circuitCoinCommitment = (
       coin.nonce,
       coin.color,
       coin.value,
-      recipient.is_left,
-      recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
+      recipient.tag,
+      recipient.tag ? recipient.User.bytes : recipient.Contract.bytes,
     ]),
   );
 
@@ -85,9 +85,9 @@ describe('createZswapOutput coin values', () => {
       privateState: undefined,
     });
     const recipient = {
-      is_left: false,
-      left: { bytes: new Uint8Array(32) },
-      right: { bytes: ocrt.encodeContractAddress(address) },
+      tag: false,
+      User: { bytes: new Uint8Array(32) },
+      Contract: { bytes: ocrt.encodeContractAddress(address) },
     };
     return { context, recipient };
   };
@@ -103,6 +103,47 @@ describe('createZswapOutput coin values', () => {
   test('Rejects a value outside Uint<128>', () => {
     const { context, recipient } = setup();
     expect(() => compactRuntime.createZswapOutput(context, coin(2n ** 128n), recipient)).toThrow(compactRuntime.CompactError);
+  });
+});
+
+describe('Recipient', () => {
+  const key = '0'.repeat(62) + '2a';
+  const address = ocrt.sampleContractAddress();
+
+  test('A user is encoded with the tag set and no contract address, and decoded again', () => {
+    const user: compactRuntime.Recipient = { tag: 'User', value: key };
+    const encoded = compactRuntime.encodeRecipient(user);
+    expect(encoded).toEqual({
+      tag: true,
+      User: { bytes: ocrt.encodeCoinPublicKey(key) },
+      Contract: { bytes: new Uint8Array(32) },
+    });
+    expect(compactRuntime.decodeRecipient(encoded)).toEqual(user);
+  });
+
+  test('A contract is encoded with the tag clear and no public key, and decoded again', () => {
+    const contract: compactRuntime.Recipient = { tag: 'Contract', value: address };
+    const encoded = compactRuntime.encodeRecipient(contract);
+    expect(encoded).toEqual({
+      tag: false,
+      User: { bytes: new Uint8Array(32) },
+      Contract: { bytes: ocrt.encodeContractAddress(address) },
+    });
+    expect(compactRuntime.decodeRecipient(encoded)).toEqual(contract);
+  });
+
+  test('A Zswap local state keeps its recipients through encoding and decoding', () => {
+    const coinInfo = { type: ocrt.sampleRawTokenType(), nonce: '2a'.repeat(32), value: 5n };
+    const state: compactRuntime.ZswapLocalState = {
+      coinPublicKey: key,
+      currentIndex: 0n,
+      inputs: [],
+      outputs: [
+        { coinInfo, recipient: { tag: 'User', value: key } },
+        { coinInfo, recipient: { tag: 'Contract', value: address } },
+      ],
+    };
+    expect(compactRuntime.decodeZswapLocalState(compactRuntime.encodeZswapLocalState(state))).toEqual(state);
   });
 });
 

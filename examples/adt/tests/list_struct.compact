@@ -44,22 +44,22 @@ export circuit test(): [] {
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.length() == 0, "Size should be 0");
-  assert(c.head().is_some == false, "Head should not exist");
+  assert(isNone<Complex>(c.head()), "Head should not exist");
 
   c.pushFront(complex);
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == complex, "Head should have value 0");
+  assert(isSome<Complex>(c.head()), "Head should exist");
+  assert(c.head() == some<Complex>(complex), "Head should have value 0");
 
   c.pushFront(complex2);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == complex2, "Head should have value 1");
+  assert(isSome<Complex>(c.head()), "Head should exist");
+  assert(c.head() == some<Complex>(complex2), "Head should have value 1");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == complex, "Head should have value 0");
+  assert(isSome<Complex>(c.head()), "Head should exist");
+  assert(c.head() == some<Complex>(complex), "Head should have value 0");
 
   c.resetToDefault();
 }

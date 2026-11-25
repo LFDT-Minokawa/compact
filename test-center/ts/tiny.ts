@@ -19,7 +19,7 @@ const witnesses = {
 
 test('Check for initial get', async () => {
   const [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
-  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: true, value: 64n })
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ tag: 'Some', value: 64n })
 });
 
 test('Check for clear, set, get', async () => {
@@ -27,7 +27,7 @@ test('Check for clear, set, get', async () => {
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   Ctxt = (await c.circuits.set(Ctxt, 5n)).context;
   var q = (await c.circuits.get(Ctxt)).result;
-  expect(q).toEqual({ is_some: true, value: 5n })
+  expect(q).toEqual({ tag: 'Some', value: 5n })
 });
 
 test('Check for clear, set, set', async () => {
@@ -40,7 +40,7 @@ test('Check for clear, set, set', async () => {
 test('Check for clear, get', async () => {
   var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
   Ctxt = (await c.circuits.clear(Ctxt)).context;
-  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: false, value: 0n })
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ tag: 'None' })
 });
 
 test('Check with actually big int', async () => {
@@ -48,7 +48,7 @@ test('Check with actually big int', async () => {
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   const n = 1000000000000000000000000n
   Ctxt = (await c.circuits.set(Ctxt, n)).context;
-  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: true, value: n });
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ tag: 'Some', value: n });
 });
 
 test('Check resulting proofData', async () => {

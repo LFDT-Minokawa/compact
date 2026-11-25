@@ -16,27 +16,27 @@
 import CompactStandardLibrary;
 
 export circuit mintUnshieldedToSelfTest(domainSep: Bytes<32>, amount: Uint<64>): Bytes<32> {
-  return mintUnshieldedToken(disclose(domainSep), disclose(amount), left<ContractAddress, UserAddress>(kernel.self()));
+  return mintUnshieldedToken(disclose(domainSep), disclose(amount), PublicAddress::Contract(kernel.self()));
 }
 
 export circuit mintUnshieldedToContractTest(domainSep: Bytes<32>, address: ContractAddress, amount: Uint<64>): Bytes<32> {
-  return mintUnshieldedToken(disclose(domainSep), disclose(amount), left<ContractAddress, UserAddress>(disclose(address)));
+  return mintUnshieldedToken(disclose(domainSep), disclose(amount), PublicAddress::Contract(disclose(address)));
 }
 
 export circuit mintUnshieldedToUserTest(domainSep: Bytes<32>, address: UserAddress, amount: Uint<64>): Bytes<32> {
-  return mintUnshieldedToken(disclose(domainSep), disclose(amount), right<ContractAddress, UserAddress>(disclose(address)));
+  return mintUnshieldedToken(disclose(domainSep), disclose(amount), PublicAddress::User(disclose(address)));
 }
 
 export circuit sendUnshieldedToSelfTest(color: Bytes<32>, amount: Uint<128>): [] {
-  sendUnshielded(disclose(color), disclose(amount), left<ContractAddress, UserAddress>(kernel.self()));
+  sendUnshielded(disclose(color), disclose(amount), PublicAddress::Contract(kernel.self()));
 }
 
 export circuit sendUnshieldedToContractTest(color: Bytes<32>, amount: Uint<128>, address: ContractAddress): [] {
-  sendUnshielded(disclose(color), disclose(amount), left<ContractAddress, UserAddress>(disclose(address)));
+  sendUnshielded(disclose(color), disclose(amount), PublicAddress::Contract(disclose(address)));
 }
 
 export circuit sendUnshieldedToUserTest(color: Bytes<32>, amount: Uint<128>, address: UserAddress): [] {
-  sendUnshielded(disclose(color), disclose(amount), right<ContractAddress, UserAddress>(disclose(address)));
+  sendUnshielded(disclose(color), disclose(amount), PublicAddress::User(disclose(address)));
 }
 
 export circuit receiveUnshieldedTest(color: Bytes<32>, amount: Uint<128>): [] {
@@ -58,15 +58,15 @@ export circuit getUnshieldedBalanceLtTest(color: Bytes<32>, amount: Uint<128>): 
 // Shielded token test circuits
 
 export circuit mintShieldedToSelfTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>): ShieldedCoinInfo {
-  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), ShieldedRecipient::Contract(kernel.self()));
 }
 
 export circuit mintShieldedToContractTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>, address: ContractAddress): ShieldedCoinInfo {
-  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)));
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), ShieldedRecipient::Contract(disclose(address)));
 }
 
 export circuit mintShieldedToUserTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>, publicKey: ZswapCoinPublicKey): ShieldedCoinInfo {
-  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)));
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), ShieldedRecipient::User(disclose(publicKey)));
 }
 
 export circuit receiveShieldedTest(coin: ShieldedCoinInfo): [] {
@@ -74,25 +74,25 @@ export circuit receiveShieldedTest(coin: ShieldedCoinInfo): [] {
 }
 
 export circuit sendShieldedToSelfTest(input: QualifiedShieldedCoinInfo, value: Uint<128>): ShieldedSendResult {
-  return sendShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()), disclose(value));
+  return sendShielded(disclose(input), ShieldedRecipient::Contract(kernel.self()), disclose(value));
 }
 
 export circuit sendShieldedToContractTest(input: QualifiedShieldedCoinInfo, address: ContractAddress, value: Uint<128>): ShieldedSendResult {
-  return sendShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)), disclose(value));
+  return sendShielded(disclose(input), ShieldedRecipient::Contract(disclose(address)), disclose(value));
 }
 
 export circuit sendShieldedToUserTest(input: QualifiedShieldedCoinInfo, publicKey: ZswapCoinPublicKey, value: Uint<128>): ShieldedSendResult {
-  return sendShielded(disclose(input), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)), disclose(value));
+  return sendShielded(disclose(input), ShieldedRecipient::User(disclose(publicKey)), disclose(value));
 }
 
 export circuit sendImmediateShieldedToSelfTest(input: ShieldedCoinInfo, value: Uint<128>): ShieldedSendResult {
-  return sendImmediateShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()), disclose(value));
+  return sendImmediateShielded(disclose(input), ShieldedRecipient::Contract(kernel.self()), disclose(value));
 }
 
 export circuit sendImmediateShieldedToContractTest(input: ShieldedCoinInfo, address: ContractAddress, value: Uint<128>): ShieldedSendResult {
-  return sendImmediateShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)), disclose(value));
+  return sendImmediateShielded(disclose(input), ShieldedRecipient::Contract(disclose(address)), disclose(value));
 }
 
 export circuit sendImmediateShieldedToUserTest(input: ShieldedCoinInfo, publicKey: ZswapCoinPublicKey, value: Uint<128>): ShieldedSendResult {
-  return sendImmediateShielded(disclose(input), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)), disclose(value));
+  return sendImmediateShielded(disclose(input), ShieldedRecipient::User(disclose(publicKey)), disclose(value));
 }

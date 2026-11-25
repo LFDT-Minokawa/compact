@@ -15,4 +15,4 @@
 
 #!chezscheme
 
-(define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
+(define-pass remove-tundeclared : Lnomatch (ir) -> Lnotundeclared ())

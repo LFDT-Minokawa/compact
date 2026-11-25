@@ -28,17 +28,17 @@ export circuit test(): [] {
 
   assert(c.isEmpty() == false, "Structure should be empty 1");
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().is_some == true, "Head should exist");
+  assert(isSome<Vector<8, Vector<8, Vector<8, Uint<8>>>>>(c.head()), "Head should exist");
 
   c.pushFront(zero);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == zero, "Head should have value 0");
+  assert(isSome<Vector<8, Vector<8, Vector<8, Uint<8>>>>>(c.head()), "Head should exist");
+  assert(c.head() == some<Vector<8, Vector<8, Vector<8, Uint<8>>>>>(zero), "Head should have value 0");
 
   c.pushFront(one);
   assert(c.length() == 3, "Size should be 3");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == one, "Head should have value 1");
+  assert(isSome<Vector<8, Vector<8, Vector<8, Uint<8>>>>>(c.head()), "Head should exist");
+  assert(c.head() == some<Vector<8, Vector<8, Vector<8, Uint<8>>>>>(one), "Head should have value 1");
 
   c.resetToDefault();
   assert(c.isEmpty() == true, "Structure should be empty 2");

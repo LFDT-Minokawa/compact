@@ -58,7 +58,7 @@ export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
   if (disclose(a * b > a * b)) list.length();
   if (disclose(a + a + b) > 0) list.popFront();
   if (disclose(b + a - a) < 0) list.pushFront(default<QualifiedShieldedCoinInfo>);
-  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<ShieldedCoinInfo>, default<ShieldedRecipient>);
   if (disclose(b - b - a) < 0) list.resetToDefault();
 
   const z = disclose(a) + disclose(b) > 0 ? field.write(1 as Field) : field.write(2 as Field);
@@ -71,7 +71,7 @@ constructor(f: Uint<8>, z: Uint<8>, u: Vector<1, Uint<8>>) {
   } else {
     const p = default<Boolean>;
     if(p && disclose(f) > 0) {
-      set.insertCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+      set.insertCoin(default<ShieldedCoinInfo>, default<ShieldedRecipient>);
     } else {
       if(disclose(u[0]) > 0) {
         set.member(default<QualifiedShieldedCoinInfo>);

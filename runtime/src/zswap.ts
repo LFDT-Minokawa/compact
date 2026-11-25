@@ -20,22 +20,12 @@ import { assertDefined, CompactError } from './error.js';
 import { CompactTypeBoolean, CompactTypeBytes, CompactTypeUnsignedInteger } from './compact-types.js';
 
 /**
- * The recipient of a coin produced by a circuit.
+ * The recipient of a coin produced by a circuit: a user, by public key, or a contract, by address. This is how a
+ * Compact `ShieldedRecipient` is represented in TypeScript.
  */
-export interface Recipient {
-  /**
-   * Whether the recipient is a user or a contract.
-   */
-  readonly is_left: boolean;
-  /**
-   * The recipient's public key, if the recipient is a user.
-   */
-  readonly left: ocrt.CoinPublicKey;
-  /**
-   * The recipient's contract address, if the recipient is a contract.
-   */
-  readonly right: ocrt.ContractAddress;
-}
+export type Recipient =
+  | { readonly tag: 'User'; readonly value: ocrt.CoinPublicKey }
+  | { readonly tag: 'Contract'; readonly value: ocrt.ContractAddress };
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -117,17 +107,17 @@ export interface EncodedQualifiedShieldedCoinInfo extends EncodedShieldedCoinInf
  */
 export interface EncodedRecipient {
   /**
-   * Whether the recipient is a user or a contract.
+   * Whether the recipient is a user (`true`) or a contract (`false`).
    */
-  readonly is_left: boolean;
+  readonly tag: boolean;
   /**
    * The recipient's public key, if the recipient is a user.
    */
-  readonly left: EncodedCoinPublicKey;
+  readonly User: EncodedCoinPublicKey;
   /**
    * The recipient's contract address, if the recipient is a contract.
    */
-  readonly right: EncodedContractAddress;
+  readonly Contract: EncodedContractAddress;
 }
 
 /**
@@ -171,20 +161,18 @@ export const emptyZswapLocalState = (coinPublicKey: ocrt.CoinPublicKey | Encoded
 /**
  * Converts an {@link Recipient} to an {@link EncodedRecipient}. Useful for testing.
  */
-export const encodeRecipient = ({ is_left, left, right }: Recipient): EncodedRecipient => ({
-  is_left,
-  left: { bytes: ocrt.encodeCoinPublicKey(left) },
-  right: { bytes: ocrt.encodeContractAddress(right) },
-});
+export const encodeRecipient = (recipient: Recipient): EncodedRecipient =>
+  recipient.tag === 'User'
+    ? { tag: true, User: { bytes: ocrt.encodeCoinPublicKey(recipient.value) }, Contract: { bytes: new Uint8Array(32) } }
+    : { tag: false, User: { bytes: new Uint8Array(32) }, Contract: { bytes: ocrt.encodeContractAddress(recipient.value) } };
 
 /**
  * Converts an {@link EncodedRecipient} to a {@link Recipient}.
  */
-export const decodeRecipient = ({ is_left, left, right }: EncodedRecipient): Recipient => ({
-  is_left,
-  left: ocrt.decodeCoinPublicKey(left.bytes),
-  right: ocrt.decodeContractAddress(right.bytes),
-});
+export const decodeRecipient = ({ tag, User, Contract }: EncodedRecipient): Recipient =>
+  tag
+    ? { tag: 'User', value: ocrt.decodeCoinPublicKey(User.bytes) }
+    : { tag: 'Contract', value: ocrt.decodeContractAddress(Contract.bytes) };
 
 /**
  * Converts a {@link ZswapLocalState} to an {@link EncodedZswapLocalState}. Useful for testing.
@@ -337,16 +325,16 @@ const ShieldedCoinRecipientDescriptor = {
       ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
     );
   },
-  fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
+  fromValue(value: ocrt.Value): EncodedRecipient {
     return {
-      is_left: CompactTypeBoolean.fromValue(value),
-      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
-      right: ContractAddressDescriptor.fromValue(value),
+      tag: CompactTypeBoolean.fromValue(value),
+      User: ZswapCoinPublicKeyDescriptor.fromValue(value),
+      Contract: ContractAddressDescriptor.fromValue(value),
     };
   },
-  toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
-    return CompactTypeBoolean.toValue(value.is_left).concat(
-      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
+  toValue(value: EncodedRecipient): ocrt.Value {
+    return CompactTypeBoolean.toValue(value.tag).concat(
+      ZswapCoinPublicKeyDescriptor.toValue(value.User).concat(ContractAddressDescriptor.toValue(value.Contract)),
     );
   },
 };

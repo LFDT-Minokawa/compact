@@ -34,8 +34,9 @@ export ledger checked_in_participants: Set<Opaque<"string">>;
 constructor(initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
   organizer_pks.insert(public_key(local_sk_or_error()));
   for (const maybe_participant of disclose(initial_eligible_participants)) {
-    if (maybe_participant.is_some) {
-      eligible_participants.insert(maybe_participant.value);
+    match maybe_participant {
+      Some(participant) => { eligible_participants.insert(participant); }
+      None => {}
     }
   }
 }
@@ -59,8 +60,8 @@ export circuit check_in(participant: Opaque<"string">): [] {
 
 circuit local_sk_or_error(): Bytes<32> {
   const maybe_sk = disclose(local_sk());
-  assert(maybe_sk.is_some, "No secret key found");
-  return maybe_sk.value;
+  assert(isSome<Bytes<32>>(maybe_sk), "No secret key found");
+  return match maybe_sk { Some(sk) => sk, None => default<Bytes<32>> };
 }
 
 export circuit public_key(sk: Bytes<32>): Bytes<32> {

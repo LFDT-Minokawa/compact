@@ -73,9 +73,9 @@ export circuit fred(x :Field, b: Boolean): Field {
 
   set.remove(disclose(x) as Uint<16>);
 
-  const flag = Either<Boolean, Boolean> { is_left: disclose(b), left: disclose(b), right: disclose(b) };
+  const flag = disclose(b) ? left<Boolean, Boolean>(disclose(b)) : right<Boolean, Boolean>(disclose(b));
 
-  if (flag.is_left) {
+  if (isLeft<Boolean, Boolean>(flag)) {
     return counter += disclose(x as Uint<16>), x * x * counter.read() as Field;
   } else {
     return counter += disclose(x as Uint<16>), counter.increment(disclose(x as Uint<16>)), maps.insert(disclose(x), disclose(x)), maps.insert(2 as Field, disclose(x)), x * x;

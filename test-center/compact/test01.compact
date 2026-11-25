@@ -31,7 +31,7 @@ constructor(v: Field) {
   const sk = private$secret_key();
   authority = public_key(sk);
   value = disclose(v);
-  state = STATE.set;
+  state = STATE::set;
 }
 
 witness private$secret_key(): Bytes<32>;
@@ -45,30 +45,30 @@ circuit dummy_func(v: Uint<16>) : Boolean {
 }
 
 circuit set(v: Field, temp: Bytes<32>): [] {
-  assert(in_state(STATE.unset), "set: attempted to overwrite recorded value");
+  assert(in_state(STATE::unset), "set: attempted to overwrite recorded value");
   const sk = private$secret_key();
   const apk = public_key(sk);
   authority = apk;
   value = (disclose(v) + 1 - 1) * 2;
   if ((disclose(v) as Uint<16>) < 10) {
-    state = STATE.set;
+    state = STATE::set;
   } else {
     if ((temp as Field) + 2 != 5) assert(false, 'oops 1');
   }
 }
 
 circuit get(): Maybe<Field> {
-  return in_state(STATE.set) ? some<Field>(value) : none<Field>();
+  return in_state(STATE::set) ? some<Field>(value) : none<Field>();
 }
 
 circuit clear(): [] {
-  assert(in_state(STATE.set), "clear: no value is currently recorded");
+  assert(in_state(STATE::set), "clear: no value is currently recorded");
   const sk = private$secret_key();
   const apk = public_key(sk);
   assert(apk == authority, "clear: attempted clear without proper authorization");
   authority = default<Bytes<32>>;
   value = default<Field>;
-  state = STATE.unset;
+  state = STATE::unset;
 }
 
 circuit public_key(sk: Bytes<32>): Bytes<32> {

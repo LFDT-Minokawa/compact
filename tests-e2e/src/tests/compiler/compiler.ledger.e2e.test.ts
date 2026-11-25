@@ -65,13 +65,13 @@ describe('[Contract Info] Ledger added to contract-info.json', async () => {
                 name: 'Maybe',
                 elements: [
                     {
-                        name: 'is_some',
+                        name: 'tag',
                         type: {
                             'type-name': 'Boolean',
                         },
                     },
                     {
-                        name: 'value',
+                        name: 's0',
                         type: {
                             'type-name': 'Opaque',
                             tsType: 'string',

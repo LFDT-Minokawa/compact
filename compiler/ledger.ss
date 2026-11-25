@@ -28,6 +28,7 @@
 
   (define (ledger-adt-definitions)
     (define ledger-adt* '())
+    (define ledger-enum* '())
     (define ledger-type-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (meta define ledger-type-marker (cons 'ledger 'type))
@@ -40,6 +41,41 @@
              (list ledger-type-marker
                    #'(type-formal ...)
                    #'abstract-type)))]))
+
+    ; an enum the ledger fixes the bytes of.  It is declared here rather than in the standard
+    ; library because the language cannot express its layout.
+    (define-syntax declare-ledger-enum
+      (lambda (q)
+        (define (field-type type)
+          (syntax-case type (primitive-type type-ref)
+            [(primitive-type ?Bytes n)
+             (eq? (datum ?Bytes) 'Bytes)
+             #'(with-output-language (Lpreexpand Type)
+                 `(tbytes ,ledger-type-src (type-size ,ledger-type-src n)))]
+            [(type-ref type-name)
+             (identifier? #'type-name)
+             #'(with-output-language (Lpreexpand Type)
+                 `(type-ref ,ledger-type-src type-name))]
+            [else (syntax-error type "unsupported ledger enum field type")]))
+        (syntax-case q ()
+          [(_ enum-name ([elt-name type ...] [elt-name* type* ...] ...) rust-type)
+           (with-syntax ([(type ...) (map field-type #'(type ...))]
+                         [((type* ...) ...) (map (lambda (type*) (map field-type type*)) #'((type* ...) ...))])
+             #'(begin
+                 (declare-ledger-type enum-name () (type-ref enum-name) rust-type)
+                 (define ignore
+                   (set! ledger-enum*
+                     (cons
+                       (with-output-language (Lpreexpand Enum-Definition)
+                         `(ledger-enum ,ledger-type-src enum-name
+                            ,(with-output-language (Lpreexpand Variant)
+                               `(,ledger-type-src elt-name ,(list type ...) (... ...)))
+                            ,(list
+                               (with-output-language (Lpreexpand Variant)
+                                 `(,ledger-type-src elt-name* ,(list type* ...) (... ...)))
+                               ...)
+                            (... ...)))
+                       ledger-enum*)))))])))
 
     (define-syntax declare-ledger-adt
       (lambda (q)
@@ -449,8 +485,10 @@
                               (datum tvar-name))))]
                  [else (syntax-error clause "unhandled case")]))
              (define (process-form q)
-               (syntax-case q (declare-ledger-type declare-ledger-adt initial-value)
+               (syntax-case q (declare-ledger-type declare-ledger-enum declare-ledger-adt initial-value)
                  [(declare-ledger-type type-name (type-formal ...) type rust-type)
+                  (void)]
+                 [(declare-ledger-enum enum-name (variant ...) rust-type)
                   (void)]
                  [(declare-ledger-adt adt-name ([meta-type adt-formal] ...) doc-string (initial-value vm-expr) clause ...)
                   (string? (datum doc-string))
@@ -483,5 +521,5 @@
 
       (include "midnight-ledger.ss")
       (emit-documentation)
-      ledger-adt*)
+      (append (reverse ledger-enum*) ledger-adt*))
 )
