@@ -20,6 +20,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install code-server
+        # code-server's installer is unversioned, so there is no checksum to pin.
+        # nosemgrep: yaml.github-actions.security.gha-curl-pipe-shell.gha-curl-pipe-shell
         run: |
           curl -fsSL https://code-server.dev/install.sh | sh
 
