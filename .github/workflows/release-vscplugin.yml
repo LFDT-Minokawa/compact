@@ -38,9 +38,11 @@ jobs:
           path: result/compact-*.vsix
 
       - name: Extract Version
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          echo "Full ref name: ${{ github.ref_name }}"
-          VERSION=$(echo "${{ github.ref_name }}" | grep -oP '\d+\.\d+\.\d+')
+          echo "Full ref name: $REF_NAME"
+          VERSION=$(echo "$REF_NAME" | grep -oP '\d+\.\d+\.\d+')
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_ENV
 
