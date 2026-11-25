@@ -46,7 +46,7 @@ circuit andy(a: Field, b: Field): [Field, Field] {
 // Each branch of an if/else whose condition comes from a ledger ADT read can read and write the same ledger field.
 export circuit if_branches_write_ledger(a: Boolean): Boolean {
   caroline.pushFront(disclose(a));
-  const p = caroline.head().value;
+  const p = match caroline.head() { Some(b) => b, None => false };
   if (p) {
     y = p || y;
   } else {

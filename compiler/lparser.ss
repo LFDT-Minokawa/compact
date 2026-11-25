@@ -47,7 +47,7 @@
       (eof-token (eof))
       (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new kwd-implements))
       (op-token (op langle rangle))
-      (punctuation-token (dot dotdot dotdotdot comma semicolon colon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
+      (punctuation-token (dot dotdot dotdotdot comma semicolon colon coloncolon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
       )
     (Program (p)
       (program src pelt* ... eof) => (program #f pelt* ...)
@@ -146,8 +146,12 @@
         (struct kwd-export? struct-name generic-param-list? #f arg* ...)
       )
     (Enum-Definition (enumdef)
-      (enum src (maybe kwd-export?) kwd enum-name lbrace (elt-name elt-name* ...) (sep* ...) rbrace (maybe semicolon?)) =>
-        (enum kwd-export? kwd enum-name #f elt-name #f elt-name* ...)
+      (enum src (maybe kwd-export?) kwd enum-name (maybe generic-param-list?) lbrace (variant variant* ...) (sep* ...) rbrace (maybe semicolon?)) =>
+        (enum kwd-export? enum-name generic-param-list? #f variant #f variant* ...)
+      )
+    (Variant (variant)
+      (src elt-name) => elt-name
+      (src elt-name lparen (type* ...) (comma* ...) rparen) => (elt-name type* ...)
       )
     (Type-Definition (tdefn)
       (typedef src (maybe kwd-export?) (maybe kwd-new) kwd type-name (maybe generic-param-list?) op type semicolon) =>
@@ -205,7 +209,24 @@
       (if src kwd lparen expr rparen stmt) => (if expr 3 stmt)
       (for src kwd lparen kwd-const var-name kwd-of tsize0 dotdot tsize1 rparen stmt) => (for var-name tsize0 tsize1 #f stmt)
       (for src kwd lparen kwd-const var-name kwd-of expr rparen stmt) => (for var-name expr #f stmt)
+      (match src kwd expr lbrace (match-block-arm* ...) rbrace) => (match expr #f match-block-arm* ...)
       blck
+      )
+    (Match-Block-Arm (match-block-arm)
+      (src mpattern arrow blck) => (mpattern #f blck)
+      )
+    (Match-Arm (match-arm)
+      (src mpattern arrow expr) => (mpattern #f expr)
+      )
+    (Match-Pattern (mpattern)
+      (mvar src var-name) => var-name
+      (mapply src elt-name lparen (mpattern* ...) (comma* ...) rparen) => (elt-name mpattern* ...)
+      (mtuple src lbracket (mpattern* ...) (comma* ...) rbracket) => (tuple mpattern* ...)
+      (mstruct src lbrace (mpattern-struct-elt* ...) (comma* ...) rbrace) => (struct mpattern-struct-elt* ...)
+      )
+    (Match-Pattern-Struct-Elt (mpattern-struct-elt)
+      elt-name
+      (elt-name colon mpattern) => (elt-name mpattern)
       )
     (Expression (expr index)
       (true src kwd) => true
@@ -232,6 +253,9 @@
       (fold src kwd lparen fun comma (expr0 expr expr* ...) (comma* ...) rparen) => (fold fun #f expr0 #f expr #f expr* ...)
       (call src fun lparen (expr* ...) (comma* ...) rparen) => (call fun #f expr* ...)
       (new src tref lbrace (new-field* ...) (comma* ...) rbrace) => (new tref #f new-field* ...)
+      (match src kwd expr lbrace (match-arm* ...) (comma* ...) rbrace) => (match expr #f match-arm* ...)
+      (variant-ref src tref coloncolon elt-name) => (variant-ref tref elt-name)
+      (variant-call src tref coloncolon elt-name lparen (expr* ...) (comma* ...) rparen) => (variant-call tref elt-name #f expr* ...)
       (seq src (expr* ...) (comma* ...) expr) => (seq #f expr* ... #f expr)
       (cast src type kwd expr) => (cast type #f expr)
       (parenthesized src lparen expr rparen) => (parenthesized expr)

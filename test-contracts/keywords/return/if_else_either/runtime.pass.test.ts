@@ -25,17 +25,9 @@ export default defineRuntimeTest<typeof Contract>(
 
         expect(
             (await contract.circuits.return_if_else_either(ctx, 2n)).result,
-        ).toEqual({
-            is_left: true,
-            left: 1n,
-            right: false,
-        });
+        ).toEqual({ tag: 'Left', value: 1n });
         expect(
             (await contract.circuits.return_if_else_either(ctx, 0n)).result,
-        ).toEqual({
-            is_left: false,
-            left: 0n,
-            right: true,
-        });
+        ).toEqual({ tag: 'Right', value: true });
     },
 );

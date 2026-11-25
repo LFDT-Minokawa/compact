@@ -15,7 +15,7 @@
 
 #!chezscheme
 
-(define-pass expand-serialize : Lnodisclose (ir) -> Lnoserialize ()
+(define-pass expand-serialize : Lnosum (ir) -> Lnoserialize ()
   (definitions
     (define (format-field-type ftype)
       (strict-nanopass-case (Lnoserialize Field-Type) ftype

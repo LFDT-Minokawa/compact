@@ -69,29 +69,27 @@
   (type-ref ZswapCoinPublicKey) 
   "ZswapCoinPublicKey")
 
-(declare-ledger-type ShieldedRecipient ()
-  (type-ref Either
-            (type-ref ZswapCoinPublicKey)
-            (type-ref ContractAddress))
-  "ShieldedRecipient")
-
-(declare-ledger-type UnshieldedRecipient ()
-  (type-ref Either
-            (type-ref ContractAddress)
-            (type-ref UserAddress))
-  "UnshieldedRecipient")
-
-(declare-ledger-type PublicAddress ()
-  (type-ref Either
-            (type-ref ContractAddress)
-            (type-ref UserAddress))
+;; The ledger lays one of these out as its tag followed by one slot for each variant that
+;; has a field, in the reverse of the order the variants are declared in.
+(declare-ledger-enum PublicAddress
+  ([User (type-ref UserAddress)]
+   [Contract (type-ref ContractAddress)])
   "PublicAddress")
 
-(declare-ledger-type TokenType ()
-  (type-ref Either
-            (primitive-type Bytes 32)
-            (primitive-type Bytes 32))
+(declare-ledger-enum ShieldedRecipient
+  ([Contract (type-ref ContractAddress)]
+   [User (type-ref ZswapCoinPublicKey)])
+  "ShieldedRecipient")
+
+(declare-ledger-enum TokenType
+  ([Shielded (primitive-type Bytes 32)]
+   [Unshielded (primitive-type Bytes 32)]
+   [Dust])
   "TokenType")
+
+(declare-ledger-type UnshieldedRecipient ()
+  (type-ref PublicAddress)
+  "UnshieldedRecipient")
 
 (declare-ledger-type Maybe (a)
   (type-ref Maybe a)
@@ -273,14 +271,14 @@
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
   (function read caller (allowed-in-constructor #t) () (Maybe PublicAddress)
-    "Returns the caller of this circuit invocation: `left(addr)` when called by \
-     contract `addr`; `right(addr)` when this is a top-level call whose intent's \
-     unshielded inputs all belong to user `addr`; `none` otherwise, and always in \
+    "Returns the caller of this circuit invocation: `Some(Contract(addr))` when \
+     called by contract `addr`; `Some(User(addr))` when this is a top-level call \
+     whose intent's unshielded inputs all belong to user `addr`; `None` otherwise, and always in \
      a constructor. Off-chain execution cannot yet know a top-level caller and \
-     records `none`, so a top-level call that reads `caller` fails on chain \
+     records `None`, so a top-level call that reads `caller` fails on chain \
      whenever the intent's unshielded inputs turn out to belong to one user, as \
      they do when the user pays unshielded tokens to the contract. Read `caller` \
-     only where the call is known to come from a contract. Maybe, Either, \
+     only where the call is known to come from a contract. Maybe, \
      ContractAddress, UserAddress and PublicAddress are defined in \
      CompactStandardLibrary."
     ;; [context, effects, state]
@@ -635,7 +633,7 @@
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
       transaction or this write fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo and ShieldedRecipient are defined in CompactStandardLibrary."
       ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
        (push [storage #f] [value (state-value 'cell (car (reverse f)))])
        ;; Reach to the context in the stack: past the two pushes above, the
@@ -739,7 +737,7 @@
       QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
       transaction or this insertion fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo and ShieldedRecipient are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, set]
@@ -839,7 +837,7 @@
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
       the current transaction or this insertion fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo and ShieldedRecipient are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, map]
@@ -990,7 +988,7 @@
       transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
       the current transaction or this push fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo and ShieldedRecipient are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, list]

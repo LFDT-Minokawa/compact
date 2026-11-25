@@ -1157,7 +1157,7 @@ groups than for single tests.
       "... should be preserved."
       "*/"
       "circuit foo(): [Field, Boolean, S] {"
-      "  const s = S { 15, E.num };"
+      "  const s = S { 15, E::num };"
       "  return [17, true, S {...s, x: s.x + 7}];"
       "}"
       "export circuit bar(): [E, Field] {"
@@ -1190,7 +1190,7 @@ groups than for single tests.
         "... should be preserved."
         "*/"
         "circuit foo(): [Field, Boolean, S] {"
-        "  const s = S { 15, E.num };"
+        "  const s = S { 15, E::num };"
         "  return [17, true, S { ...s, x: s.x + 7 }];"
         "}"
         ""
@@ -1488,7 +1488,7 @@ groups than for single tests.
           (struct #t S () [x (tunsigned 16)] [y (tunsigned 0 78)]))
         (import M () "")
         (import N (3 (tfield (field-native))) "")
-        (enum #f E pepperoni sausage onions anchovies peppers)
+        (enum #f E () (pepperoni) (sausage) (onions) (anchovies) (peppers))
         (external-contract #t C
           (#f foo ([x (type-ref A)]) (ttuple))
           (#f bar () (type-ref A)))
@@ -1535,7 +1535,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (enum #f E A B C)
+        (enum #f E () (A) (B) (C))
         (circuit #t #f f () ([v (tvector 3 (tunsigned 32))])
              (tvector 3 (tunsigned 64))
           (block
@@ -1574,7 +1574,7 @@ groups than for single tests.
                                          (tfield (field-native)))])
                (tvector 5 (tfield (field-native)))
             (block (return (tuple-slice v 3 5)))))
-        (enum #f PublicState setup commit reveal final)
+        (enum #f PublicState () (setup) (commit) (reveal) (final))
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)]
                                [b (tfield (field-native))])
@@ -1770,12 +1770,12 @@ groups than for single tests.
       "{"
       ""
       "pot.writeCoin(mergeCoinImmediate(pot, seedCoin),"
-      "                      right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "                      ShieldedRecipient::Contract(kernel.self()));"
       "return mintShieldedToken("
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
-      "           left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "           ShieldedRecipient::User(ownPublicKey()));"
       ""
       "if (a)"
       "  return b;"
@@ -1814,7 +1814,7 @@ groups than for single tests.
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
-      "           left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "           ShieldedRecipient::User(ownPublicKey()));"
       "}"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -1843,15 +1843,12 @@ groups than for single tests.
         "          ): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
         "{"
         ""
-        "  pot.writeCoin("
-        "    mergeCoinImmediate(pot, seedCoin),"
-        "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())"
-        "    );"
+        "  pot.writeCoin(mergeCoinImmediate(pot, seedCoin), ShieldedRecipient::Contract(kernel.self()));"
         "  return mintShieldedToken("
         "           dao_token_domain_separator(),"
         "           amount,"
         "           evolveNonce(0, coin.nonce),"
-        "           left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())"
+        "           ShieldedRecipient::User(ownPublicKey())"
         "           );"
         ""
         "  if (a) return b;"
@@ -1887,7 +1884,7 @@ groups than for single tests.
         "             dao_token_domain_separator(),"
         "             amount,"
         "             evolveNonce(0, coin.nonce),"
-        "             left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())"
+        "             ShieldedRecipient::User(ownPublicKey())"
         "             );"
         "}"))
     )
@@ -2217,7 +2214,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 20" "parse error: found ~a looking for~?" ("\")\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "\"{\"" "a generic argument list"))))
+      irritants: '("testfile.compact line 3 char 20" "parse error: found ~a looking for~?" ("\")\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "a generic argument list" "\"{\"" "\"::\""))))
     )
 
   (test
@@ -2229,7 +2226,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 23" "parse error: found ~a looking for~?" ("\",\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\")\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "\"{\"" "a generic argument list"))))
+      irritants: '("testfile.compact line 3 char 23" "parse error: found ~a looking for~?" ("\",\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\")\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "a generic argument list" "\"{\"" "\"::\""))))
     )
 
   (test
@@ -2623,7 +2620,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 50" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\""))))
+      irritants: '("testfile.compact line 4 char 50" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\"" "\"::\""))))
     )
 
   (test
@@ -3311,7 +3308,7 @@ groups than for single tests.
       "  A"
       "};"
       )
-    (returns (program (enum #t Δelta A)))
+    (returns (program (enum #t Δelta () (A))))
     )
 
   ; Lu — Uppercase Letter (Cyrillic)
@@ -3321,7 +3318,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t Жук X)))
+    (returns (program (enum #t Жук () (X))))
     )
 
   ; Ll — Lowercase Letter (Greek)
@@ -3331,7 +3328,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t αlpha X)))
+    (returns (program (enum #t αlpha () (X))))
     )
 
   ; Ll — Lowercase Letter (Cyrillic)
@@ -3341,7 +3338,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t жук X)))
+    (returns (program (enum #t жук () (X))))
     )
 
   ; Lt — Titlecase Letter (Latin DZ with caron)
@@ -3351,7 +3348,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t ǅagreb X)))
+    (returns (program (enum #t ǅagreb () (X))))
     )
 
   ; Lm — Modifier Letter (modifier small h)
@@ -3361,7 +3358,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t ʰello X)))
+    (returns (program (enum #t ʰello () (X))))
     )
 
   ; Lo — Other Letter (Hebrew)
@@ -3371,7 +3368,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t שלום X)))
+    (returns (program (enum #t שלום () (X))))
     )
 
   ; Lo — Other Letter (Arabic)
@@ -3381,7 +3378,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t مرحبا X)))
+    (returns (program (enum #t مرحبا () (X))))
     )
 
   ; Lo — Other Letter (CJK Unified Ideographs)
@@ -3391,7 +3388,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t 中国 X)))
+    (returns (program (enum #t 中国 () (X))))
     )
 
   ; Lo — Other Letter (Hiragana)
@@ -3401,7 +3398,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t あいう X)))
+    (returns (program (enum #t あいう () (X))))
     )
 
   ; Nl — Letter Number (Roman numerals)
@@ -3411,7 +3408,7 @@ groups than for single tests.
       "  Ⅰst"
       "};"
       )
-    (returns (program (enum #t Ⅻhour Ⅰst)))
+    (returns (program (enum #t Ⅻhour () (Ⅰst))))
     )
 
   ; Special — underscore as start (allowed alongside ID_Start)
@@ -3421,7 +3418,7 @@ groups than for single tests.
       "  _bar"
       "};"
       )
-    (returns (program (enum #t _foo _bar)))
+    (returns (program (enum #t _foo () (_bar))))
     )
 
   ; Special — dollar sign as start (allowed alongside ID_Start)
@@ -3431,7 +3428,7 @@ groups than for single tests.
       "  $bar"
       "};"
       )
-    (returns (program (enum #t $foo $bar)))
+    (returns (program (enum #t $foo () ($bar))))
     )
 
   ; lexer tests for ID_Continue extras from unicode spec
@@ -3446,7 +3443,7 @@ groups than for single tests.
       "  Array"
       "};"
       )
-    (returns (program (enum #t Wָd EN Array)))
+    (returns (program (enum #t Wָd () (EN) (Array))))
     )
 
   ; Mn — Nonspacing Mark (Arabic small high seen, in middle)
@@ -3456,7 +3453,7 @@ groups than for single tests.
       "  boolean"
       "};"
       )
-    (returns (program (enum #t eٚXe boolean)))
+    (returns (program (enum #t eٚXe () (boolean))))
     )
 
   ; Mn — Nonspacing Mark (combining acute U+0301, on Latin base)
@@ -3466,7 +3463,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t café X)))
+    (returns (program (enum #t café () (X))))
     )
 
   ; Mc — Spacing Combining Mark (Devanagari vowel sign aa)
@@ -3476,7 +3473,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t aाb X)))
+    (returns (program (enum #t aाb () (X))))
     )
 
   ; Mc — Spacing Combining Mark (Devanagari sign visarga)
@@ -3486,7 +3483,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t aःb X)))
+    (returns (program (enum #t aःb () (X))))
     )
 
   ; Nd — Decimal Digit (ASCII 0-9 in continuation)
@@ -3496,7 +3493,7 @@ groups than for single tests.
       "  X42"
       "};"
       )
-    (returns (program (enum #t foo123 X42)))
+    (returns (program (enum #t foo123 () (X42))))
     )
 
   ; Nd — Decimal Digit (Arabic-Indic digits in continuation)
@@ -3506,7 +3503,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t foo٠١٢ X)))
+    (returns (program (enum #t foo٠١٢ () (X))))
     )
 
   ; Nd — Decimal Digit (Devanagari digits in continuation)
@@ -3516,7 +3513,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t foo०१२ X)))
+    (returns (program (enum #t foo०१२ () (X))))
     )
 
   ; Pc — Connector Punctuation (ASCII underscore in continuation)
@@ -3526,7 +3523,7 @@ groups than for single tests.
       "  X_Y"
       "};"
       )
-    (returns (program (enum #t foo_bar_baz X_Y)))
+    (returns (program (enum #t foo_bar_baz () (X_Y))))
     )
 
   ; Pc — Connector Punctuation (undertie U+203F in continuation)
@@ -3536,7 +3533,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t a‿b X)))
+    (returns (program (enum #t a‿b () (X))))
     )
 
   ; Pc — Connector Punctuation (character tie U+2040 in continuation)
@@ -3546,7 +3543,7 @@ groups than for single tests.
       "  X"
       "};"
       )
-    (returns (program (enum #t a⁀b X)))
+    (returns (program (enum #t a⁀b () (X))))
     )
 
   ; Rejection tests — these Unicode categories are valid in
@@ -3716,6 +3713,80 @@ groups than for single tests.
 (run-tests parse-file/format/reparse
   (test
     '(
+      "circuit foo(o: Opt<Addr>, p: P): Bytes<32> {"
+      "  match p { {a, m: Some(x)} => { return default<Bytes<32>>; } // early"
+      "    {a: _, m} => { } }"
+      "  return match o { Some(Contract(c)) => c, Some(User(u)) => u,"
+      "    None => default<Bytes<32>>, };"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "circuit foo(o: Opt<Addr>,"
+        "            p: P"
+        "            ): Bytes<32> {"
+        "  match p {"
+        "    {a, m: Some(x)} => {"
+        "      return default<Bytes<32>>;"
+        "    } // early"
+        "    {a: _, m} => {"
+        "    }"
+        "  }"
+        "  return match o {"
+        "           Some(Contract(c)) => c,"
+        "           Some(User(u)) => u,"
+        "           None => default<Bytes<32>>,"
+        "         };"
+        "}"))
+    )
+)
+
+(run-tests parse-file/format/reparse
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "export enum Opt<T> { None, Some(T) };"
+      "enum Order { Open, Filled(Bytes<32>,Uint<64>,), Cancelled(Bytes<32>), }"
+      "circuit foo(x: Field): Opt<Field> {"
+      "  const a = Arrow :: up; // which way"
+      "  const b = Order::Filled(pad(32, \"a\"),3);"
+      "  return x == 0 ? Opt<Field> :: None : Opt<Field>::Some( x );"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "enum Arrow {"
+        "  up,"
+        "  down"
+        "}"
+        ""
+        "export enum Opt<T> {"
+        "  None,"
+        "  Some(T)"
+        "};"
+        ""
+        "enum Order {"
+        "  Open,"
+        "  Filled(Bytes<32>, Uint<64>,),"
+        "  Cancelled(Bytes<32>),"
+        "}"
+        ""
+        "circuit foo(x: Field): Opt<Field> {"
+        "  const a = Arrow::up; // which way"
+        "  const b = Order::Filled("
+        "              pad(32, \"a\"),"
+        "              3"
+        "              );"
+        "  return x == 0"
+        "           ? Opt<Field>::None"
+        "           : Opt<Field>::Some(x);"
+        "}"))
+    )
+)
+
+(run-tests parse-file/format/reparse
+  (test
+    '(
       "circuit foo(pos: Uint<32>): Boolean {"
       "return pos == 1 || pos == 2 || pos == 3;"
       "}"
@@ -3746,6 +3817,37 @@ groups than for single tests.
         "}"))
     )
 ))
+
+(run-tests parse-file/fixup/format/reparse
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "type A = Arrow;"
+      "struct S { up: Field }"
+      "export circuit foo(s: S, c: Boolean): Arrow {"
+      "  const x = s.up;"
+      "  return c ? Arrow.up : A . down; // either way"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "enum Arrow {"
+        "  up,"
+        "  down"
+        "}"
+        ""
+        "type A = Arrow;"
+        ""
+        "struct S {"
+        "  up: Field"
+        "}"
+        ""
+        "export circuit foo(s: S, c: Boolean): Arrow {"
+        "  const x = s.up;"
+        "  return c ? Arrow::up : A::down; // either way"
+        "}"))
+    )
+)
 
 (run-tests parse-file/fixup/format/reparse
   (test
@@ -4545,7 +4647,7 @@ groups than for single tests.
                                          (tfield (field-native)))])
                (tvector 5 (tfield (field-native)))
             (block (return (tuple-slice v 3 5)))))
-        (enum #f PublicState setup commit reveal final)
+        (enum #f PublicState () (setup) (commit) (reveal) (final))
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)]
                                [b (tfield (field-native))])
@@ -5738,7 +5840,7 @@ groups than for single tests.
     '(
       "enum names { bill, sally, fred, george, }"
       )
-    (returns (program (enum #f names bill sally fred george)))
+    (returns (program (enum #f names () (bill) (sally) (fred) (george))))
     )
 
   (test
@@ -5747,7 +5849,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 13" "parse error: found ~a looking for~?" ("\"}\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 13" "parse error: found ~a looking for~?" ("\"}\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an enum variant"))))
   )
 
   (test
@@ -5756,7 +5858,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 14" "parse error: found ~a looking for~?" ("\"1\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 14" "parse error: found ~a looking for~?" ("\"1\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an enum variant"))))
   )
 
   (test
@@ -5792,7 +5894,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 19" "parse error: found ~a looking for~?" ("\"=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\""))))
+      irritants: '("testfile.compact line 1 char 19" "parse error: found ~a looking for~?" ("\"=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\"" "\"(\""))))
   )
 
   (test
@@ -6720,7 +6822,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 16" "parse error: found ~a looking for~?" ("\"<=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "\"{\"" "\",\"" "\">\"" "a generic argument list"))))
+      irritants: '("testfile.compact line 2 char 16" "parse error: found ~a looking for~?" ("\"<=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "\",\"" "\">\"" "\"{\"" "\"::\"" "a generic argument list"))))
     )
 
   (test
@@ -6914,7 +7016,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 39" "parse error: found ~a looking for~?" ("\"/\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "\"{\"" "a generic argument list"))))
+      irritants: '("testfile.compact line 6 char 39" "parse error: found ~a looking for~?" ("\"/\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "a generic argument list" "\"{\"" "\"::\""))))
     )
 
   (test
@@ -7565,6 +7667,185 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"yield\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+)
+
+(run-tests parse-file
+  (test
+    '(
+      "circuit foo(o: Opt<Addr>, p: P, t: [Opt<Field>, Field]): Bytes<32> {"
+      "  match p { {a, m: Some(x)} => { return default<Bytes<32>>; } {a: _, m} => { } }"
+      "  const n = 1 + match t { [Some(x), y] => x + y, [None, _] => 0, };"
+      "  return match o {"
+      "    Some(Contract(c)) => c,"
+      "    Some(User(u)) => u,"
+      "    None => default<Bytes<32>>"
+      "  };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([o (type-ref Opt (type-ref Addr))]
+                               [p (type-ref P)]
+                               [t (ttuple
+                                    (type-ref Opt (tfield (field-native)))
+                                    (tfield (field-native)))])
+             (tbytes 32)
+          (block
+            (match p
+              ((struct (a a) (m (Some x)))
+               (block (return (default (tbytes 32)))))
+              ((struct (a _) (m m)) (block)))
+            (const ([n
+                     (tundeclared)
+                     (+ 1
+                        (match t
+                          ((tuple (Some x) y) (+ x y))
+                          ((tuple None _) 0)))]))
+            (return
+              (match o
+                ((Some (Contract c)) c)
+                ((Some (User u)) u)
+                (None (default (tbytes 32)))))))))
+    )
+
+  (test
+    '(
+      "circuit foo(match: Field): Field { return match; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "parse error: found ~a looking for~?" ("keyword \"match\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a typed pattern" "\")\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): [] { match x { A => { }, B => { } } }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 43" "parse error: found ~a looking for~?" ("\",\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a match block arm" "\"}\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): Field { return match x { A => 1 B => 2 }; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 52" "parse error: found ~a looking for~?" ("\"B\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): Field { return match x { A() => 1 }; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 49" "parse error: found ~a looking for~?" ("\"=>\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): Field { return match x { }; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 46" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"{\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\""))))
+    )
+)
+
+(run-tests parse-file
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "enum Opt<T> { None, Some(T) }"
+      "export enum Order { Open, Filled(Bytes<32>, Uint<64>,), Cancelled(Bytes<32>), }"
+      "enum Sized<#n, T> { Empty, Full(Vector<n, T>) }"
+      "circuit foo(x: Field): Opt<Field> {"
+      "  const a = Arrow::up;"
+      "  const b = Order::Filled(pad(32, \"a\"), 3,);"
+      "  const c = Sized<2, Field>::Full([x, x]);"
+      "  return x == 0 ? Opt<Field>::None : Opt<Field>::Some(x);"
+      "}"
+      )
+    (returns
+      (program
+        (enum #f Arrow () (up) (down))
+        (enum #f Opt (T) (None) (Some (type-ref T)))
+        (enum #t Order ()
+          (Open)
+          (Filled (tbytes 32) (tunsigned 64))
+          (Cancelled (tbytes 32)))
+        (enum #f Sized ((nat-valued n) T)
+          (Empty)
+          (Full (tvector (type-size-ref n) (type-ref T))))
+        (circuit #f #f foo () ([x (tfield (field-native))])
+             (type-ref Opt (tfield (field-native)))
+          (block
+            (const ([a
+                     (tundeclared)
+                     (variant-ref (type-ref Arrow) up)]))
+            (const ([b
+                     (tundeclared)
+                     (variant-call (type-ref Order) Filled
+                       #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0)
+                       3)]))
+            (const ([c
+                     (tundeclared)
+                     (variant-call (type-ref Sized 2 (tfield (field-native))) Full
+                       (tuple x x))]))
+            (return
+              (if (== x 0)
+                  (variant-ref (type-ref Opt (tfield (field-native))) None)
+                  (variant-call (type-ref Opt (tfield (field-native))) Some
+                    x)))))))
+    )
+
+  (test
+    '(
+      "enum E { A() }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 12" "parse error: found ~a looking for~?" ("\")\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type"))))
+    )
+
+  (test
+    '(
+      "circuit foo(): E { return E::; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 30" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit foo(): E { return E::A::B; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 31" "parse error: found ~a looking for~?" ("\"::\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(): E { return E: :A; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 28" "parse error: found ~a looking for~?" ("\":\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "a generic argument list" "\"{\"" "\"::\""))))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): Field { return x as E::A; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 41" "parse error: found ~a looking for~?" ("\"::\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "a generic argument list"))))
     )
 )
 
@@ -8960,6 +9241,36 @@ groups than for single tests.
     )
 )
 
+(run-tests report-unreachable
+  (test
+    '(
+      "circuit foo(x: E): Field {"
+      "  match x { A => { return 1; } B => { return 2; } }"
+      "  return 3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "unreachable statement" ()))
+    )
+
+  (test
+    '(
+      "circuit foo(x: E): Field {"
+      "  match x { A => { return 1; } B => { } }"
+      "  return 3;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (type-ref E)])
+             (tfield (field-native))
+          (block
+            (match x (A (block (return 1))) (B (block)))
+            (return 3)))))
+    )
+)
+
 (run-tests hoist-local-variables
   (test
     '(
@@ -9018,7 +9329,7 @@ groups than for single tests.
                                          (tfield (field-native)))])
                (tvector 5 (tfield (field-native)))
             (block () (return (tuple-slice v 3 5)))))
-        (enum #f PublicState setup commit reveal final)
+        (enum #f PublicState () (setup) (commit) (reveal) (final))
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)]
                                [b (tfield (field-native))])
@@ -9258,6 +9569,26 @@ groups than for single tests.
     )
 )
 
+(run-tests hoist-local-variables
+  (test
+    '(
+      "circuit foo(x: E): Field {"
+      "  const a = 1;"
+      "  match x { A => { const a = 2; return a; } B(a) => { const b = a; return b; } }"
+      "}"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (type-ref E)])
+             (tfield (field-native))
+          (block (a)
+            (= a (tundeclared) 1)
+            (match x
+              (A (block (a) (= a (tundeclared) 2) (return a)))
+              ((B a) (block (b) (= b (tundeclared) a) (return b))))))))
+    )
+)
+
 (run-tests reject-duplicate-bindings
   (test
     '(
@@ -9369,7 +9700,7 @@ groups than for single tests.
        )
     (returns
       (program
-        (enum #f names bill sally fred george)))
+        (enum #f names () (bill) (sally) (fred) (george))))
   )
 
   (test
@@ -9380,6 +9711,26 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "duplicate ~a ~s" ("element name" bill)))
   )
+)
+
+(run-tests reject-duplicate-bindings
+  (test
+    '(
+      "enum E<T, T> { A(T), B }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "duplicate ~a ~s" ("generic parameter name" T)))
+    )
+
+  (test
+    '(
+      "enum E { A(Field), B, A }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "duplicate ~a ~s" ("element name" A)))
+    )
 )
 
 (run-tests eliminate-statements
@@ -9616,7 +9967,7 @@ groups than for single tests.
                                          (tfield (field-native)))])
                (tvector 5 (tfield (field-native)))
             (tuple-slice v 3 5)))
-        (enum #f PublicState setup commit reveal final)
+        (enum #f PublicState () (setup) (commit) (reveal) (final))
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)]
                                [b (tfield (field-native))])
@@ -9845,6 +10196,27 @@ groups than for single tests.
     )
 )
 
+(run-tests eliminate-statements
+  (test
+    '(
+      "circuit foo(x: E): Field {"
+      "  match x { A => { f(); } B(a) => { g(a); } }"
+      "  h();"
+      "  match x { A => { return 1; } B(a) => { g(a); } }"
+      "  return 3;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (type-ref E)])
+             (tfield (field-native))
+          (seq
+            (match x (A (call f)) ((B a) (call g a)))
+            (call h)
+            (match x (A 1) ((B a) (seq (call g a) 3)))))))
+    )
+)
+
 (run-tests eliminate-boolean-connectives
   (test
     '(
@@ -9908,7 +10280,7 @@ groups than for single tests.
                                          (tfield (field-native)))])
                (tvector 5 (tfield (field-native)))
             (tuple-slice v 3 5)))
-        (enum #f PublicState setup commit reveal final)
+        (enum #f PublicState () (setup) (commit) (reveal) (final))
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)]
                                [b (tfield (field-native))])
@@ -10465,9 +10837,7 @@ groups than for single tests.
         (public-ledger-declaration
           %topic.34
           (__compact_Cell
-            (tstruct Maybe
-              (is_some (tboolean))
-              (value (topaque "string")))))
+            (tsum Maybe #f (None) (Some (topaque "string")))))
         (public-ledger-declaration %tally_yes.35 (Counter))
         (public-ledger-declaration
           %committed_votes.36
@@ -11454,7 +11824,7 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, };"
       "export circuit foo(): Names<Field> {"
-      "  return Names.bill;"
+      "  return Names::bill;"
       "}"
       )
     (oops
@@ -11621,7 +11991,7 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       )
     (returns
@@ -11640,13 +12010,13 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(Names.fred);"
+      "  return foo(Names::fred);"
       "}"
       )
     (returns
@@ -11672,7 +12042,7 @@ groups than for single tests.
   (test
     '(
       "circuit foo<A>(): Boolean {"
-      "  return A.bill;"
+      "  return A::bill;"
       "}"
       "export circuit bar(): Boolean {"
       "  return foo<Field>();"
@@ -11680,14 +12050,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "invalid context for reference to ~a name ~s" ("type" A)))
+      irritants: '("testfile.compact line 2 char 10" "~a is not an enum type, so ~:*~a::~a does not name a variant" (A bill)))
     )
 
   (test
     '(
       "enum Names { bill, sally, fred, george, }"
       "circuit foo<A>(): Names {"
-      "  return A.bill;"
+      "  return A::bill;"
       "}"
       "export circuit bar(): Names {"
       "  return foo<Names>();"
@@ -13465,7 +13835,7 @@ groups than for single tests.
       "  return c.write(value);"
       "}"
       ""
-      "export circuit writeCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {"
+      "export circuit writeCoin(coin: ShieldedCoinInfo, recipient: ShieldedRecipient): [] {"
       "  return c.writeCoin(coin, recipient);"
       "}"
        )
@@ -14052,7 +14422,7 @@ groups than for single tests.
       "  M5$fld.insert(3, default<Map<Uint<8>, List<Boolean>>>);"
       "  M5$fld.lookup(3).insert(4, default<List<Boolean>>);"
       "  M5$fld.lookup(3).lookup(4).pushFront(true);"
-      "  return [M1$fld, M2$fld, M3$fld.size(), M4$fld, M6$fld.lookup(3).lookup(4).head().value as Field];"
+      "  return [M1$fld, M2$fld, M3$fld.size(), M4$fld, (match M6$fld.lookup(3).lookup(4).head() { Some(b) => b, None => false }) as Field];"
       "}"
       )
     (returns
@@ -14089,11 +14459,11 @@ groups than for single tests.
               #t)
             (tuple %fld.2 %fld.2 (elt-call %fld.3 size) %fld.4
               (cast (tfield (field-native))
-                (elt-ref
-                  (elt-call
-                    (elt-call (elt-call %fld.5 lookup 3) lookup 4)
-                    head)
-                  value)))))))
+                (match (elt-call
+                         (elt-call (elt-call %fld.5 lookup 3) lookup 4)
+                         head)
+                  ((Some %b.6) %b.6)
+                  (%None.7 #f))))))))
     )
 
   (test
@@ -14617,12 +14987,10 @@ groups than for single tests.
         (export-typedef ShieldedReceive ()
           (tstruct ShieldedReceive
             (commitment (tbytes 32))
-            (ciphertext (tstruct Maybe
-                          (is_some (tboolean))
-                          (value (tbytes 512))))
-            (contractAddress (tstruct Maybe
-                                (is_some (tboolean))
-                                (value (tbytes 32))))))
+            (ciphertext (tsum Maybe #f (None) (Some (tbytes 512))))
+            (contractAddress (tsum Maybe #f
+                               (None)
+                               (Some (tbytes 32))))))
         (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
@@ -14637,10 +15005,10 @@ groups than for single tests.
           (tstruct ShieldedMint
             (commitment (tbytes 32))
             (domainSep (tbytes 32))
-            (amount (tstruct Maybe
-                      (is_some (tboolean))
-                      (value (tunsigned
-                               340282366920938463463374607431768211455))))))
+            (amount (tsum Maybe #f
+                      (None)
+                      (Some (tunsigned
+                              340282366920938463463374607431768211455))))))
         (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
@@ -14654,10 +15022,10 @@ groups than for single tests.
         (export-typedef ShieldedBurn ()
           (tstruct ShieldedBurn
             (nullifier (tbytes 32))
-            (amount (tstruct Maybe
-                      (is_some (tboolean))
-                      (value (tunsigned
-                               340282366920938463463374607431768211455))))))
+            (amount (tsum Maybe #f
+                      (None)
+                      (Some (tunsigned
+                              340282366920938463463374607431768211455))))))
         (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
@@ -14670,10 +15038,9 @@ groups than for single tests.
       (program ()
         (export-typedef UnshieldedSpend ()
           (tstruct UnshieldedSpend
-            (sender (tstruct Either
-                      (is_left (tboolean))
-                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (sender (tsum ShieldedRecipient #t
+                      (Contract (tstruct ContractAddress (bytes (tbytes 32))))
+                      (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
             (domainSep (tbytes 32))
             (tokenType (tbytes 32))
             (amount (tunsigned
@@ -14690,12 +15057,11 @@ groups than for single tests.
       (program ()
         (export-typedef UnshieldedReceive ()
           (tstruct UnshieldedReceive
-            (recipient (tstruct Either
-                         (is_left (tboolean))
-                         (left (tstruct ZswapCoinPublicKey
-                                 (bytes (tbytes 32))))
-                         (right (tstruct ContractAddress
-                                  (bytes (tbytes 32))))))
+            (recipient (tsum ShieldedRecipient #t
+                         (Contract (tstruct ContractAddress
+                                     (bytes (tbytes 32))))
+                         (User (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))))
             (domainSep (tbytes 32))
             (tokenType (tbytes 32))
             (amount (tunsigned
@@ -14757,10 +15123,9 @@ groups than for single tests.
       (program ()
         (export-typedef UnshieldedBurn ()
           (tstruct UnshieldedBurn
-            (sender (tstruct Either
-                      (is_left (tboolean))
-                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (sender (tsum ShieldedRecipient #t
+                      (Contract (tstruct ContractAddress (bytes (tbytes 32))))
+                      (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
             (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
@@ -14960,6 +15325,274 @@ groups than for single tests.
         (circuit %foo.0 ([%x.2 (tpoint (curve-jubjub))])
              (tpoint (curve-jubjub))
           %x.2)))
+    )
+)
+
+(run-tests expand-modules-and-types
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Addr>, x: Field): Bytes<32> {"
+      "  return match o {"
+      "    Some(Contract(x)) => x,"
+      "    Some(User(u)) => u,"
+      "    None => default<Bytes<32>>"
+      "  };"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ([%o.1 (tsum Opt #f
+                                 (None)
+                                 (Some (tsum Addr #f
+                                         (User (tbytes 32))
+                                         (Contract (tbytes 32)))))]
+                         [%x.2 (tfield (field-native))])
+             (tbytes 32)
+          (match %o.1
+            ((Some (Contract %x.3)) %x.3)
+            ((Some (User %u.4)) %u.4)
+            (%None.5 (default (tbytes 32)))))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(x) => x, None => y };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 42" "unbound identifier ~s" (y)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  const r = match o { Some(x) => x, None => 0 as Field };"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 10" "unbound identifier ~s" (x)))
+    )
+)
+
+(run-tests expand-modules-and-types
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "enum Shape { None, Open(Field) }"
+      "type Maybe32 = Opt<Bytes<32>>;"
+      "export circuit foo(x: Field, b: Bytes<32>): [Opt<Field>, Maybe32, Order, Shape] {"
+      "  return [Opt<Field>::Some(x), Maybe32::Some(b), Order::Open, Shape::Open(x)];"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ([%x.1 (tfield (field-native))]
+                         [%b.2 (tbytes 32)])
+             (ttuple
+               (tsum Opt #f (None) (Some (tfield (field-native))))
+               (talias #f Maybe32 (tsum Opt #f (None) (Some (tbytes 32))))
+               (tsum Order #f
+                 (Open)
+                 (Filled (tbytes 32) (tunsigned 18446744073709551615))
+                 (Cancelled (tbytes 32)))
+               (tsum Shape #f (None) (Open (tfield (field-native)))))
+          (tuple
+            (variant-new (tsum Opt #f
+                           (None)
+                           (Some (tfield (field-native)))) Some
+              %x.1)
+            (variant-new (talias #f Maybe32
+                           (tsum Opt #f (None) (Some (tbytes 32)))) Some
+              %b.2)
+            (variant-new (tsum Order #f
+                           (Open)
+                           (Filled (tbytes 32) (tunsigned
+                                                 18446744073709551615))
+                           (Cancelled (tbytes 32))) Open)
+            (variant-new (tsum Shape #f
+                           (None)
+                           (Open (tfield (field-native)))) Open
+              %x.1)))))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "new type A = Arrow;"
+      "enum Phantom<T> { a, b }"
+      "export circuit foo(): [Arrow, A, Phantom<Field>] {"
+      "  return [Arrow::up, A::down, Phantom<Field>::b];"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (ttuple
+               (tenum Arrow up down)
+               (talias #t A (tenum Arrow up down))
+               (tenum Phantom a b))
+          (tuple
+            (enum-ref (tenum Arrow up down) up)
+            (enum-ref (talias #t A (tenum Arrow up down)) down)
+            (enum-ref (tenum Phantom a b) b)))))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "export circuit foo(): Arrow {"
+      "  return Arrow.up;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 15" "enum variant selection requires \"::\" rather than \".\": use ~a::~a" (Arrow up)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "type O = Opt<Field>;"
+      "export circuit foo(): O {"
+      "  return O.None;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 11" "enum variant selection requires \"::\" rather than \".\": use ~a::~a" (O None)))
+    )
+
+  (test
+    '(
+      "enum List { Nil, Cons(Field, List) }"
+      "export circuit foo(): List {"
+      "  return List::Nil;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 30" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (List))))
+    )
+
+  (test
+    '(
+      "enum A { X, Y(B) }"
+      "struct B { a: Vector<2, A> }"
+      "export circuit foo(): A {"
+      "  return A::X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 25" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (B A))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(): Opt<Field> {"
+      "  return Opt<Field>::Some;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a::~a must be applied to arguments because variant ~a of enum ~a has fields" (Opt Some Some Opt)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(): Opt<Field> {"
+      "  return Opt<Field>::None();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a::~a cannot be applied to arguments because variant ~a of enum ~a has no fields" (Opt None None Opt)))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "export circuit foo(): Arrow {"
+      "  return Arrow::up();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a::~a cannot be applied to arguments because enum ~a has no variants with fields" (Arrow up Arrow)))
+    )
+
+  (test
+    '(
+      "struct S { x: Field }"
+      "export circuit foo(): S {"
+      "  return S::x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not an enum type, so ~:*~a::~a does not name a variant" (S x)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(): Opt<Field> {"
+      "  return Opt::None;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "mismatch between actual number ~s and declared number ~s of generic parameters for ~s" (0 1 Opt)))
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Field): Field {"
+      "  return x::None;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "invalid context for reference to ~a name ~s" ("variable" x)))
+    )
+
+  (test
+    '(
+      "export enum Opt<T> { None, Some(T) }"
+      "export enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export enum Arrow { up, down }"
+      )
+    (returns
+      (program ()
+        (export-typedef Opt (T) (tsum Opt #f (None) (Some T)))
+        (export-typedef Order ()
+          (tsum Order #f
+            (Open)
+            (Filled (tbytes 32) (tunsigned 18446744073709551615))
+            (Cancelled (tbytes 32))))
+        (export-typedef Arrow () (tenum Arrow up down))))
     )
 )
 
@@ -17128,13 +17761,13 @@ groups than for single tests.
       "}"
       "import M<Names>;"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(enumid(Names.george));"
+      "  return foo(enumid(Names::george));"
       "}"
       )
     (returns
@@ -17178,13 +17811,13 @@ groups than for single tests.
       "}"
       "import M<Names>;"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(enumid(Names.george));"
+      "  return foo(enumid(Names::george));"
       "}"
       )
     (oops
@@ -17199,10 +17832,10 @@ groups than for single tests.
       "  return x == 1;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(Names.george);"
+      "  return foo(Names::george);"
       "}"
       )
     (oops
@@ -17214,10 +17847,10 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
       "  return foo(6);"
@@ -17244,12 +17877,12 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "export circuit foo() : Names {"
-      "  return Names.trudy;"
+      "  return Names::trudy;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 15" "enum ~s has no field named ~s" (Names trudy)))
+      irritants: '("testfile.compact line 3 char 10" "enum ~s has no field named ~s" (Names trudy)))
     )
 
   (test
@@ -17340,7 +17973,7 @@ groups than for single tests.
   (test
     '(
       "enum E { a, b, c }"
-      "export circuit baz(b: E) : Field { return E.b as Field; }"
+      "export circuit baz(b: E) : Field { return E::b as Field; }"
       )
     (returns
       (program
@@ -17512,18 +18145,18 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.writeCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q2 = field7.read();"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insertCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  assert(field8.member(q2), 'oops 8a');"
       "  field8.remove(q2);"
       "  assert(!field8.member(q2), 'oops 8b');"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insertCoin(x, ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q4 = field9.lookup(x);"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFrontCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q5 = field10.head();"
       "  return b;"
       "}"
@@ -17531,43 +18164,30 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %right.1 ([%value.2 (tstruct ContractAddress
-                                       (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.2))
-        (public-ledger-declaration %field0.3 (Counter))
+        (public-ledger-declaration %field0.1 (Counter))
         (public-ledger-declaration
-          %field1.4
+          %field1.2
           (__compact_Cell (tboolean)))
         (public-ledger-declaration
-          %field2.5
+          %field2.3
           (Set (tfield (field-native))))
         (public-ledger-declaration
-          %field3.6
+          %field3.4
           (Map (tfield (field-native))
                (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field4.7
+          %field4.5
           (List (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field5.8
+          %field5.6
           (MerkleTree
             10
             (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field6.9
+          %field6.7
           (HistoricMerkleTree 10 (tfield (field-native))))
         (public-ledger-declaration
-          %field7.10
+          %field7.8
           (__compact_Cell
             (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
@@ -17575,14 +18195,14 @@ groups than for single tests.
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
-          %field8.11
+          %field8.9
           (Set (tstruct QualifiedShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
                  (value (tunsigned 340282366920938463463374607431768211455))
                  (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
-          %field9.12
+          %field9.10
           (Map (tfield (field-native))
                (tstruct QualifiedShieldedCoinInfo
                  (nonce (tbytes 32))
@@ -17590,91 +18210,91 @@ groups than for single tests.
                  (value (tunsigned 340282366920938463463374607431768211455))
                  (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
-          %field10.13
+          %field10.11
           (List
             (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %foo.14 ([%x.15 (tfield (field-native))]
-                          [%ci.16 (tstruct ShieldedCoinInfo
+        (circuit %foo.12 ([%x.13 (tfield (field-native))]
+                          [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
                                              340282366920938463463374607431768211455)))])
              (tboolean)
           (seq
-            (ledger-call resetToDefault %field0.3)
+            (ledger-call resetToDefault %field0.1)
             (ledger-call increment
-              %field0.3
+              %field0.1
               (safe-cast (tunsigned 65535) (tunsigned 5) 5))
             (ledger-call decrement
-              %field0.3
+              %field0.1
               (safe-cast (tunsigned 65535) (tunsigned 2) 2))
             (assert
               (ledger-call lessThan
-                %field0.3
+                %field0.1
                 (safe-cast (tunsigned 18446744073709551615)
                            (tunsigned 4)
                   4))
               "oops 1")
-            (ledger-call write %field1.4 #t)
-            (let* ([[%b.17 (tboolean)] (ledger-call read %field1.4)])
+            (ledger-call write %field1.2 #t)
+            (let* ([[%b.15 (tboolean)] (ledger-call read %field1.2)])
               (seq
-                (ledger-call resetToDefault %field2.5)
-                (assert (ledger-call isEmpty %field2.5) "oops 2a")
+                (ledger-call resetToDefault %field2.3)
+                (assert (ledger-call isEmpty %field2.3) "oops 2a")
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 0)
                         0))
                   "oops 2b")
                 (assert
-                  (if (ledger-call member %field2.5 %x.15) #f #t)
+                  (if (ledger-call member %field2.3 %x.13) #f #t)
                   "oops 2c")
-                (ledger-call insert %field2.5 %x.15)
+                (ledger-call insert %field2.3 %x.13)
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 3)
                         3))
                   "oops 2d")
                 (ledger-call remove
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 2)
                         2))
                   "oops 2e")
                 (assert
-                  (if (ledger-call isEmpty %field2.5) #f #t)
+                  (if (ledger-call isEmpty %field2.3) #f #t)
                   "oops 2f")
-                (assert (ledger-call member %field2.5 %x.15) "oops 2g")
+                (assert (ledger-call member %field2.3 %x.13) "oops 2g")
                 (assert
                   (if (ledger-call member
-                        %field2.5
+                        %field2.3
                         (+ (tfield (field-native))
-                           %x.15
+                           %x.13
                            (safe-cast (tfield (field-native))
                                       (tunsigned 1)
                              1)))
@@ -17683,68 +18303,88 @@ groups than for single tests.
                   "oops 2h")
                 (assert
                   (ledger-call member
-                    %field2.5
+                    %field2.3
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                   "oops 2i")
-                (ledger-call resetToDefault %field3.6)
-                (ledger-call resetToDefault %field4.7)
-                (ledger-call resetToDefault %field5.8)
-                (ledger-call resetToDefault %field6.9)
+                (ledger-call resetToDefault %field3.4)
+                (ledger-call resetToDefault %field4.5)
+                (ledger-call resetToDefault %field5.6)
+                (ledger-call resetToDefault %field6.7)
                 (ledger-call writeCoin
-                  %field7.10
-                  %ci.16
-                  (call %right.1 (ledger-call self %kernel.0)))
-                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
+                  %field7.8
+                  %ci.14
+                  (variant-new (tsum ShieldedRecipient #t
+                                 (Contract (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                 (User (tstruct ZswapCoinPublicKey
+                                         (bytes (tbytes 32))))) Contract
+                    (ledger-call self %kernel.0)))
+                (let* ([[%q2.16 (tstruct QualifiedShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
                                            340282366920938463463374607431768211455))
                                   (mt_index (tunsigned 18446744073709551615)))]
-                        (ledger-call read %field7.10)])
+                        (ledger-call read %field7.8)])
                   (seq
-                    (ledger-call resetToDefault %field8.11)
+                    (ledger-call resetToDefault %field8.9)
                     (ledger-call insertCoin
-                      %field8.11
-                      %ci.16
-                      (call %right.1 (ledger-call self %kernel.0)))
-                    (assert (ledger-call member %field8.11 %q2.18) "oops 8a")
-                    (ledger-call remove %field8.11 %q2.18)
+                      %field8.9
+                      %ci.14
+                      (variant-new (tsum ShieldedRecipient #t
+                                     (Contract (tstruct ContractAddress
+                                                 (bytes (tbytes 32))))
+                                     (User (tstruct ZswapCoinPublicKey
+                                             (bytes (tbytes 32))))) Contract
+                        (ledger-call self %kernel.0)))
+                    (assert (ledger-call member %field8.9 %q2.16) "oops 8a")
+                    (ledger-call remove %field8.9 %q2.16)
                     (assert
-                      (if (ledger-call member %field8.11 %q2.18) #f #t)
+                      (if (ledger-call member %field8.9 %q2.16) #f #t)
                       "oops 8b")
-                    (ledger-call resetToDefault %field9.12)
+                    (ledger-call resetToDefault %field9.10)
                     (ledger-call insertCoin
-                      %field9.12
-                      %x.15
-                      %ci.16
-                      (call %right.1 (ledger-call self %kernel.0)))
-                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
+                      %field9.10
+                      %x.13
+                      %ci.14
+                      (variant-new (tsum ShieldedRecipient #t
+                                     (Contract (tstruct ContractAddress
+                                                 (bytes (tbytes 32))))
+                                     (User (tstruct ZswapCoinPublicKey
+                                             (bytes (tbytes 32))))) Contract
+                        (ledger-call self %kernel.0)))
+                    (let* ([[%q4.17 (tstruct QualifiedShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
                                                340282366920938463463374607431768211455))
                                       (mt_index (tunsigned
                                                   18446744073709551615)))]
-                            (ledger-call lookup %field9.12 %x.15)])
+                            (ledger-call lookup %field9.10 %x.13)])
                       (seq
-                        (ledger-call resetToDefault %field10.13)
+                        (ledger-call resetToDefault %field10.11)
                         (ledger-call pushFrontCoin
-                          %field10.13
-                          %ci.16
-                          (call %right.1 (ledger-call self %kernel.0)))
-                        (let* ([[%q5.20 (tstruct Maybe
-                                          (is_some (tboolean))
-                                          (value (tstruct QualifiedShieldedCoinInfo
-                                                   (nonce (tbytes 32))
-                                                   (color (tbytes 32))
-                                                   (value (tunsigned
-                                                            340282366920938463463374607431768211455))
-                                                   (mt_index (tunsigned
-                                                               18446744073709551615)))))]
-                                (ledger-call head %field10.13)])
-                          %b.17)))))))))))
+                          %field10.11
+                          %ci.14
+                          (variant-new (tsum ShieldedRecipient #t
+                                         (Contract (tstruct ContractAddress
+                                                     (bytes (tbytes 32))))
+                                         (User (tstruct ZswapCoinPublicKey
+                                                 (bytes (tbytes 32))))) Contract
+                            (ledger-call self %kernel.0)))
+                        (let* ([[%q5.18 (tsum Maybe #f
+                                          (None)
+                                          (Some (tstruct QualifiedShieldedCoinInfo
+                                                  (nonce (tbytes 32))
+                                                  (color (tbytes 32))
+                                                  (value (tunsigned
+                                                           340282366920938463463374607431768211455))
+                                                  (mt_index (tunsigned
+                                                              18446744073709551615)))))]
+                                (ledger-call head %field10.11)])
+                          %b.15)))))))))))
     )
 
   (test
@@ -18563,7 +19203,7 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "circuit foo<A>(): Names {"
-      "  return A.bill;"
+      "  return A::bill;"
       "}"
       "export circuit bar(): Names {"
       "  return foo<Names>();"
@@ -20109,11 +20749,11 @@ groups than for single tests.
       "export ledger fld: List<QualifiedShieldedCoinInfo>;"
       "export circuit bar(): QualifiedShieldedCoinInfo {"
       "  const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "  const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
+      "  const rcpnt = ShieldedRecipient::User(default<ZswapCoinPublicKey>);"
       "  fld.pushFrontCoin(coin, rcpnt);"
       "  assert(!fld.isEmpty(), 'oops empty');"
       "  assert(fld.length() == 1, 'oops length');"
-      "  return fld.head().value;"
+      "  return match fld.head() { Some(c) => c, None => default<QualifiedShieldedCoinInfo> };"
       "}"
       )
     (returns
@@ -20147,26 +20787,22 @@ groups than for single tests.
                          0 0 0 0 0)
                     #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                          0 0 0 0 0)
-                    (safe-cast (tunsigned 340282366920938463463374607431768211455)
+                    (safe-cast (tunsigned
+                                 340282366920938463463374607431768211455)
                                (tunsigned 73)
                       73))])
-            (let* ([[%rcpnt.4 (tstruct Either
-                                (is_left (tboolean))
-                                (left (tstruct ZswapCoinPublicKey
-                                        (bytes (tbytes 32))))
-                                (right (tstruct ContractAddress
-                                         (bytes (tbytes 32)))))]
-                    (new (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
-                                   (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
-                                    (bytes (tbytes 32)))))
-                      #t
+            (let* ([[%rcpnt.4 (tsum ShieldedRecipient #t
+                                (Contract (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                (User (tstruct ZswapCoinPublicKey
+                                        (bytes (tbytes 32)))))]
+                    (variant-new (tsum ShieldedRecipient #t
+                                   (Contract (tstruct ContractAddress
+                                               (bytes (tbytes 32))))
+                                   (User (tstruct ZswapCoinPublicKey
+                                           (bytes (tbytes 32))))) User
                       (default
-                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (default
-                        (tstruct ContractAddress (bytes (tbytes 32)))))])
+                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))])
               (seq
                 (ledger-call pushFrontCoin %fld.1 %coin.3 %rcpnt.4)
                 (assert
@@ -20178,7 +20814,16 @@ groups than for single tests.
                                  (tunsigned 1)
                         1))
                   "oops length")
-                (elt-ref (ledger-call head %fld.1) value 1)))))))
+                (match (ledger-call head %fld.1)
+                  ((Some %c.5) %c.5)
+                  ((None)
+                   (default
+                     (tstruct QualifiedShieldedCoinInfo
+                       (nonce (tbytes 32))
+                       (color (tbytes 32))
+                       (value (tunsigned
+                                340282366920938463463374607431768211455))
+                       (mt_index (tunsigned 18446744073709551615))))))))))))
     )
 
   (test
@@ -20194,11 +20839,11 @@ groups than for single tests.
       "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
       "  export circuit bar(): QualifiedShieldedCoinInfo {"
       "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
+      "    const rcpnt = ShieldedRecipient::User(default<ZswapCoinPublicKey>);"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
       "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
+      "    return match fld.head() { Some(c) => c, None => default<QualifiedShieldedCoinInfo> };"
       "  }"
       "}"
       "import M;"
@@ -20237,26 +20882,22 @@ groups than for single tests.
                          0 0 0 0 0)
                     #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                          0 0 0 0 0)
-                    (safe-cast (tunsigned 340282366920938463463374607431768211455)
+                    (safe-cast (tunsigned
+                                 340282366920938463463374607431768211455)
                                (tunsigned 73)
                       73))])
-            (let* ([[%rcpnt.4 (tstruct Either
-                                (is_left (tboolean))
-                                (left (tstruct ZswapCoinPublicKey
-                                        (bytes (tbytes 32))))
-                                (right (tstruct ContractAddress
-                                         (bytes (tbytes 32)))))]
-                    (new (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
-                                   (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
-                                    (bytes (tbytes 32)))))
-                      #t
+            (let* ([[%rcpnt.4 (tsum ShieldedRecipient #t
+                                (Contract (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                (User (tstruct ZswapCoinPublicKey
+                                        (bytes (tbytes 32)))))]
+                    (variant-new (tsum ShieldedRecipient #t
+                                   (Contract (tstruct ContractAddress
+                                               (bytes (tbytes 32))))
+                                   (User (tstruct ZswapCoinPublicKey
+                                           (bytes (tbytes 32))))) User
                       (default
-                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (default
-                        (tstruct ContractAddress (bytes (tbytes 32)))))])
+                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))])
               (seq
                 (ledger-call pushFrontCoin %fld.1 %coin.3 %rcpnt.4)
                 (assert
@@ -20268,7 +20909,16 @@ groups than for single tests.
                                  (tunsigned 1)
                         1))
                   "oops length")
-                (elt-ref (ledger-call head %fld.1) value 1)))))))
+                (match (ledger-call head %fld.1)
+                  ((Some %c.5) %c.5)
+                  ((None)
+                   (default
+                     (tstruct QualifiedShieldedCoinInfo
+                       (nonce (tbytes 32))
+                       (color (tbytes 32))
+                       (value (tunsigned
+                                340282366920938463463374607431768211455))
+                       (mt_index (tunsigned 18446744073709551615))))))))))))
     )
 
   (test
@@ -20278,11 +20928,11 @@ groups than for single tests.
       "  export ledger fld: List<ShieldedCoinInfo>;"
       "  export circuit bar(): QualifiedShieldedCoinInfo {"
       "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
+      "    const rcpnt = ShieldedRecipient::User(default<ZswapCoinPublicKey>);"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
       "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
+      "    return match fld.head() { Some(c) => c, None => default<QualifiedShieldedCoinInfo> };"
       "  }"
       "}"
       "import M;"
@@ -20301,11 +20951,11 @@ groups than for single tests.
       "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
       "  export circuit bar(): QualifiedShieldedCoinInfo {"
       "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
+      "    const rcpnt = ShieldedRecipient::User(default<ZswapCoinPublicKey>);"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
       "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
+      "    return match fld.head() { Some(c) => c, None => default<QualifiedShieldedCoinInfo> };"
       "  }"
       "}"
       "import M;"
@@ -20343,7 +20993,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger fld: QualifiedShieldedCoinInfo;"
       "export circuit bar(coin: ShieldedCoinInfo): [] {"
-      "  fld.insertCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  fld.insertCoin(coin, ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (oops
@@ -20369,34 +21019,21 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger fld: QualifiedShieldedCoinInfo;"
       "export circuit bar(coin: ShieldedCoinInfo): [] {"
-      "  fld.writeCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  fld.writeCoin(coin, ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %right.1 ([%value.2 (tstruct ContractAddress
-                                       (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.2))
         (public-ledger-declaration
-          %fld.3
+          %fld.1
           (__compact_Cell
             (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %bar.4 ([%coin.5 (tstruct ShieldedCoinInfo
+        (circuit %bar.2 ([%coin.3 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -20404,9 +21041,14 @@ groups than for single tests.
              (ttuple)
           (seq
             (ledger-call writeCoin
-              %fld.3
-              %coin.5
-              (call %right.1 (ledger-call self %kernel.0)))
+              %fld.1
+              %coin.3
+              (variant-new (tsum ShieldedRecipient #t
+                             (Contract (tstruct ContractAddress
+                                         (bytes (tbytes 32))))
+                             (User (tstruct ZswapCoinPublicKey
+                                     (bytes (tbytes 32))))) Contract
+                (ledger-call self %kernel.0)))
             (tuple)))))
     )
 
@@ -20569,7 +21211,7 @@ groups than for single tests.
       "  M5$fld.insert(3, default<Map<Uint<8>, List<Boolean>>>);"
       "  M5$fld.lookup(3).insert(4, default<List<Boolean>>);"
       "  M5$fld.lookup(3).lookup(4).pushFront(true);"
-      "  return [M1$fld as Field, M2$fld as Field, M3$fld.size() as Field, M4$fld, M6$fld.lookup(3).lookup(4).head().value as Field];"
+      "  return [M1$fld as Field, M2$fld as Field, M3$fld.size() as Field, M4$fld, (match M6$fld.lookup(3).lookup(4).head() { Some(b) => b, None => false }) as Field];"
       "}"
       )
     (returns
@@ -20622,15 +21264,14 @@ groups than for single tests.
                          (tunsigned 18446744073709551615)
                 (ledger-call size %fld.2))
               (ledger-call read %fld.3)
-              (if (elt-ref
-                    (ledger-call head
-                      (ledger-call lookup
-                        (ledger-call lookup
-                          %fld.4
-                          (safe-cast (tunsigned 9) (tunsigned 3) 3))
-                        (safe-cast (tunsigned 255) (tunsigned 4) 4)))
-                    value
-                    1)
+              (if (match (ledger-call head
+                           (ledger-call lookup
+                             (ledger-call lookup
+                               %fld.4
+                               (safe-cast (tunsigned 9) (tunsigned 3) 3))
+                             (safe-cast (tunsigned 255) (tunsigned 4) 4)))
+                    ((Some %b.6) %b.6)
+                    ((None) #f))
                   (safe-cast (tfield (field-native)) (tunsigned 1) 1)
                   (safe-cast (tfield (field-native)) (tunsigned 0) 0)))))))
     )
@@ -22253,30 +22894,24 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit bar(): Maybe<Field> {"
-      "  return Maybe<Field> { is_some: true, value: 17 as Field };"
+      "  return Maybe<Field>::Some(17 as Field);"
       "}"
       "export circuit foo(): Boolean {"
-      "  const { is_some } = bar();"
-      "  return is_some;"
+      "  return match bar() { Some(_) => true, None => false };"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
         (circuit %bar.1 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-            #t
+             (tsum Maybe #f (None) (Some (tfield (field-native))))
+          (variant-new (tsum Maybe #f
+                         (None)
+                         (Some (tfield (field-native)))) Some
             (safe-cast (tfield (field-native)) (tunsigned 17) 17)))
         (circuit %foo.2 ()
              (tboolean)
-          (let* ([[%__compact_pattern_tmp1.3 (tstruct Maybe
-                                               (is_some (tboolean))
-                                               (value (tfield (field-native))))]
-                  (call %bar.1)])
-            (let* ([[%is_some.4 (tboolean)]
-                    (elt-ref %__compact_pattern_tmp1.3 is_some 0)])
-              %is_some.4)))))
+          (match (call %bar.1) ((Some _) #t) ((None) #f)))))
     )
 
   (test
@@ -24082,7 +24717,7 @@ groups than for single tests.
       "enum Material { wood, glass, steel }"
       "struct Box { dimensions: [Uint<32>, Uint<32>, Uint<32>], material: Material }"
       "export circuit demo(): [] {"
-      "  const myBox = Box { dimensions: [1, 2, 3], material: Material.wood };"
+      "  const myBox = Box { dimensions: [1, 2, 3], material: Material::wood };"
       "  const { dimensions: [length, width, height], material } = myBox;"
       "}"
       )
@@ -24093,7 +24728,7 @@ groups than for single tests.
       "enum Material { wood, glass, steel }"
       "struct Box { dimensions: [Uint<32>, Uint<32>, Uint<32>], material: Material }"
       "export circuit demo(): [] {"
-      "  const { dimensions: [x, , , z] } = Box { [1, 2, 3], Material.wood};"
+      "  const { dimensions: [x, , , z] } = Box { [1, 2, 3], Material::wood};"
       "}"
       )
     (oops
@@ -24106,7 +24741,7 @@ groups than for single tests.
       "enum Material { wood, glass, steel }"
       "struct Box { dimensions: [Uint<32>, Uint<32>, Uint<32>], material: Material }"
       "export circuit demo(): [] {"
-      "  const { dimensions: [x, z, , , ] } = Box { [1, 2, 3], Material.wood};"
+      "  const { dimensions: [x, z, , , ] } = Box { [1, 2, 3], Material::wood};"
       "}"
       )
     (succeeds)
@@ -25036,7 +25671,7 @@ groups than for single tests.
       "export ledger F: Set<QSCI>;"
       "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
       "export circuit foo(x: ShieldedCoinInfo): Boolean {"
-      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  F.insertCoin(disclose(x), default<ShieldedRecipient>);"
       "  return F.member(default<QSCI>);"
       "}"
       )
@@ -25073,10 +25708,9 @@ groups than for single tests.
               %F.1
               (disclose %x.4)
               (default
-                (tstruct Either
-                  (is_left (tboolean))
-                  (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                  (right (tstruct ContractAddress (bytes (tbytes 32)))))))
+                (tsum ShieldedRecipient #t
+                  (Contract (tstruct ContractAddress (bytes (tbytes 32))))
+                  (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))))
             (ledger-call member
               %F.1
               (default
@@ -25095,7 +25729,7 @@ groups than for single tests.
       "export ledger F: Set<QSCI>;"
       "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
       "export circuit foo(x: ShieldedCoinInfo): Boolean {"
-      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  F.insertCoin(disclose(x), default<ShieldedRecipient>);"
       "  return F.member(default<QSCI>);"
       "}"
       )
@@ -25992,6 +26626,668 @@ groups than for single tests.
 ; NB: if you set this to lower than what some of the types in standard library use
 ; (e.g., 32 or 64) you'd get a different error for tests that import std.
 (parameterize ([max-bytes/vector-length 513])
+(run-tests infer-types
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Addr>, p: P, a: Arrow, t: [Opt<Field>, Vector<2, Arrow>]): Field {"
+      "  const k = match o { Some(Contract(c)) => c, Some(User(u)) => u, None => default<Bytes<32>> };"
+      "  const n = match p { {a: n, m: Some(v)} => n + v, {m: None, a} => a };"
+      "  const d = match a { up => 1, down => 2 };"
+      "  return match t { [Some(v), [up, _]] => v, [_, _] => (d as Field) + (k == default<Bytes<32>> ? n : 0 as Field) };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%o.1 (tsum Opt #f
+                                 (None)
+                                 (Some (tsum Addr #f
+                                         (User (tbytes 32))
+                                         (Contract (tbytes 32)))))]
+                         [%p.2 (tstruct P
+                                 (a (tfield (field-native)))
+                                 (m (tsum Opt #f
+                                      (None)
+                                      (Some (tfield (field-native))))))]
+                         [%a.3 (tenum Arrow up down)]
+                         [%t.4 (ttuple
+                                 (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native))))
+                                 (tvector 2 (tenum Arrow up down)))])
+             (tfield (field-native))
+          (let* ([[%k.5 (tbytes 32)]
+                  (match %o.1
+                    ((Some (Contract %c.6)) %c.6)
+                    ((Some (User %u.7)) %u.7)
+                    ((None) (default (tbytes 32))))])
+            (let* ([[%n.8 (tfield (field-native))]
+                    (match %p.2
+                      ((struct [a %n.9] [m (Some %v.10)])
+                       (+ (tfield (field-native)) %n.9 %v.10))
+                      ((struct [m (None)] [a %a.11]) %a.11))])
+              (let* ([[%d.12 (tunsigned 2)]
+                      (match %a.3
+                        ((enum-ref (tenum Arrow up down) up)
+                         (safe-cast (tunsigned 2) (tunsigned 1) 1))
+                        ((enum-ref (tenum Arrow up down) down) 2))])
+                (match %t.4
+                  ((tuple
+                     (Some %v.13)
+                     (tuple (enum-ref (tenum Arrow up down) up) _))
+                   %v.13)
+                  ((tuple _ _)
+                   (+ (tfield (field-native))
+                      (safe-cast (tfield (field-native)) (tunsigned 2) %d.12)
+                      (if (== %k.5 (default (tbytes 32)))
+                          %n.8
+                          (safe-cast (tfield (field-native))
+                                     (tunsigned 0)
+                            0)))))))))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "new type O = Opt<Uint<8>>;"
+      "export circuit foo(o: O): Uint<16> {"
+      "  return match o { Some(v) => v, None => 300 };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%o.1 (talias #t O
+                                 (tsum Opt #f (None) (Some (tunsigned 255))))])
+             (tunsigned 65535)
+          (safe-cast (tunsigned 65535)
+                     (tunsigned 300)
+            (match %o.1
+              ((Some %v.2)
+               (safe-cast (tunsigned 300) (tunsigned 255) %v.2))
+              ((None) 300))))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "match is not exhaustive: no arm matches ~{~a~^, ~}" (("None"))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Addr>, a: Arrow): Field {"
+      "  return match [o, a] { [Some(User(_)), up] => 1, [None, _] => 2 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "match is not exhaustive: no arm matches ~{~a~^, ~}" (("[Some(Contract(_)), _]"))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(p: P): Field {"
+      "  return match p { {m: Some(v)} => v };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "match is not exhaustive: no arm matches ~{~a~^, ~}" (("{m: None}"))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v, _ => 0, None => 1 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 42" "unreachable match arm: earlier arms match every value this pattern matches" ()))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v, Some(_) => 0, None => 1 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 34" "unreachable match arm: earlier arms match every value this pattern matches" ()))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => 1, None => 0 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 25" "match pattern binds ~a, which its arm does not use; a pattern that binds nothing is written _" (v)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v, Nome => 0 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 34" "match pattern binds ~a, which its arm does not use; a pattern that binds nothing is written _" (Nome)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some => 1, None => 0 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "variant ~a of enum ~a has ~d field~:p, so its pattern requires ~:*~d subpattern~:p" (Some Opt 1)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(a, b) => a, None => 0 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "mismatch between the number ~s of subpatterns and the number ~s of fields of variant ~s of ~a" (2 1 Some "enum Opt<None, Some(Field)>")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v, Nothing(v) => v };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 34" "enum ~s has no variant named ~s" (Opt Nothing)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Field): Field {"
+      "  return match o { Some(v) => v, None => 0 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "pattern ~a(...) requires a value of an enum type with fields, but the value matched has type ~a" (Some "Field")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: [Field, Field]): Field {"
+      "  return match o { [a, a] => a };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 24" "match pattern binds ~a more than once" (a)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: [Field, Field]): Field {"
+      "  return match o { [a] => a };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "mismatch between the number ~s of subpatterns and the number ~s of elements of ~a" (1 2 "[Field, Field]")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Field): Field {"
+      "  return match o { [a] => a };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "tuple pattern requires a value of a tuple or vector type, but the value matched has type ~a" ("Field")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(p: P): Field {"
+      "  return match p { {b} => b };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "struct pattern names field ~a, which ~a does not have" (b "struct P<a: Field, m: enum Opt<None, Some(Field)>>")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(p: P): Field {"
+      "  return match p { {a, a: b} => a + b };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "field ~a appears more than once in struct pattern" (a)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Field): Field {"
+      "  return match o { {a} => a };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 20" "struct pattern requires a value of a structure type, but the value matched has type ~a" ("Field")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v, None => true };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "mismatch between type ~a and type ~a of match arms" ("Field" "Boolean")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Field>, None: Field): Field {"
+      "  return match o { Some(v) => v, None => None };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 42" "~a names a variant of enum ~a in the pattern of this match arm and cannot be used as a variable there" (None Opt)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "circuit unused(o: Opt<Field>): Field {"
+      "  return match o { Some(v) => v };"
+      "}"
+      "export circuit foo(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "match is not exhaustive: no arm matches ~{~a~^, ~}" (("None"))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Opt<Field>>): Field {"
+      "  return match o { Some(i) => match i { Some(v) => v, None => 1 as Field }, None => 0 as Field };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%o.1 (tsum Opt #f
+                                 (None)
+                                 (Some (tsum Opt #f
+                                         (None)
+                                         (Some (tfield (field-native))))))])
+             (tfield (field-native))
+          (match %o.1
+            ((Some %i.2)
+             (match %i.2
+               ((Some %v.3) %v.3)
+               ((None)
+                (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+            ((None)
+             (safe-cast (tfield (field-native)) (tunsigned 0) 0))))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "import CompactStandardLibrary;"
+      "export ledger c: Counter;"
+      "export circuit foo(): Field {"
+      "  return match c { x => 1 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 20" "match pattern binds ~a, which its arm does not use; a pattern that binds nothing is written _" (x)))
+    )
+)
+
+(run-tests infer-types
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Uint<8>): Opt<Uint<16>> {"
+      "  return Opt<Uint<16>>::Some(x);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%x.1 (tunsigned 255)])
+             (tsum Opt #f (None) (Some (tunsigned 65535)))
+          (variant-new (tsum Opt #f (None) (Some (tunsigned 65535))) Some
+            (safe-cast (tunsigned 65535) (tunsigned 255) %x.1)))))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export circuit foo(b: Bytes<32>): Order {"
+      "  return Order::Filled(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "mismatch between actual number ~s and declared number ~s of fields for variant ~s of ~a" (1 2 Filled "enum Order<Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>)>")))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export circuit foo(b: Bytes<32>): Order {"
+      "  return Order::Filled(b, b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "mismatch between actual type ~a and declared type ~a for field ~d of variant ~s of ~a" ("Bytes<32>" "Uint<64>" 2 Filled "enum Order<Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>)>")))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export circuit foo(b: Bytes<32>): Order {"
+      "  return Order::Closed(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "enum ~s has no variant named ~s" (Order Closed)))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export circuit foo(): Order {"
+      "  return Order::Closed;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "enum ~s has no variant named ~s" (Order Closed)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>): Field {"
+      "  return x as Field;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("enum Opt<None, Some(Field)>" "Field")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Field): Opt<Field> {"
+      "  return x as Opt<Field>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Field" "enum Opt<None, Some(Field)>")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>): Opt<Uint<8>> {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("enum Opt<None, Some(Field)>" "enum Opt<None, Some(Uint<8>)>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Maybe2<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>, y: Maybe2<Field>): Boolean {"
+      "  return x == y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "incompatible types ~a and ~a for equality operator" ("enum Opt<None, Some(Field)>" "enum Maybe2<None, Some(Field)>")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>): Field {"
+      "  return x.s0;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 11" "expected structure type, received ~a; an enum has no field named ~s and is taken apart with match" ("enum Opt<None, Some(Field)>" s0)))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>): Opt<Field> {"
+      "  return Opt<Field> { true, 1 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected structure type, received ~a; an enum value is created by naming one of its variants" ("enum Opt<None, Some(Field)>")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "export circuit foo(x: Opt<Field>, y: Opt<Field>): Boolean {"
+      "  return x < y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for relational operator" ("enum Opt<None, Some(Field)>" "enum Opt<None, Some(Field)>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Opt<T> { None, Some(T) }"
+      "export ledger c: Counter;"
+      "export circuit foo(): Opt<Counter> {"
+      "  return default<Opt<Counter>>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("field 1 of enum variant 'Some'" "Counter")))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "new type O = Opt<Field>;"
+      "export circuit foo(x: Field, y: O): Boolean {"
+      "  const d = default<Opt<Field>>;"
+      "  return O::Some(x) == y && d == Opt<Field>::None && d != Opt<Field>::Some(x);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%x.1 (tfield (field-native))]
+                         [%y.2 (talias #t O
+                                 (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native)))))])
+             (tboolean)
+          (let* ([[%d.3 (tsum Opt #f
+                          (None)
+                          (Some (tfield (field-native))))]
+                  (default (tsum Opt #f (None) (Some (tfield (field-native)))))])
+            (if (if (== (variant-new (talias #t O
+                                       (tsum Opt #f
+                                         (None)
+                                         (Some (tfield (field-native))))) Some
+                          %x.1)
+                        %y.2)
+                    (== %d.3
+                        (variant-new (tsum Opt #f
+                                       (None)
+                                       (Some (tfield (field-native)))) None))
+                    #f)
+                (!= %d.3
+                    (variant-new (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native)))) Some
+                      %x.1))
+                #f)))))
+    )
+)
+
 (run-tests expand-modules-and-types
   ; tests for bounds of vectors
   (test
@@ -26771,6 +28067,192 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 13" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
     )
 
+
+  ; an enum with the shape of one of the ledger's is a different type: its layout differs
+  (test
+    '(
+      "module M {"
+      "  import CompactStandardLibrary prefix S$;"
+      "  export enum PublicAddress { User(S$UserAddress), Contract(S$ContractAddress) }"
+      "  export circuit mk(): PublicAddress {"
+      "    return PublicAddress::User(default<S$UserAddress>);"
+      "  }"
+      "}"
+      "import M prefix M$;"
+      "import CompactStandardLibrary;"
+      "export circuit foo(): PublicAddress {"
+      "  return M$mk();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 11 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("enum PublicAddress<User(struct UserAddress<bytes: Bytes<32>>), Contract(struct ContractAddress<bytes: Bytes<32>>)>" "ledger enum PublicAddress<User(struct UserAddress<bytes: Bytes<32>>), Contract(struct ContractAddress<bytes: Bytes<32>>)>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(m: Maybe<Field>): Boolean {"
+      "  return m.is_some;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 11" "expected structure type, received ~a; an enum has no field named ~s and is taken apart with match" ("enum Maybe<None, Some(Field)>" is_some)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): Maybe<Field> {"
+      "  return Maybe<Field> { is_some: true, value: 1 };"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected structure type, received ~a; an enum value is created by naming one of its variants" ("enum Maybe<None, Some(Field)>")))
+    )
+)
+
+(run-tests compile-match
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "export circuit foo(o: Opt<Addr>, p: P, a: Arrow, t: [Opt<Field>, Vector<2, Arrow>]): Field {"
+      "  const k = match o { Some(Contract(c)) => c, Some(User(u)) => u, None => default<Bytes<32>> };"
+      "  const n = match p { {a: n, m: Some(v)} => n + v, {m: None, a} => a };"
+      "  const d = match a { up => 1, down => 2 };"
+      "  return match t { [Some(v), [up, _]] => v, [_, _] => (d as Field) + (k == default<Bytes<32>> ? n : 0 as Field) };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%o.1 (tsum Opt #f
+                                 (None)
+                                 (Some (tsum Addr #f
+                                         (User (tbytes 32))
+                                         (Contract (tbytes 32)))))]
+                         [%p.2 (tstruct P
+                                 (a (tfield (field-native)))
+                                 (m (tsum Opt #f
+                                      (None)
+                                      (Some (tfield (field-native))))))]
+                         [%a.3 (tenum Arrow up down)]
+                         [%t.4 (ttuple
+                                 (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native))))
+                                 (tvector 2 (tenum Arrow up down)))])
+             (tfield (field-native))
+          (let* ([[%k.5 (tbytes 32)]
+                  (let* ([[%t.6 (tsum Opt #f
+                                  (None)
+                                  (Some (tsum Addr #f
+                                          (User (tbytes 32))
+                                          (Contract (tbytes 32)))))]
+                          %o.1])
+                    (if (if (variant-test %t.6 Some)
+                            (variant-test (variant-field %t.6 Some 0) Contract)
+                            #f)
+                        (let* ([[%c.7 (tbytes 32)]
+                                (variant-field
+                                  (variant-field %t.6 Some 0)
+                                  Contract
+                                  0)])
+                          %c.7)
+                        (if (if (variant-test %t.6 Some)
+                                (variant-test (variant-field %t.6 Some 0) User)
+                                #f)
+                            (let* ([[%u.8 (tbytes 32)]
+                                    (variant-field
+                                      (variant-field %t.6 Some 0)
+                                      User
+                                      0)])
+                              %u.8)
+                            (default (tbytes 32)))))])
+            (let* ([[%n.9 (tfield (field-native))]
+                    (let* ([[%t.10 (tstruct P
+                                     (a (tfield (field-native)))
+                                     (m (tsum Opt #f
+                                          (None)
+                                          (Some (tfield (field-native))))))]
+                            %p.2])
+                      (if (variant-test (elt-ref %t.10 m 1) Some)
+                          (let* ([[%n.11 (tfield (field-native))]
+                                  (elt-ref %t.10 a 0)]
+                                 [[%v.12 (tfield (field-native))]
+                                  (variant-field (elt-ref %t.10 m 1) Some 0)])
+                            (+ (tfield (field-native)) %n.11 %v.12))
+                          (let* ([[%a.13 (tfield (field-native))]
+                                  (elt-ref %t.10 a 0)])
+                            %a.13)))])
+              (let* ([[%d.14 (tunsigned 2)]
+                      (let* ([[%t.15 (tenum Arrow up down)] %a.3])
+                        (if (== %t.15 (enum-ref (tenum Arrow up down) up))
+                            (safe-cast (tunsigned 2) (tunsigned 1) 1)
+                            (seq
+                              (assert
+                                (== %t.15
+                                    (enum-ref (tenum Arrow up down) down))
+                                "match on an invalid enum value")
+                              2)))])
+                (let* ([[%t.16 (ttuple
+                                 (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native))))
+                                 (tvector 2 (tenum Arrow up down)))]
+                        %t.4])
+                  (if (if (variant-test (tuple-ref %t.16 0) Some)
+                          (== (tuple-ref (tuple-ref %t.16 1) 0)
+                              (enum-ref (tenum Arrow up down) up))
+                          #f)
+                      (let* ([[%v.17 (tfield (field-native))]
+                              (variant-field (tuple-ref %t.16 0) Some 0)])
+                        %v.17)
+                      (+ (tfield (field-native))
+                         (safe-cast (tfield (field-native))
+                                    (tunsigned 2)
+                           %d.14)
+                         (if (== %k.5 (default (tbytes 32)))
+                             %n.9
+                             (safe-cast (tfield (field-native))
+                                        (tunsigned 0)
+                               0)))))))))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "enum One { Only(Field, Field) }"
+      "export circuit foo(o: One, x: Field): Field {"
+      "  return match o { Only(a, _) => match x { y => a + y } };"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%o.1 (tsum One #f
+                                 (Only (tfield (field-native)) (tfield
+                                                                 (field-native))))]
+                         [%x.2 (tfield (field-native))])
+             (tfield (field-native))
+          (let* ([[%t.3 (tsum One #f
+                          (Only (tfield (field-native)) (tfield
+                                                          (field-native))))]
+                  %o.1])
+            (let* ([[%a.4 (tfield (field-native))]
+                    (variant-field %t.3 Only 0)])
+              (let* ([[%t.5 (tfield (field-native))] %x.2])
+                (let* ([[%y.6 (tfield (field-native))] %t.5])
+                  (+ (tfield (field-native)) %a.4 %y.6))))))))
+    )
 )
 
 (run-tests resolve-indices/simplify
@@ -28731,13 +30213,13 @@ groups than for single tests.
       "}"
       "import M<Names>;"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(enumid(Names.george));"
+      "  return foo(enumid(Names::george));"
       "}"
       )
     (returns
@@ -28852,7 +30334,7 @@ groups than for single tests.
   (test
     '(
       "enum E { a, b, c }"
-      "export circuit baz(b: E) : Field { return E.b as Field; }"
+      "export circuit baz(b: E) : Field { return E::b as Field; }"
       )
     (returns
       (program
@@ -29012,18 +30494,18 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.writeCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q2 = field7.read();"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insertCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  assert(field8.member(q2), 'oops 8a');"
       "  field8.remove(q2);"
       "  assert(!field8.member(q2), 'oops 8b');"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insertCoin(x, ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q4 = field9.lookup(x);"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFrontCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  const q5 = field10.head();"
       "  return b;"
       "}"
@@ -29073,21 +30555,8 @@ groups than for single tests.
                 (value (tunsigned 340282366920938463463374607431768211455))
                 (mt_index (tunsigned 18446744073709551615)))))
           (constructor () (tuple)))
-        (circuit %right.12 ([%value.13 (tstruct ContractAddress
-                                         (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.13))
-        (circuit %foo.14 ([%x.15 (tfield (field-native))]
-                          [%ci.16 (tstruct ShieldedCoinInfo
+        (circuit %foo.12 ([%x.13 (tfield (field-native))]
+                          [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -29107,7 +30576,7 @@ groups than for single tests.
                     4)))
               "oops 1")
             (public-ledger %field1.2 (write #t))
-            (let* ([[%b.17 (tboolean)]
+            (let* ([[%b.15 (tboolean)]
                     (public-ledger %field1.2 (read))])
               (seq
                 (public-ledger %field2.3 (resetToDefault))
@@ -29119,23 +30588,23 @@ groups than for single tests.
                         0))
                   "oops 2b")
                 (assert
-                  (if (public-ledger %field2.3 (member %x.15)) #f #t)
+                  (if (public-ledger %field2.3 (member %x.13)) #f #t)
                   "oops 2c")
-                (public-ledger %field2.3 (insert %x.15))
+                (public-ledger %field2.3 (insert %x.13))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
@@ -29146,7 +30615,7 @@ groups than for single tests.
                 (public-ledger %field2.3
                   (remove
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
@@ -29157,12 +30626,12 @@ groups than for single tests.
                 (assert
                   (if (public-ledger %field2.3 (isEmpty)) #f #t)
                   "oops 2f")
-                (assert (public-ledger %field2.3 (member %x.15)) "oops 2g")
+                (assert (public-ledger %field2.3 (member %x.13)) "oops 2g")
                 (assert
                   (if (public-ledger %field2.3
                         (member
                           (+ (tfield (field-native))
-                             %x.15
+                             %x.13
                              (safe-cast (tfield (field-native))
                                         (tunsigned 1)
                                1))))
@@ -29173,7 +30642,7 @@ groups than for single tests.
                   (public-ledger %field2.3
                     (member
                       (+ (tfield (field-native))
-                         %x.15
+                         %x.13
                          (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                   "oops 2i")
                 (public-ledger %field3.4 (resetToDefault))
@@ -29182,9 +30651,14 @@ groups than for single tests.
                 (public-ledger %field6.7 (resetToDefault))
                 (public-ledger %field7.8
                   (writeCoin
-                    %ci.16
-                    (call %right.12 (public-ledger %kernel.0 (self)))))
-                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
+                    %ci.14
+                    (variant-new (tsum ShieldedRecipient #t
+                                   (Contract (tstruct ContractAddress
+                                               (bytes (tbytes 32))))
+                                   (User (tstruct ZswapCoinPublicKey
+                                           (bytes (tbytes 32))))) Contract
+                      (public-ledger %kernel.0 (self)))))
+                (let* ([[%q2.16 (tstruct QualifiedShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
@@ -29195,46 +30669,61 @@ groups than for single tests.
                     (public-ledger %field8.9 (resetToDefault))
                     (public-ledger %field8.9
                       (insertCoin
-                        %ci.16
-                        (call %right.12 (public-ledger %kernel.0 (self)))))
+                        %ci.14
+                        (variant-new (tsum ShieldedRecipient #t
+                                       (Contract (tstruct ContractAddress
+                                                   (bytes (tbytes 32))))
+                                       (User (tstruct ZswapCoinPublicKey
+                                               (bytes (tbytes 32))))) Contract
+                          (public-ledger %kernel.0 (self)))))
                     (assert
-                      (public-ledger %field8.9 (member %q2.18))
+                      (public-ledger %field8.9 (member %q2.16))
                       "oops 8a")
-                    (public-ledger %field8.9 (remove %q2.18))
+                    (public-ledger %field8.9 (remove %q2.16))
                     (assert
-                      (if (public-ledger %field8.9 (member %q2.18)) #f #t)
+                      (if (public-ledger %field8.9 (member %q2.16)) #f #t)
                       "oops 8b")
                     (public-ledger %field9.10 (resetToDefault))
                     (public-ledger %field9.10
                       (insertCoin
-                        %x.15
-                        %ci.16
-                        (call %right.12 (public-ledger %kernel.0 (self)))))
-                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
+                        %x.13
+                        %ci.14
+                        (variant-new (tsum ShieldedRecipient #t
+                                       (Contract (tstruct ContractAddress
+                                                   (bytes (tbytes 32))))
+                                       (User (tstruct ZswapCoinPublicKey
+                                               (bytes (tbytes 32))))) Contract
+                          (public-ledger %kernel.0 (self)))))
+                    (let* ([[%q4.17 (tstruct QualifiedShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
                                                340282366920938463463374607431768211455))
                                       (mt_index (tunsigned
                                                   18446744073709551615)))]
-                            (public-ledger %field9.10 (lookup %x.15))])
+                            (public-ledger %field9.10 (lookup %x.13))])
                       (seq
                         (public-ledger %field10.11 (resetToDefault))
                         (public-ledger %field10.11
                           (pushFrontCoin
-                            %ci.16
-                            (call %right.12 (public-ledger %kernel.0 (self)))))
-                        (let* ([[%q5.20 (tstruct Maybe
-                                          (is_some (tboolean))
-                                          (value (tstruct QualifiedShieldedCoinInfo
-                                                   (nonce (tbytes 32))
-                                                   (color (tbytes 32))
-                                                   (value (tunsigned
-                                                            340282366920938463463374607431768211455))
-                                                   (mt_index (tunsigned
-                                                               18446744073709551615)))))]
+                            %ci.14
+                            (variant-new (tsum ShieldedRecipient #t
+                                           (Contract (tstruct ContractAddress
+                                                       (bytes (tbytes 32))))
+                                           (User (tstruct ZswapCoinPublicKey
+                                                   (bytes (tbytes 32))))) Contract
+                              (public-ledger %kernel.0 (self)))))
+                        (let* ([[%q5.18 (tsum Maybe #f
+                                          (None)
+                                          (Some (tstruct QualifiedShieldedCoinInfo
+                                                  (nonce (tbytes 32))
+                                                  (color (tbytes 32))
+                                                  (value (tunsigned
+                                                           340282366920938463463374607431768211455))
+                                                  (mt_index (tunsigned
+                                                              18446744073709551615)))))]
                                 (public-ledger %field10.11 (head))])
-                          %b.17)))))))))))
+                          %b.15)))))))))))
     )
 
   (test
@@ -30709,84 +32198,85 @@ groups than for single tests.
     "examples/tiny.compact"
     (returns
       (program
-        (kernel-declaration (%kernel.1 (Kernel)))
+        (kernel-declaration (%kernel.0 (Kernel)))
         (public-ledger-declaration
-          (%authority.2 (__compact_Cell (tbytes 32)))
-          (%value.3 (__compact_Cell (tfield (field-native))))
-          (%state.4 (__compact_Cell (tenum STATE unset set)))
-          (constructor ([%v.0 (tfield (field-native))])
+          (%authority.1 (__compact_Cell (tbytes 32)))
+          (%value.2 (__compact_Cell (tfield (field-native))))
+          (%state.3 (__compact_Cell (tenum STATE unset set)))
+          (constructor ([%v.4 (tfield (field-native))])
             (seq
-              (let* ([[%sk.5 (tbytes 32)] (call %private$secretKey.6)])
+              (let* ([[%sk.5 (tbytes 32)] (call %private$secret_key.6)])
                 (seq
-                  (public-ledger %authority.2
-                    (write (call %publicKey.7 %sk.5)))
-                  (public-ledger %value.3 (write (disclose %v.0)))
-                  (public-ledger %state.4
+                  (public-ledger %authority.1
+                    (write (call %public_key.7 %sk.5)))
+                  (public-ledger %value.2 (write (disclose %v.4)))
+                  (public-ledger %state.3
                     (write (enum-ref (tenum STATE unset set) set)))))
               (tuple))))
-        (export-typedef Maybe (T)
-          (tstruct Maybe (is_some (tboolean)) (value T)))
+        (export-typedef Maybe (T) (tsum Maybe #f (None) (Some T)))
         (circuit %some.8 ([%value.9 (tfield (field-native))])
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-            #t
+             (tsum Maybe #f (None) (Some (tfield (field-native))))
+          (variant-new (tsum Maybe #f
+                         (None)
+                         (Some (tfield (field-native)))) Some
             %value.9))
         (circuit %none.10 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-            #f
-            (default (tfield (field-native)))))
-        (native %persistentHash<.11 ([%value.12 (tvector
-                                                    2
-                                                    (tbytes 32))])
+             (tsum Maybe #f (None) (Some (tfield (field-native))))
+          (variant-new (tsum Maybe #f
+                         (None)
+                         (Some (tfield (field-native)))) None))
+        (native %persistentHash.11 ([%value.12 (tvector
+                                                 2
+                                                 (tbytes 32))])
              (tbytes 32))
-        (witness %private$secretKey.6 () (tbytes 32))
-        (circuit %inState.13 ([%s.14 (tenum STATE unset set)])
+        (witness %private$secret_key.6 () (tbytes 32))
+        (circuit %in_state.13 ([%s.14 (tenum STATE unset set)])
              (tboolean)
-          (== (public-ledger %state.4 (read)) %s.14))
+          (== (public-ledger %state.3 (read)) %s.14))
         (circuit %set.15 ([%v.16 (tfield (field-native))])
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) unset))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) unset))
                 "set: attempted to overwrite recorded value")
-              (let* ([[%sk.17 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.18 (tbytes 32)] (call %publicKey.7 %sk.17)])
+              (let* ([[%sk.17 (tbytes 32)] (call %private$secret_key.6)])
+                (let* ([[%apk.18 (tbytes 32)] (call %public_key.7 %sk.17)])
                   (seq
-                    (public-ledger %authority.2 (write %apk.18))
-                    (public-ledger %value.3 (write (disclose %v.16)))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write %apk.18))
+                    (public-ledger %value.2 (write (disclose %v.16)))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) set)))))))
             (tuple)))
         (circuit %get.19 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (if (call %inState.13
+             (tsum Maybe #f (None) (Some (tfield (field-native))))
+          (if (call %in_state.13
                 (enum-ref (tenum STATE unset set) set))
-              (call %some.8 (public-ledger %value.3 (read)))
+              (call %some.8 (public-ledger %value.2 (read)))
               (call %none.10)))
         (circuit %clear.20 ()
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) set))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) set))
                 "clear: no value is currently recorded")
-              (let* ([[%sk.21 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.22 (tbytes 32)] (call %publicKey.7 %sk.21)])
+              (let* ([[%sk.21 (tbytes 32)] (call %private$secret_key.6)])
+                (let* ([[%apk.22 (tbytes 32)] (call %public_key.7 %sk.21)])
                   (seq
                     (assert
-                      (== %apk.22 (public-ledger %authority.2 (read)))
+                      (== %apk.22 (public-ledger %authority.1 (read)))
                       "clear: attempted clear without proper authorization")
-                    (public-ledger %authority.2 (write (default (tbytes 32))))
-                    (public-ledger %value.3 (write (default (tfield (field-native)))))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write (default (tbytes 32))))
+                    (public-ledger %value.2
+                      (write (default (tfield (field-native)))))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) unset)))))))
             (tuple)))
-        (circuit %publicKey.7 ([%sk.23 (tbytes 32)])
+        (circuit %public_key.7 ([%sk.23 (tbytes 32)])
              (tbytes 32)
           (disclose
-            (call %persistentHash<.11
+            (call %persistentHash.11
               (tuple
                 #vu8(108 97 114 101 115 58 116 105 110 121 58 112 107 58 0 0
                      0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -31325,7 +32815,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (oops
@@ -31340,7 +32830,7 @@ groups than for single tests.
       "  foo();"
       "}"
       "export circuit foo (): [] {"
-      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (oops
@@ -31364,7 +32854,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  createZswapOutput(default<ShieldedCoinInfo>, ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (oops
@@ -31379,7 +32869,7 @@ groups than for single tests.
       "  foo();"
       "}"
       "export circuit foo (): [] {"
-      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  createZswapOutput(default<ShieldedCoinInfo>, ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (oops
@@ -31500,7 +32990,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "constructor() {"
       "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
-      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "  kernel.incUnshieldedOutputs(TokenType::Unshielded(color), default<Uint<64>>);"
       "}"
       )
     (oops
@@ -31516,7 +33006,7 @@ groups than for single tests.
       "}"
       "export circuit foo (): [] {"
       "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
-      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "  kernel.incUnshieldedOutputs(TokenType::Unshielded(color), default<Uint<64>>);"
       "}"
       )
     (oops
@@ -31582,7 +33072,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), default<Uint<64>>);"
+      "  kernel.incUnshieldedOutputs(TokenType::Unshielded(default<Bytes<32>>), default<Uint<64>>);"
       "}"
       )
     (oops
@@ -31597,7 +33087,7 @@ groups than for single tests.
       "  foo();"
       "}"
       "export circuit foo (): [] {"
-      "  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), left<ContractAddress, UserAddress>(default<ContractAddress>), default<Uint<64>>);"
+      "  kernel.claimUnshieldedCoinSpend(TokenType::Unshielded(default<Bytes<32>>), PublicAddress::Contract(default<ContractAddress>), default<Uint<64>>);"
       "}"
       )
     (oops
@@ -31873,7 +33363,7 @@ groups than for single tests.
       "export circuit bar(): [] {"
       "  y.insert(default<Uint<16>>, default<E>);"
       "  y.insert(7, clip());"
-      "  y.insert(clop(), E.c);"
+      "  y.insert(clop(), E::c);"
       "  y.insert(clop(), clip());"
       "}"
       )
@@ -33137,17 +34627,17 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value"))))
     )
 
   (test
@@ -33168,17 +34658,17 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
@@ -33207,17 +34697,17 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
@@ -33288,12 +34778,11 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))))
 
   (test
     '("import CompactStandardLibrary;"
@@ -33311,14 +34800,13 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being received given by the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value")))))
 
   (test
     '("import CompactStandardLibrary;"
@@ -33958,7 +35446,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: QualifiedShieldedCoinInfo, y: Either<ZswapCoinPublicKey, ContractAddress>, z: Uint<128>): [] {"
+      "export circuit foo(x: QualifiedShieldedCoinInfo, y: ShieldedRecipient, z: Uint<128>): [] {"
       "  sendShielded(x, y, z);"
       "}"
       )
@@ -33966,9 +35454,9 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 20" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 50" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 50" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the variant of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the variant of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the variant of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 98" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 72" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
     )
 
   (test
@@ -34658,6 +36146,157 @@ groups than for single tests.
 )
 
 ; examples of where disclose can be placed
+(run-tests track-witness-data
+  (test
+    '(
+      "enum Ei<L, R> { Right(R), Left(L) }"
+      "witness secret(): Bytes<32>;"
+      "export ledger out: Bytes<32>;"
+      "export circuit foo(pub: Bytes<32>, c: Boolean): [] {"
+      "  const p = disclose(pub); const cc = disclose(c);"
+      "  const e = cc ? Ei<Bytes<32>, Bytes<32>>::Left(secret()) : Ei<Bytes<32>, Bytes<32>>::Right(p);"
+      "  match e { Left(_) => { } Right(r) => { out = r; } }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%out.1 (0) (__compact_Cell (tbytes 32))))
+          (constructor () (tuple)))
+        (witness %secret.2 () (tbytes 32))
+        (circuit %foo.3 ([%pub.4 (tbytes 32)] [%c.5 (tboolean)])
+             (ttuple)
+          (seq
+            (let* ([[%p.6 (tbytes 32)] (disclose %pub.4)])
+              (let* ([[%cc.7 (tboolean)] (disclose %c.5)])
+                (let* ([[%e.8 (tsum Ei #f
+                                (Right (tbytes 32))
+                                (Left (tbytes 32)))]
+                        (if %cc.7
+                            (variant-new (tsum Ei #f
+                                           (Right (tbytes 32))
+                                           (Left (tbytes 32))) Left
+                              (call %secret.2))
+                            (variant-new (tsum Ei #f
+                                           (Right (tbytes 32))
+                                           (Left (tbytes 32))) Right
+                              %p.6))])
+                  (let* ([[%t.9 (tsum Ei #f
+                                  (Right (tbytes 32))
+                                  (Left (tbytes 32)))]
+                          %e.8])
+                    (if (variant-test %t.9 Left)
+                        (tuple)
+                        (let* ([[%r.10 (tbytes 32)]
+                                (variant-field %t.9 Right 0)])
+                          (public-ledger %out.1 (0) write %r.10)))))))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "enum Ei<L, R> { Right(R), Left(L) }"
+      "witness secret(): Bytes<32>;"
+      "export ledger out: Bytes<32>;"
+      "export circuit foo(pub: Bytes<32>, c: Boolean): [] {"
+      "  const p = disclose(pub); const cc = disclose(c);"
+      "  const e = cc ? Ei<Bytes<32>, Bytes<32>>::Left(secret()) : Ei<Bytes<32>, Bytes<32>>::Right(p);"
+      "  match e { Left(l) => { out = l; } Right(_) => { } }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 30" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of e at line 6 char 9\n      the binding of l at line 7 char 18\n      the right-hand side of = at line 7 char 30"))))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "witness w(): Opt<Field>;"
+      "export ledger out: Field;"
+      "export circuit foo(): [] {"
+      "  match w() { Some(_) => { out = 1 as Field; } None => { } }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the variant of the witness value\n    via this path through the program:\n      the variant test at line 5 char 3\n      the conditional branch at line 5 char 3"))))
+    )
+)
+
+(run-tests track-witness-data
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Opt<T> { None, Some(T) }"
+      "witness w(): Field;"
+      "export ledger o: Opt<Field>;"
+      "export circuit foo(): [] {"
+      "  o = Opt<Field>::Some(w());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Opt<T> { None, Some(T) }"
+      "witness w(): Opt<Field>;"
+      "export ledger o: Opt<Field>;"
+      "export circuit foo(): [] {"
+      "  o = w();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Opt<T> { None, Some(T) }"
+      "witness w(): Field;"
+      "export ledger o: Opt<Field>;"
+      "export circuit foo(x: Opt<Field>): Boolean {"
+      "  o = Opt<Field>::Some(disclose(w()));"
+      "  return disclose(x) == Opt<Field>::None;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%o.1
+             (0)
+             (__compact_Cell
+               (tsum Opt #f (None) (Some (tfield (field-native)))))))
+          (constructor () (tuple)))
+        (witness %w.2 () (tfield (field-native)))
+        (circuit %foo.3 ([%x.4 (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native))))])
+             (tboolean)
+          (seq
+            (let* ([[%tmp.5 (tsum Opt #f
+                              (None)
+                              (Some (tfield (field-native))))]
+                    (variant-new (tsum Opt #f
+                                   (None)
+                                   (Some (tfield (field-native)))) Some
+                      (disclose (call %w.2)))])
+              (public-ledger %o.1 (0) write %tmp.5))
+            (== (disclose %x.4)
+                (variant-new (tsum Opt #f
+                               (None)
+                               (Some (tfield (field-native)))) None))))))
+    )
+)
+
 (run-tests remove-disclose
   (test
     '(
@@ -35244,6 +36883,1269 @@ groups than for single tests.
 
   )
 
+(run-tests guard-enum-inputs
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Opt<T> { None, Some(T) }"
+      "struct P { a: Field, m: Opt<Field> }"
+      "contract C { circuit get(): Opt<Field>; }"
+      "witness w(x: Opt<Field>): Opt<Field>;"
+      "witness v(): Field;"
+      "export ledger o: Opt<Field>;"
+      "constructor(x: Opt<Field>) { o = disclose(x); }"
+      "circuit inner(x: Opt<Field>): Opt<Field> { return x; }"
+      "export circuit foo(x: Vector<2, P>, y: Field, c: C, b: Bytes<33>): Opt<Field> {"
+      "  o = disclose(inner(w(x[0].m)));"
+      "  o = disclose(disclose(c).get());"
+      "  o = disclose(Opt<Field>::Some(v()));"
+      "  return disclose(deserialize<Opt<Bytes<32>>, 33>(b)) == Opt<Bytes<32>>::None ? o : Opt<Field>::None;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%o.1
+             (0)
+             (__compact_Cell
+               (tsum Opt #f (None) (Some (tfield (field-native)))))))
+          (constructor ([%x.2 (tsum Opt #f
+                                (None)
+                                (Some (tfield (field-native))))])
+            (seq
+              (variant-valid (tsum Opt #f
+                               (None)
+                               (Some (tfield (field-native))))
+                %x.2 "argument x of the constructor contains an invalid enum value")
+              (seq (public-ledger %o.1 (0) write %x.2) (tuple)))))
+        (circuit %deserialize.3 ([%bytes.4 (tbytes 33)])
+             (tsum Opt #f (None) (Some (tbytes 32)))
+          (let* ([[%t.5 (tsum Opt #f (None) (Some (tbytes 32)))]
+                  (deserialize
+                    33
+                    (tsum Opt #f (None) (Some (tbytes 32)))
+                    %bytes.4)])
+            (seq
+              (variant-valid (tsum Opt #f (None) (Some (tbytes 32)))
+                %t.5 "the deserialized value contains an invalid enum value")
+              %t.5)))
+        (witness %w.6 ([%x.7 (tsum Opt #f
+                               (None)
+                               (Some (tfield (field-native))))])
+             (tsum Opt #f (None) (Some (tfield (field-native)))))
+        (witness %v.8 () (tfield (field-native)))
+        (circuit %inner.9 ([%x.10 (tsum Opt #f
+                                    (None)
+                                    (Some (tfield (field-native))))])
+             (tsum Opt #f (None) (Some (tfield (field-native))))
+          %x.10)
+        (circuit %foo.11 ([%x.12 (tvector
+                                   2
+                                   (tstruct P
+                                     (a (tfield (field-native)))
+                                     (m (tsum Opt #f
+                                          (None)
+                                          (Some (tfield (field-native)))))))]
+                          [%y.13 (tfield (field-native))]
+                          [%c.14 (tcontract C
+                                   (get #f ()
+                                     (tsum Opt #f
+                                       (None)
+                                       (Some (tfield (field-native))))))]
+                          [%b.15 (tbytes 33)])
+             (tsum Opt #f (None) (Some (tfield (field-native))))
+          (seq
+            (variant-valid (tvector
+                             2
+                             (tstruct P
+                               (a (tfield (field-native)))
+                               (m (tsum Opt #f
+                                    (None)
+                                    (Some (tfield (field-native)))))))
+              %x.12 "argument x of circuit foo contains an invalid enum value")
+            (seq
+              (let* ([[%tmp.16 (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native))))]
+                      (call %inner.9
+                        (let* ([[%t.17 (tsum Opt #f
+                                         (None)
+                                         (Some (tfield (field-native))))]
+                                (call %w.6 (elt-ref (tuple-ref %x.12 0) m 1))])
+                          (seq
+                            (variant-valid (tsum Opt #f
+                                             (None)
+                                             (Some (tfield (field-native))))
+                              %t.17 "the result of witness w contains an invalid enum value")
+                            %t.17)))])
+                (public-ledger %o.1 (0) write %tmp.16))
+              (let* ([[%tmp.18 (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native))))]
+                      (let* ([[%t.19 (tsum Opt #f
+                                       (None)
+                                       (Some (tfield (field-native))))]
+                              (contract-call get
+                                   (%c.14
+                                    (tcontract C
+                                      (get #f ()
+                                        (tsum Opt #f
+                                          (None)
+                                          (Some (tfield (field-native))))))))])
+                        (seq
+                          (variant-valid (tsum Opt #f
+                                           (None)
+                                           (Some (tfield (field-native))))
+                            %t.19 "the result of contract circuit get contains an invalid enum value")
+                          %t.19))])
+                (public-ledger %o.1 (0) write %tmp.18))
+              (let* ([[%tmp.20 (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native))))]
+                      (variant-new (tsum Opt #f
+                                     (None)
+                                     (Some (tfield (field-native)))) Some
+                        (call %v.8))])
+                (public-ledger %o.1 (0) write %tmp.20))
+              (if (== (call %deserialize.3 %b.15)
+                      (variant-new (tsum Opt #f (None) (Some (tbytes 32))) None))
+                  (public-ledger %o.1 (0) read)
+                  (variant-new (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native)))) None)))))))
+    )
+
+  ; a witness given to map or fold is guarded as one that is called
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "witness quote(i: Uint<8>): Opt<Field>;"
+      "witness next(acc: Order, i: Uint<8>): Order;"
+      "witness plain(i: Uint<8>): Field;"
+      "export circuit foo(v: Vector<2, Uint<8>>): [Vector<2, Opt<Field>>, Order, Vector<2, Field>] {"
+      "  return disclose([map(quote, v), fold(next, Order::Open, v), map(plain, v)]);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %quote.0 ([%i.1 (tunsigned 255)])
+             (tsum Opt #f (None) (Some (tfield (field-native)))))
+        (witness %next.2 ([%acc.3 (tsum Order #f
+                                    (Open)
+                                    (Filled (tbytes 32) (tunsigned
+                                                          18446744073709551615))
+                                    (Cancelled (tbytes 32)))]
+                          [%i.4 (tunsigned 255)])
+             (tsum Order #f
+               (Open)
+               (Filled (tbytes 32) (tunsigned 18446744073709551615))
+               (Cancelled (tbytes 32))))
+        (witness %plain.5 ([%i.6 (tunsigned 255)])
+             (tfield (field-native)))
+        (circuit %foo.7 ([%v.8 (tvector 2 (tunsigned 255))])
+             (ttuple
+               (tvector
+                 2
+                 (tsum Opt #f (None) (Some (tfield (field-native)))))
+               (tsum Order #f
+                 (Open)
+                 (Filled (tbytes 32) (tunsigned 18446744073709551615))
+                 (Cancelled (tbytes 32)))
+               (tvector 2 (tfield (field-native))))
+          (tuple
+            (map
+              (circuit ([%i.9 (tunsigned 255)])
+                   (tsum Opt #f (None) (Some (tfield (field-native))))
+                (let* ([[%t.10 (tsum Opt #f
+                                 (None)
+                                 (Some (tfield (field-native))))]
+                        (call %quote.0 %i.9)])
+                  (seq
+                    (variant-valid (tsum Opt #f
+                                     (None)
+                                     (Some (tfield (field-native))))
+                      %t.10 "the result of witness quote contains an invalid enum value")
+                    %t.10)))
+              %v.8)
+            (fold
+              (circuit ([%acc.11 (tsum Order #f
+                                   (Open)
+                                   (Filled (tbytes 32) (tunsigned
+                                                         18446744073709551615))
+                                   (Cancelled (tbytes 32)))]
+                        [%i.12 (tunsigned 255)])
+                   (tsum Order #f
+                     (Open)
+                     (Filled (tbytes 32) (tunsigned 18446744073709551615))
+                     (Cancelled (tbytes 32)))
+                (let* ([[%t.13 (tsum Order #f
+                                 (Open)
+                                 (Filled (tbytes 32) (tunsigned
+                                                       18446744073709551615))
+                                 (Cancelled (tbytes 32)))]
+                        (call %next.2 %acc.11 %i.12)])
+                  (seq
+                    (variant-valid (tsum Order #f
+                                     (Open)
+                                     (Filled (tbytes 32) (tunsigned
+                                                           18446744073709551615))
+                                     (Cancelled (tbytes 32)))
+                      %t.13 "the result of witness next contains an invalid enum value")
+                    %t.13)))
+              (variant-new (tsum Order #f
+                             (Open)
+                             (Filled (tbytes 32) (tunsigned
+                                                   18446744073709551615))
+                             (Cancelled (tbytes 32))) Open)
+              %v.8)
+            (map %plain.5 %v.8)))))
+    )
+)
+
+(run-tests lower-enums
+  (test
+    '(
+      "enum Maybe<T> { None, Some(T) }"
+      "struct Pair { a: Bytes<32>, b: Uint<64> }"
+      "export circuit foo(): [Maybe<Field>, Maybe<Pair>, Maybe<[Boolean, Vector<2, Uint<8>>]>, Maybe<[]>] {"
+      "  return default<[Maybe<Field>, Maybe<Pair>, Maybe<[Boolean, Vector<2, Uint<8>>]>, Maybe<[]>]>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (ttuple
+               (tstruct Maybe
+                 (tag (tboolean))
+                 (s0 (tfield (field-native))))
+               (tstruct Maybe
+                 (tag (tboolean))
+                 (s0 (tstruct Pair
+                       (a (tbytes 32))
+                       (b (tunsigned 18446744073709551615)))))
+               (tstruct Maybe
+                 (tag (tboolean))
+                 (s0 (ttuple (tboolean) (tvector 2 (tunsigned 255)))))
+               (tstruct Maybe (tag (tboolean)) (s0 (ttuple))))
+          (default
+            (ttuple
+              (tstruct Maybe
+                (tag (tboolean))
+                (s0 (tfield (field-native))))
+              (tstruct Maybe
+                (tag (tboolean))
+                (s0 (tstruct Pair
+                      (a (tbytes 32))
+                      (b (tunsigned 18446744073709551615)))))
+              (tstruct Maybe
+                (tag (tboolean))
+                (s0 (ttuple (tboolean) (tvector 2 (tunsigned 255)))))
+              (tstruct Maybe (tag (tboolean)) (s0 (ttuple))))))))
+    )
+
+  (test
+    '(
+      "enum Either<L, R> { Right(R), Left(L) }"
+      "export circuit foo(): [Either<Bytes<32>, Bytes<32>>, Either<Bytes<32>, Field>, Either<Field, Bytes<32>>] {"
+      "  return default<[Either<Bytes<32>, Bytes<32>>, Either<Bytes<32>, Field>, Either<Field, Bytes<32>>]>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (ttuple
+               (tstruct Either (tag (tboolean)) (s0 (tbytes 32)))
+               (tstruct Either
+                 (tag (tboolean))
+                 (s0 (tfield (field-native)))
+                 (s1 (tbytes 32)))
+               (tstruct Either
+                 (tag (tboolean))
+                 (s0 (tbytes 32))
+                 (s1 (tfield (field-native)))))
+          (default
+            (ttuple
+              (tstruct Either (tag (tboolean)) (s0 (tbytes 32)))
+              (tstruct Either
+                (tag (tboolean))
+                (s0 (tfield (field-native)))
+                (s1 (tbytes 32)))
+              (tstruct Either
+                (tag (tboolean))
+                (s0 (tbytes 32))
+                (s1 (tfield (field-native)))))))))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export circuit foo(): Order {"
+      "  return default<Order>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (tstruct Order
+               (tag (tunsigned 2))
+               (s0 (tbytes 32))
+               (s1 (tunsigned 18446744073709551615)))
+          (default
+            (tstruct Order
+              (tag (tunsigned 2))
+              (s0 (tbytes 32))
+              (s1 (tunsigned 18446744073709551615)))))))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down }"
+      "new type Feet = Uint<32>;"
+      "struct S { f: Feet, a: Arrow, x: Field }"
+      "enum Opt<T> { None, Some(T) }"
+      "enum E {"
+      "  A(Uint<32>, Field, Uint<32>),"
+      "  B(S, Uint<32>),"
+      "  C(Field, Field, Arrow),"
+      "  D(Opt<Field>, Opt<Uint<32>>),"
+      "  F(Opt<Uint<32>>, Opt<Field>, Opt<Field>),"
+      "  G"
+      "}"
+      "export circuit foo(): E {"
+      "  return default<E>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (tstruct E
+               (tag (tunsigned 5))
+               (s0 (tunsigned 4294967295))
+               (s1 (tfield (field-native)))
+               (s2 (tunsigned 4294967295))
+               (s3 (tstruct S
+                     (f (talias #t Feet (tunsigned 4294967295)))
+                     (a (tenum Arrow up down))
+                     (x (tfield (field-native)))))
+               (s4 (tfield (field-native)))
+               (s5 (tenum Arrow up down))
+               (s6 (tstruct Opt
+                     (tag (tboolean))
+                     (s0 (tfield (field-native)))))
+               (s7 (tstruct Opt
+                     (tag (tboolean))
+                     (s0 (tunsigned 4294967295))))
+               (s8 (tstruct Opt
+                     (tag (tboolean))
+                     (s0 (tfield (field-native))))))
+          (default
+            (tstruct E
+              (tag (tunsigned 5))
+              (s0 (tunsigned 4294967295))
+              (s1 (tfield (field-native)))
+              (s2 (tunsigned 4294967295))
+              (s3 (tstruct S
+                    (f (talias #t Feet (tunsigned 4294967295)))
+                    (a (tenum Arrow up down))
+                    (x (tfield (field-native)))))
+              (s4 (tfield (field-native)))
+              (s5 (tenum Arrow up down))
+              (s6 (tstruct Opt
+                    (tag (tboolean))
+                    (s0 (tfield (field-native)))))
+              (s7 (tstruct Opt
+                    (tag (tboolean))
+                    (s0 (tunsigned 4294967295))))
+              (s8 (tstruct Opt
+                    (tag (tboolean))
+                    (s0 (tfield (field-native))))))))))
+    )
+
+  (test
+    '(
+      "enum One { Only(Field, Bytes<32>) }"
+      "enum Unit { Only([]) }"
+      "export circuit foo(): [One, Unit] {"
+      "  return default<[One, Unit]>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (ttuple
+               (tstruct One (s0 (tfield (field-native))) (s1 (tbytes 32)))
+               (tstruct Unit (s0 (ttuple))))
+          (default
+            (ttuple
+              (tstruct One (s0 (tfield (field-native))) (s1 (tbytes 32)))
+              (tstruct Unit (s0 (ttuple))))))))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "enum Opt<T> { None, Some(T) }"
+      "new type Feet = Uint<32>;"
+      "struct S { f: Feet, x: [Field, Boolean] }"
+      "enum E { A(Field), B(Vector<2, S>, Opt<Order>), C(Boolean, Feet) }"
+      "export circuit foo(w: Bytes<32>, n: Uint<64>, s: S, f: Feet, x: Field): [Order, Order, Order, E, E, E] {"
+      "  return [Order::Open, Order::Filled(w, n), Order::Cancelled(w),"
+      "          E::A(x), E::B([s, s], Opt<Order>::Some(Order::Cancelled(w))), E::C(true, f)];"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ([%w.1 (tbytes 32)]
+                         [%n.2 (tunsigned 18446744073709551615)]
+                         [%s.3 (tstruct S
+                                 (f (talias #t Feet (tunsigned 4294967295)))
+                                 (x (ttuple
+                                      (tfield (field-native))
+                                      (tboolean))))]
+                         [%f.4 (talias #t Feet (tunsigned 4294967295))]
+                         [%x.5 (tfield (field-native))])
+             (ttuple
+               (tstruct Order
+                 (tag (tunsigned 2))
+                 (s0 (tbytes 32))
+                 (s1 (tunsigned 18446744073709551615)))
+               (tstruct Order
+                 (tag (tunsigned 2))
+                 (s0 (tbytes 32))
+                 (s1 (tunsigned 18446744073709551615)))
+               (tstruct Order
+                 (tag (tunsigned 2))
+                 (s0 (tbytes 32))
+                 (s1 (tunsigned 18446744073709551615)))
+               (tstruct E
+                 (tag (tunsigned 2))
+                 (s0 (tfield (field-native)))
+                 (s1 (tvector
+                       2
+                       (tstruct S
+                         (f (talias #t Feet (tunsigned 4294967295)))
+                         (x (ttuple (tfield (field-native)) (tboolean))))))
+                 (s2 (tstruct Opt
+                       (tag (tboolean))
+                       (s0 (tstruct Order
+                             (tag (tunsigned 2))
+                             (s0 (tbytes 32))
+                             (s1 (tunsigned 18446744073709551615))))))
+                 (s3 (tboolean))
+                 (s4 (tunsigned 4294967295)))
+               (tstruct E
+                 (tag (tunsigned 2))
+                 (s0 (tfield (field-native)))
+                 (s1 (tvector
+                       2
+                       (tstruct S
+                         (f (talias #t Feet (tunsigned 4294967295)))
+                         (x (ttuple (tfield (field-native)) (tboolean))))))
+                 (s2 (tstruct Opt
+                       (tag (tboolean))
+                       (s0 (tstruct Order
+                             (tag (tunsigned 2))
+                             (s0 (tbytes 32))
+                             (s1 (tunsigned 18446744073709551615))))))
+                 (s3 (tboolean))
+                 (s4 (tunsigned 4294967295)))
+               (tstruct E
+                 (tag (tunsigned 2))
+                 (s0 (tfield (field-native)))
+                 (s1 (tvector
+                       2
+                       (tstruct S
+                         (f (talias #t Feet (tunsigned 4294967295)))
+                         (x (ttuple (tfield (field-native)) (tboolean))))))
+                 (s2 (tstruct Opt
+                       (tag (tboolean))
+                       (s0 (tstruct Order
+                             (tag (tunsigned 2))
+                             (s0 (tbytes 32))
+                             (s1 (tunsigned 18446744073709551615))))))
+                 (s3 (tboolean))
+                 (s4 (tunsigned 4294967295))))
+          (tuple
+            (new (tstruct Order
+                   (tag (tunsigned 2))
+                   (s0 (tbytes 32))
+                   (s1 (tunsigned 18446744073709551615)))
+              (safe-cast (tunsigned 2) (tunsigned 0) 0)
+              (default (tbytes 32))
+              (default (tunsigned 18446744073709551615)))
+            (new (tstruct Order
+                   (tag (tunsigned 2))
+                   (s0 (tbytes 32))
+                   (s1 (tunsigned 18446744073709551615)))
+              (safe-cast (tunsigned 2) (tunsigned 1) 1)
+              %w.1
+              %n.2)
+            (new (tstruct Order
+                   (tag (tunsigned 2))
+                   (s0 (tbytes 32))
+                   (s1 (tunsigned 18446744073709551615)))
+              2
+              %w.1
+              (default (tunsigned 18446744073709551615)))
+            (new (tstruct E
+                   (tag (tunsigned 2))
+                   (s0 (tfield (field-native)))
+                   (s1 (tvector
+                         2
+                         (tstruct S
+                           (f (talias #t Feet (tunsigned 4294967295)))
+                           (x (ttuple (tfield (field-native)) (tboolean))))))
+                   (s2 (tstruct Opt
+                         (tag (tboolean))
+                         (s0 (tstruct Order
+                               (tag (tunsigned 2))
+                               (s0 (tbytes 32))
+                               (s1 (tunsigned 18446744073709551615))))))
+                   (s3 (tboolean))
+                   (s4 (tunsigned 4294967295)))
+              (safe-cast (tunsigned 2) (tunsigned 0) 0)
+              %x.5
+              (default
+                (tvector
+                  2
+                  (tstruct S
+                    (f (talias #t Feet (tunsigned 4294967295)))
+                    (x (ttuple (tfield (field-native)) (tboolean))))))
+              (default
+                (tstruct Opt
+                  (tag (tboolean))
+                  (s0 (tstruct Order
+                        (tag (tunsigned 2))
+                        (s0 (tbytes 32))
+                        (s1 (tunsigned 18446744073709551615))))))
+              (default (tboolean))
+              (default (tunsigned 4294967295)))
+            (let* ([[%t.6 (tvector
+                            2
+                            (tstruct S
+                              (f (talias #t Feet (tunsigned 4294967295)))
+                              (x (ttuple
+                                   (tfield (field-native))
+                                   (tboolean)))))]
+                    (tuple %s.3 %s.3)])
+              (let* ([[%t.7 (tstruct Opt
+                              (tag (tboolean))
+                              (s0 (tstruct Order
+                                    (tag (tunsigned 2))
+                                    (s0 (tbytes 32))
+                                    (s1 (tunsigned 18446744073709551615)))))]
+                      (let* ([[%t.8 (tstruct Order
+                                      (tag (tunsigned 2))
+                                      (s0 (tbytes 32))
+                                      (s1 (tunsigned 18446744073709551615)))]
+                              (new (tstruct Order
+                                     (tag (tunsigned 2))
+                                     (s0 (tbytes 32))
+                                     (s1 (tunsigned 18446744073709551615)))
+                                2
+                                %w.1
+                                (default (tunsigned 18446744073709551615)))])
+                        (new (tstruct Opt
+                               (tag (tboolean))
+                               (s0 (tstruct Order
+                                     (tag (tunsigned 2))
+                                     (s0 (tbytes 32))
+                                     (s1 (tunsigned 18446744073709551615)))))
+                          #t
+                          %t.8))])
+                (new (tstruct E
+                       (tag (tunsigned 2))
+                       (s0 (tfield (field-native)))
+                       (s1 (tvector
+                             2
+                             (tstruct S
+                               (f (talias #t Feet (tunsigned 4294967295)))
+                               (x (ttuple
+                                    (tfield (field-native))
+                                    (tboolean))))))
+                       (s2 (tstruct Opt
+                             (tag (tboolean))
+                             (s0 (tstruct Order
+                                   (tag (tunsigned 2))
+                                   (s0 (tbytes 32))
+                                   (s1 (tunsigned 18446744073709551615))))))
+                       (s3 (tboolean))
+                       (s4 (tunsigned 4294967295)))
+                  (safe-cast (tunsigned 2) (tunsigned 1) 1)
+                  (default (tfield (field-native)))
+                  %t.6
+                  %t.7
+                  (default (tboolean))
+                  (default (tunsigned 4294967295)))))
+            (new (tstruct E
+                   (tag (tunsigned 2))
+                   (s0 (tfield (field-native)))
+                   (s1 (tvector
+                         2
+                         (tstruct S
+                           (f (talias #t Feet (tunsigned 4294967295)))
+                           (x (ttuple (tfield (field-native)) (tboolean))))))
+                   (s2 (tstruct Opt
+                         (tag (tboolean))
+                         (s0 (tstruct Order
+                               (tag (tunsigned 2))
+                               (s0 (tbytes 32))
+                               (s1 (tunsigned 18446744073709551615))))))
+                   (s3 (tboolean))
+                   (s4 (tunsigned 4294967295)))
+              2
+              (default (tfield (field-native)))
+              (default
+                (tvector
+                  2
+                  (tstruct S
+                    (f (talias #t Feet (tunsigned 4294967295)))
+                    (x (ttuple (tfield (field-native)) (tboolean))))))
+              (default
+                (tstruct Opt
+                  (tag (tboolean))
+                  (s0 (tstruct Order
+                        (tag (tunsigned 2))
+                        (s0 (tbytes 32))
+                        (s1 (tunsigned 18446744073709551615))))))
+              #t
+              (safe-cast (tunsigned 4294967295)
+                         (talias #t Feet (tunsigned 4294967295))
+                %f.4))))))
+    )
+
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "enum Opt<T> { None, Some(T) }"
+      "enum Either<L, R> { Right(R), Left(L) }"
+      "enum Wide { A(Field), B(Field), C(Field), D(Bytes<32>), E }"
+      "struct P { a: Field, m: Opt<Order> }"
+      "export circuit foo(x: Opt<Field>, y: Order, z: Either<Bytes<32>, Bytes<32>>, p: Vector<2, P>, w: Wide): [] {"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ([%x.1 (tstruct Opt
+                                 (tag (tboolean))
+                                 (s0 (tfield (field-native))))]
+                         [%y.2 (tstruct Order
+                                 (tag (tunsigned 2))
+                                 (s0 (tbytes 32))
+                                 (s1 (tunsigned 18446744073709551615)))]
+                         [%z.3 (tstruct Either
+                                 (tag (tboolean))
+                                 (s0 (tbytes 32)))]
+                         [%p.4 (tvector
+                                 2
+                                 (tstruct P
+                                   (a (tfield (field-native)))
+                                   (m (tstruct Opt
+                                        (tag (tboolean))
+                                        (s0 (tstruct Order
+                                              (tag (tunsigned 2))
+                                              (s0 (tbytes 32))
+                                              (s1 (tunsigned
+                                                    18446744073709551615))))))))]
+                         [%w.5 (tstruct Wide
+                                 (tag (tunsigned 4))
+                                 (s0 (tfield (field-native)))
+                                 (s1 (tbytes 32)))])
+             (ttuple)
+          (seq
+            (seq
+              (assert
+                (if (elt-ref %x.1 tag 0)
+                    #t
+                    (== (elt-ref %x.1 s0 1) (default (tfield (field-native)))))
+                "argument x of circuit foo contains an invalid enum value")
+              (tuple))
+            (seq
+              (assert
+                (if (!= (elt-ref %y.2 tag 0)
+                        (safe-cast (tunsigned 2) (tunsigned 0) 0))
+                    #t
+                    (== (elt-ref %y.2 s0 1) (default (tbytes 32))))
+                "argument y of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %y.2 tag 0)
+                        (safe-cast (tunsigned 2) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref %y.2 s1 2)
+                        (default (tunsigned 18446744073709551615))))
+                "argument y of circuit foo contains an invalid enum value")
+              (tuple))
+            (tuple)
+            (seq
+              (assert
+                (if (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) s0 1)
+                        (default
+                          (tstruct Order
+                            (tag (tunsigned 2))
+                            (s0 (tbytes 32))
+                            (s1 (tunsigned 18446744073709551615))))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (!= (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) s0 1)
+                          tag
+                          0)
+                        (safe-cast (tunsigned 2) (tunsigned 0) 0))
+                    #t
+                    (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) s0 1)
+                          s0
+                          1)
+                        (default (tbytes 32))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) s0 1)
+                          tag
+                          0)
+                        (safe-cast (tunsigned 2) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 0) m 1) s0 1)
+                          s1
+                          2)
+                        (default (tunsigned 18446744073709551615))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) s0 1)
+                        (default
+                          (tstruct Order
+                            (tag (tunsigned 2))
+                            (s0 (tbytes 32))
+                            (s1 (tunsigned 18446744073709551615))))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (!= (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) s0 1)
+                          tag
+                          0)
+                        (safe-cast (tunsigned 2) (tunsigned 0) 0))
+                    #t
+                    (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) s0 1)
+                          s0
+                          1)
+                        (default (tbytes 32))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) s0 1)
+                          tag
+                          0)
+                        (safe-cast (tunsigned 2) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref
+                          (elt-ref (elt-ref (tuple-ref %p.4 1) m 1) s0 1)
+                          s1
+                          2)
+                        (default (tunsigned 18446744073709551615))))
+                "argument p of circuit foo contains an invalid enum value")
+              (tuple))
+            (seq
+              (assert
+                (if (if (!= (elt-ref %w.5 tag 0)
+                            (safe-cast (tunsigned 4) (tunsigned 3) 3))
+                        (!= (elt-ref %w.5 tag 0) 4)
+                        #f)
+                    #t
+                    (== (elt-ref %w.5 s0 1) (default (tfield (field-native)))))
+                "argument w of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %w.5 tag 0)
+                        (safe-cast (tunsigned 4) (tunsigned 3) 3))
+                    #t
+                    (== (elt-ref %w.5 s1 2) (default (tbytes 32))))
+                "argument w of circuit foo contains an invalid enum value")
+              (tuple))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "export enum Opt<T> { None, Some(T) }"
+      "export enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export enum Arrow { up, down }"
+      "export struct Holder<T> { a: T, o: Opt<Field> }"
+      "export struct Open<T> { a: Opt<T> }"
+      "export circuit foo(x: Opt<Field>, y: Order, z: Arrow): [] { }"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (export-typedef Opt (T)
+          (tstruct Opt (tag (tboolean)) (s0 T)))
+        (export-typedef Order ()
+          (tstruct Order
+            (tag (tunsigned 2))
+            (s0 (tbytes 32))
+            (s1 (tunsigned 18446744073709551615))))
+        (export-typedef Arrow () (tenum Arrow up down))
+        (export-typedef Holder (T)
+          (tstruct Holder
+            (a T)
+            (o (tstruct Opt
+                 (tag (tboolean))
+                 (s0 (tfield (field-native)))))))
+        (export-typedef Open (T)
+          (tstruct Open (a (tstruct Opt (tag (tboolean)) (s0 T)))))
+        (circuit %foo.0 ([%x.1 (tstruct Opt
+                                 (tag (tboolean))
+                                 (s0 (tfield (field-native))))]
+                         [%y.2 (tstruct Order
+                                 (tag (tunsigned 2))
+                                 (s0 (tbytes 32))
+                                 (s1 (tunsigned 18446744073709551615)))]
+                         [%z.3 (tenum Arrow up down)])
+             (ttuple)
+          (seq
+            (seq
+              (assert
+                (if (elt-ref %x.1 tag 0)
+                    #t
+                    (== (elt-ref %x.1 s0 1) (default (tfield (field-native)))))
+                "argument x of circuit foo contains an invalid enum value")
+              (tuple))
+            (seq
+              (assert
+                (if (!= (elt-ref %y.2 tag 0)
+                        (safe-cast (tunsigned 2) (tunsigned 0) 0))
+                    #t
+                    (== (elt-ref %y.2 s0 1) (default (tbytes 32))))
+                "argument y of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %y.2 tag 0)
+                        (safe-cast (tunsigned 2) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref %y.2 s1 2)
+                        (default (tunsigned 18446744073709551615))))
+                "argument y of circuit foo contains an invalid enum value")
+              (tuple))
+            (tuple)))))
+    )
+
+  ; a field whose type is written with an alias, or as a tuple whose elements all have one
+  ; type, shares a slot with a field of the same type written another way
+  (test
+    '(
+      "type Feet = Field;"
+      "enum E<T> { A(T), B(Vector<2, Field>) }"
+      "enum F { A([Field, Field]), B(Vector<2, Field>) }"
+      "export circuit foo(): [E<Vector<2, Feet>>, F] {"
+      "  return default<[E<Vector<2, Feet>>, F]>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ()
+             (ttuple
+               (tstruct E
+                 (tag (tboolean))
+                 (s0 (tvector 2 (talias #f Feet (tfield (field-native))))))
+               (tstruct F
+                 (tag (tboolean))
+                 (s0 (ttuple
+                       (tfield (field-native))
+                       (tfield (field-native))))))
+          (default
+            (ttuple
+              (tstruct E
+                (tag (tboolean))
+                (s0 (tvector 2 (talias #f Feet (tfield (field-native))))))
+              (tstruct F
+                (tag (tboolean))
+                (s0 (ttuple
+                      (tfield (field-native))
+                      (tfield (field-native))))))))))
+    )
+)
+
+(run-tests lower-enums
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Arrow { up, down }"
+      "struct P { a: Field, m: Opt<Field> }"
+      ""
+      "new type Feet = Uint<32>;"
+      "struct S { f: Feet, x: [Field, Boolean] }"
+      "enum E { A(Field), B(Vector<2, S>, Opt<Addr>), C(Boolean, Feet), D(Vector<0, Field>) }"
+      "enum One { Only(Field, S) }"
+      "export circuit foo(e: E, o: One): Field {"
+      "  const n = match o { Only(a, {f, x: [b, _]}) => a + b + (f as Field) };"
+      "  return match e {"
+      "    A(v) => v,"
+      "    B([s, _], Some(User(_))) => s.x[0],"
+      "    B(v, _) => v[1].x[0],"
+      "    C(_, f) => f as Field,"
+      "    D(_) => n"
+      "  };"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.0 ([%e.1 (tstruct E
+                                 (tag (tunsigned 3))
+                                 (s0 (tfield (field-native)))
+                                 (s1 (tvector
+                                       2
+                                       (tstruct S
+                                         (f (talias #t Feet
+                                              (tunsigned 4294967295)))
+                                         (x (ttuple
+                                              (tfield (field-native))
+                                              (tboolean))))))
+                                 (s2 (tstruct Opt
+                                       (tag (tboolean))
+                                       (s0 (tstruct Addr
+                                             (tag (tboolean))
+                                             (s0 (tbytes 32))))))
+                                 (s3 (tboolean))
+                                 (s4 (tunsigned 4294967295))
+                                 (s5 (tvector 0 (tfield (field-native)))))]
+                         [%o.2 (tstruct One
+                                 (s0 (tfield (field-native)))
+                                 (s1 (tstruct S
+                                       (f (talias #t Feet
+                                            (tunsigned 4294967295)))
+                                       (x (ttuple
+                                            (tfield (field-native))
+                                            (tboolean))))))])
+             (tfield (field-native))
+          (seq
+            (seq
+              (assert
+                (if (== (elt-ref %e.1 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 0) 0))
+                    #t
+                    (== (elt-ref %e.1 s0 1) (default (tfield (field-native)))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %e.1 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref %e.1 s1 2)
+                        (default
+                          (tvector
+                            2
+                            (tstruct S
+                              (f (talias #t Feet (tunsigned 4294967295)))
+                              (x (ttuple
+                                   (tfield (field-native))
+                                   (tboolean))))))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %e.1 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 1) 1))
+                    #t
+                    (== (elt-ref %e.1 s2 3)
+                        (default
+                          (tstruct Opt
+                            (tag (tboolean))
+                            (s0 (tstruct Addr
+                                  (tag (tboolean))
+                                  (s0 (tbytes 32))))))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (elt-ref (elt-ref %e.1 s2 3) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %e.1 s2 3) s0 1)
+                        (default
+                          (tstruct Addr (tag (tboolean)) (s0 (tbytes 32))))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %e.1 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 2) 2))
+                    #t
+                    (== (elt-ref %e.1 s3 4) (default (tboolean))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %e.1 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 2) 2))
+                    #t
+                    (== (elt-ref %e.1 s4 5) (default (tunsigned 4294967295))))
+                "argument e of circuit foo contains an invalid enum value")
+              (assert
+                (if (== (elt-ref %e.1 tag 0) 3)
+                    #t
+                    (== (elt-ref %e.1 s5 6)
+                        (default (tvector 0 (tfield (field-native))))))
+                "argument e of circuit foo contains an invalid enum value")
+              (tuple))
+            (tuple)
+            (let* ([[%n.3 (tfield (field-native))]
+                    (let* ([[%t.4 (tstruct One
+                                    (s0 (tfield (field-native)))
+                                    (s1 (tstruct S
+                                          (f (talias #t Feet
+                                               (tunsigned 4294967295)))
+                                          (x (ttuple
+                                               (tfield (field-native))
+                                               (tboolean))))))]
+                            %o.2])
+                      (let* ([[%a.5 (tfield (field-native))]
+                              (elt-ref %t.4 s0 0)]
+                             [[%f.6 (talias #t Feet (tunsigned 4294967295))]
+                              (elt-ref (elt-ref %t.4 s1 1) f 0)]
+                             [[%b.7 (tfield (field-native))]
+                              (tuple-ref (elt-ref (elt-ref %t.4 s1 1) x 1) 0)])
+                        (+ (tfield (field-native))
+                           (+ (tfield (field-native)) %a.5 %b.7)
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 4294967295)
+                             (safe-cast (tunsigned 4294967295)
+                                        (talias #t Feet (tunsigned 4294967295))
+                               %f.6)))))])
+              (let* ([[%t.8 (tstruct E
+                              (tag (tunsigned 3))
+                              (s0 (tfield (field-native)))
+                              (s1 (tvector
+                                    2
+                                    (tstruct S
+                                      (f (talias #t Feet
+                                           (tunsigned 4294967295)))
+                                      (x (ttuple
+                                           (tfield (field-native))
+                                           (tboolean))))))
+                              (s2 (tstruct Opt
+                                    (tag (tboolean))
+                                    (s0 (tstruct Addr
+                                          (tag (tboolean))
+                                          (s0 (tbytes 32))))))
+                              (s3 (tboolean))
+                              (s4 (tunsigned 4294967295))
+                              (s5 (tvector 0 (tfield (field-native)))))]
+                      %e.1])
+                (if (== (elt-ref %t.8 tag 0)
+                        (safe-cast (tunsigned 3) (tunsigned 0) 0))
+                    (let* ([[%v.9 (tfield (field-native))]
+                            (elt-ref %t.8 s0 1)])
+                      %v.9)
+                    (if (if (== (elt-ref %t.8 tag 0)
+                                (safe-cast (tunsigned 3) (tunsigned 1) 1))
+                            (if (elt-ref (elt-ref %t.8 s2 3) tag 0)
+                                (if (elt-ref
+                                      (elt-ref (elt-ref %t.8 s2 3) s0 1)
+                                      tag
+                                      0)
+                                    #f
+                                    #t)
+                                #f)
+                            #f)
+                        (let* ([[%s.10 (tstruct S
+                                         (f (talias #t Feet
+                                              (tunsigned 4294967295)))
+                                         (x (ttuple
+                                              (tfield (field-native))
+                                              (tboolean))))]
+                                (tuple-ref (elt-ref %t.8 s1 2) 0)])
+                          (tuple-ref (elt-ref %s.10 x 1) 0))
+                        (if (== (elt-ref %t.8 tag 0)
+                                (safe-cast (tunsigned 3) (tunsigned 1) 1))
+                            (let* ([[%v.11 (tvector
+                                             2
+                                             (tstruct S
+                                               (f (talias #t Feet
+                                                    (tunsigned 4294967295)))
+                                               (x (ttuple
+                                                    (tfield (field-native))
+                                                    (tboolean)))))]
+                                    (elt-ref %t.8 s1 2)])
+                              (tuple-ref (elt-ref (tuple-ref %v.11 1) x 1) 0))
+                            (if (== (elt-ref %t.8 tag 0)
+                                    (safe-cast (tunsigned 3) (tunsigned 2) 2))
+                                (let* ([[%f.12 (talias #t Feet
+                                                 (tunsigned 4294967295))]
+                                        (safe-cast (talias #t Feet
+                                                     (tunsigned 4294967295))
+                                                   (tunsigned 4294967295)
+                                          (elt-ref %t.8 s4 5))])
+                                  (safe-cast (tfield (field-native))
+                                             (tunsigned 4294967295)
+                                    (safe-cast (tunsigned 4294967295)
+                                               (talias #t Feet
+                                                 (tunsigned 4294967295))
+                                      %f.12)))
+                                (seq
+                                  (assert
+                                    (== (elt-ref %t.8 tag 0) 3)
+                                    "match on an invalid enum value")
+                                  %n.3)))))))))))
+    )
+
+  ; the ledger's enums keep the ledger's layout: a slot for each variant with a field, last variant first
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(p: PublicAddress, r: ShieldedRecipient, b: Bytes<32>): [TokenType, TokenType, Bytes<32>, Boolean] {"
+      "  return [TokenType::Dust,"
+      "          TokenType::Unshielded(b),"
+      "          match p { User(u) => u.bytes, Contract(c) => c.bytes },"
+      "          match r { Contract(_) => true, User(_) => false }];"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%p.2 (tstruct PublicAddress
+                                 (tag (tboolean))
+                                 (Contract (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                 (User (tstruct UserAddress
+                                         (bytes (tbytes 32)))))]
+                         [%r.3 (tstruct ShieldedRecipient
+                                 (tag (tboolean))
+                                 (User (tstruct ZswapCoinPublicKey
+                                         (bytes (tbytes 32))))
+                                 (Contract (tstruct ContractAddress
+                                             (bytes (tbytes 32)))))]
+                         [%b.4 (tbytes 32)])
+             (ttuple
+               (tstruct TokenType
+                 (tag (tunsigned 2))
+                 (Unshielded (tbytes 32))
+                 (Shielded (tbytes 32)))
+               (tstruct TokenType
+                 (tag (tunsigned 2))
+                 (Unshielded (tbytes 32))
+                 (Shielded (tbytes 32)))
+               (tbytes 32)
+               (tboolean))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref %p.2 tag 0)
+                    #t
+                    (== (elt-ref %p.2 Contract 1)
+                        (default
+                          (tstruct ContractAddress (bytes (tbytes 32))))))
+                "argument p of circuit foo contains an invalid enum value")
+              (assert
+                (if (if (elt-ref %p.2 tag 0) #f #t)
+                    #t
+                    (== (elt-ref %p.2 User 2)
+                        (default (tstruct UserAddress (bytes (tbytes 32))))))
+                "argument p of circuit foo contains an invalid enum value")
+              (tuple))
+            (seq
+              (assert
+                (if (elt-ref %r.3 tag 0)
+                    #t
+                    (== (elt-ref %r.3 User 1)
+                        (default
+                          (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                "argument r of circuit foo contains an invalid enum value")
+              (assert
+                (if (if (elt-ref %r.3 tag 0) #f #t)
+                    #t
+                    (== (elt-ref %r.3 Contract 2)
+                        (default
+                          (tstruct ContractAddress (bytes (tbytes 32))))))
+                "argument r of circuit foo contains an invalid enum value")
+              (tuple))
+            (tuple
+              (new (tstruct TokenType
+                     (tag (tunsigned 2))
+                     (Unshielded (tbytes 32))
+                     (Shielded (tbytes 32)))
+                2
+                (default (tbytes 32))
+                (default (tbytes 32)))
+              (new (tstruct TokenType
+                     (tag (tunsigned 2))
+                     (Unshielded (tbytes 32))
+                     (Shielded (tbytes 32)))
+                (safe-cast (tunsigned 2) (tunsigned 1) 1)
+                %b.4
+                (default (tbytes 32)))
+              (let* ([[%t.5 (tstruct PublicAddress
+                              (tag (tboolean))
+                              (Contract (tstruct ContractAddress
+                                          (bytes (tbytes 32))))
+                              (User (tstruct UserAddress
+                                      (bytes (tbytes 32)))))]
+                      %p.2])
+                (if (if (elt-ref %t.5 tag 0) #f #t)
+                    (let* ([[%u.6 (tstruct UserAddress (bytes (tbytes 32)))]
+                            (elt-ref %t.5 User 2)])
+                      (elt-ref %u.6 bytes 0))
+                    (let* ([[%c.7 (tstruct ContractAddress
+                                    (bytes (tbytes 32)))]
+                            (elt-ref %t.5 Contract 1)])
+                      (elt-ref %c.7 bytes 0))))
+              (let* ([[%t.8 (tstruct ShieldedRecipient
+                              (tag (tboolean))
+                              (User (tstruct ZswapCoinPublicKey
+                                      (bytes (tbytes 32))))
+                              (Contract (tstruct ContractAddress
+                                          (bytes (tbytes 32)))))]
+                      %r.3])
+                (if (if (elt-ref %t.8 tag 0) #f #t) #t #f)))))))
+    )
+
+  ; the library's enums share slots; an enum inside a variant, the ledger's included, is one part
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): [Either<Bytes<32>, Bytes<32>>, Either<Bytes<32>, Field>, Maybe<PublicAddress>] {"
+      "  return default<[Either<Bytes<32>, Bytes<32>>, Either<Bytes<32>, Field>, Maybe<PublicAddress>]>;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (ttuple
+               (tstruct Either (tag (tboolean)) (s0 (tbytes 32)))
+               (tstruct Either
+                 (tag (tboolean))
+                 (s0 (tfield (field-native)))
+                 (s1 (tbytes 32)))
+               (tstruct Maybe
+                 (tag (tboolean))
+                 (s0 (tstruct PublicAddress
+                       (tag (tboolean))
+                       (Contract (tstruct ContractAddress (bytes (tbytes 32))))
+                       (User (tstruct UserAddress (bytes (tbytes 32))))))))
+          (default
+            (ttuple
+              (tstruct Either (tag (tboolean)) (s0 (tbytes 32)))
+              (tstruct Either
+                (tag (tboolean))
+                (s0 (tfield (field-native)))
+                (s1 (tbytes 32)))
+              (tstruct Maybe
+                (tag (tboolean))
+                (s0 (tstruct PublicAddress
+                      (tag (tboolean))
+                      (Contract (tstruct ContractAddress (bytes (tbytes 32))))
+                      (User (tstruct UserAddress (bytes (tbytes 32))))))))))))
+    )
+)
+
 (run-tests expand-serialize
   (test
     '(
@@ -35329,86 +38231,118 @@ groups than for single tests.
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
                                            (commitment (tbytes 32))
                                            (ciphertext (tstruct Maybe
-                                                         (is_some (tboolean))
-                                                         (value (tbytes
-                                                                  512))))
+                                                         (tag (tboolean))
+                                                         (s0 (tbytes 512))))
                                            (contractAddress (tstruct Maybe
-                                                               (is_some (tboolean))
-                                                               (value (tbytes
-                                                                        32)))))])
+                                                              (tag (tboolean))
+                                                              (s0 (tbytes
+                                                                    32)))))])
              (tbytes 578)
           (let* ([[%t.3 (tstruct Maybe
-                          (is_some (tboolean))
-                          (value (tbytes 512)))]
+                          (tag (tboolean))
+                          (s0 (tbytes 512)))]
                   (elt-ref %value.2 ciphertext 1)]
-                 [[%t.4 (tstruct Maybe
-                          (is_some (tboolean))
-                          (value (tbytes 32)))]
+                 [[%t.4 (tstruct Maybe (tag (tboolean)) (s0 (tbytes 32)))]
                   (elt-ref %value.2 contractAddress 2)])
             (vector->bytes 578
               (vector
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 commitment 0)))
-                (if (elt-ref %t.3 is_some 0)
+                (if (elt-ref %t.3 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 512 (bytes->vector 512 (elt-ref %t.3 value 1)))
-                (if (elt-ref %t.4 is_some 0)
+                (spread 512 (bytes->vector 512 (elt-ref %t.3 s0 1)))
+                (if (elt-ref %t.4 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 32 (bytes->vector 32 (elt-ref %t.4 value 1)))))))
-        (circuit %deserialize.5 ([%value.6 (tbytes 578)])
+                (spread 32 (bytes->vector 32 (elt-ref %t.4 s0 1)))))))
+        (circuit %deserialize.5 ([%bytes.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
                (ciphertext (tstruct Maybe
-                             (is_some (tboolean))
-                             (value (tbytes 512))))
+                             (tag (tboolean))
+                             (s0 (tbytes 512))))
                (contractAddress (tstruct Maybe
-                                   (is_some (tboolean))
-                                   (value (tbytes 32)))))
-          (new (tstruct ShieldedReceive
-                 (commitment (tbytes 32))
-                 (ciphertext (tstruct Maybe
-                               (is_some (tboolean))
-                               (value (tbytes 512))))
-                 (contractAddress (tstruct Maybe
-                                     (is_some (tboolean))
-                                     (value (tbytes 32)))))
-            (bytes-slice %value.6 0 32)
-            (new (tstruct Maybe
-                   (is_some (tboolean))
-                   (value (tbytes 512)))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.6 32)) 1)
-              (bytes-slice %value.6 33 512))
-            (new (tstruct Maybe
-                   (is_some (tboolean))
-                   (value (tbytes 32)))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.6 545)) 1)
-              (bytes-slice %value.6 546 32))))
-        (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
+                                  (tag (tboolean))
+                                  (s0 (tbytes 32)))))
+          (let* ([[%t.7 (tstruct ShieldedReceive
+                          (commitment (tbytes 32))
+                          (ciphertext (tstruct Maybe
+                                        (tag (tboolean))
+                                        (s0 (tbytes 512))))
+                          (contractAddress (tstruct Maybe
+                                             (tag (tboolean))
+                                             (s0 (tbytes 32)))))]
+                  (new (tstruct ShieldedReceive
+                         (commitment (tbytes 32))
+                         (ciphertext (tstruct Maybe
+                                       (tag (tboolean))
+                                       (s0 (tbytes 512))))
+                         (contractAddress (tstruct Maybe
+                                            (tag (tboolean))
+                                            (s0 (tbytes 32)))))
+                    (bytes-slice %bytes.6 0 32)
+                    (new (tstruct Maybe (tag (tboolean)) (s0 (tbytes 512)))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.6 32)) 1)
+                      (bytes-slice %bytes.6 33 512))
+                    (new (tstruct Maybe (tag (tboolean)) (s0 (tbytes 32)))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.6 545)) 1)
+                      (bytes-slice %bytes.6 546 32)))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref (elt-ref %t.7 ciphertext 1) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.7 ciphertext 1) s0 1)
+                          (default (tbytes 512))))
+                  "the deserialized value contains an invalid enum value")
+                (assert
+                  (if (elt-ref (elt-ref %t.7 contractAddress 2) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.7 contractAddress 2) s0 1)
+                          (default (tbytes 32))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.7)))
+        (circuit %deserialize_ShieldedReceive.8 ([%x.9 (tbytes
                                                          578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
                (ciphertext (tstruct Maybe
-                             (is_some (tboolean))
-                             (value (tbytes 512))))
+                             (tag (tboolean))
+                             (s0 (tbytes 512))))
                (contractAddress (tstruct Maybe
-                                   (is_some (tboolean))
-                                   (value (tbytes 32)))))
-          (call %deserialize.5 %x.8))
-        (circuit %serialize_ShieldedReceive.9 ([%x.10 (tstruct ShieldedReceive
-                                                        (commitment (tbytes
-                                                                      32))
-                                                        (ciphertext (tstruct Maybe
-                                                                      (is_some (tboolean))
-                                                                      (value (tbytes
-                                                                               512))))
-                                                        (contractAddress (tstruct Maybe
-                                                                            (is_some (tboolean))
-                                                                            (value (tbytes
-                                                                                     32)))))])
+                                  (tag (tboolean))
+                                  (s0 (tbytes 32)))))
+          (call %deserialize.5 %x.9))
+        (circuit %serialize_ShieldedReceive.10 ([%x.11 (tstruct ShieldedReceive
+                                                         (commitment (tbytes
+                                                                       32))
+                                                         (ciphertext (tstruct Maybe
+                                                                       (tag (tboolean))
+                                                                       (s0 (tbytes
+                                                                             512))))
+                                                         (contractAddress (tstruct Maybe
+                                                                            (tag (tboolean))
+                                                                            (s0 (tbytes
+                                                                                  32)))))])
              (tbytes 578)
-          (call %serialize.1 %x.10))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref (elt-ref %x.11 ciphertext 1) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.11 ciphertext 1) s0 1)
+                        (default (tbytes 512))))
+                "argument x of circuit serialize_ShieldedReceive contains an invalid enum value")
+              (assert
+                (if (elt-ref (elt-ref %x.11 contractAddress 2) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.11 contractAddress 2) s0 1)
+                        (default (tbytes 32))))
+                "argument x of circuit serialize_ShieldedReceive contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %x.11)))))
     )
 
   (test
@@ -35429,14 +38363,14 @@ groups than for single tests.
                                            (commitment (tbytes 32))
                                            (domainSep (tbytes 32))
                                            (amount (tstruct Maybe
-                                                     (is_some (tboolean))
-                                                     (value (tunsigned
-                                                              340282366920938463463374607431768211455)))))])
+                                                     (tag (tboolean))
+                                                     (s0 (tunsigned
+                                                           340282366920938463463374607431768211455)))))])
              (tbytes 81)
           (let* ([[%t.3 (tstruct Maybe
-                          (is_some (tboolean))
-                          (value (tunsigned
-                                   340282366920938463463374607431768211455)))]
+                          (tag (tboolean))
+                          (s0 (tunsigned
+                                340282366920938463463374607431768211455)))]
                   (elt-ref %value.2 amount 2)])
             (vector->bytes 81
               (vector
@@ -35444,7 +38378,7 @@ groups than for single tests.
                   (bytes->vector 32 (elt-ref %value.2 commitment 0)))
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
-                (if (elt-ref %t.3 is_some 0)
+                (if (elt-ref %t.3 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 16
@@ -35453,49 +38387,80 @@ groups than for single tests.
                       (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %t.3 value 1)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 81)])
+                        (elt-ref %t.3 s0 1)))))))))
+        (circuit %deserialize.4 ([%bytes.5 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
                (domainSep (tbytes 32))
                (amount (tstruct Maybe
-                         (is_some (tboolean))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))))
-          (new (tstruct ShieldedMint
-                 (commitment (tbytes 32))
-                 (domainSep (tbytes 32))
-                 (amount (tstruct Maybe
-                           (is_some (tboolean))
-                           (value (tunsigned
-                                    340282366920938463463374607431768211455)))))
-            (bytes-slice %value.5 0 32)
-            (bytes-slice %value.5 32 32)
-            (new (tstruct Maybe
-                   (is_some (tboolean))
-                   (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.5 64)) 1)
-              (cast-from-bytes (tunsigned
-                                 340282366920938463463374607431768211455) 16
-                (bytes-slice %value.5 65 16)))))
-        (circuit %deserialize_ShieldedMint.6 ([%x.7 (tbytes 81)])
+                         (tag (tboolean))
+                         (s0 (tunsigned
+                               340282366920938463463374607431768211455)))))
+          (let* ([[%t.6 (tstruct ShieldedMint
+                          (commitment (tbytes 32))
+                          (domainSep (tbytes 32))
+                          (amount (tstruct Maybe
+                                    (tag (tboolean))
+                                    (s0 (tunsigned
+                                          340282366920938463463374607431768211455)))))]
+                  (new (tstruct ShieldedMint
+                         (commitment (tbytes 32))
+                         (domainSep (tbytes 32))
+                         (amount (tstruct Maybe
+                                   (tag (tboolean))
+                                   (s0 (tunsigned
+                                         340282366920938463463374607431768211455)))))
+                    (bytes-slice %bytes.5 0 32)
+                    (bytes-slice %bytes.5 32 32)
+                    (new (tstruct Maybe
+                           (tag (tboolean))
+                           (s0 (tunsigned
+                                 340282366920938463463374607431768211455)))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.5 64)) 1)
+                      (cast-from-bytes (tunsigned
+                                         340282366920938463463374607431768211455) 16
+                        (bytes-slice %bytes.5 65 16))))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref (elt-ref %t.6 amount 2) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 amount 2) s0 1)
+                          (default
+                            (tunsigned
+                              340282366920938463463374607431768211455))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.6)))
+        (circuit %deserialize_ShieldedMint.7 ([%x.8 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
                (domainSep (tbytes 32))
                (amount (tstruct Maybe
-                         (is_some (tboolean))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))))
-          (call %deserialize.4 %x.7))
-        (circuit %serialize_ShieldedMint.8 ([%x.9 (tstruct ShieldedMint
-                                                    (commitment (tbytes 32))
-                                                    (domainSep (tbytes 32))
-                                                    (amount (tstruct Maybe
-                                                              (is_some (tboolean))
-                                                              (value (tunsigned
-                                                                       340282366920938463463374607431768211455)))))])
+                         (tag (tboolean))
+                         (s0 (tunsigned
+                               340282366920938463463374607431768211455)))))
+          (call %deserialize.4 %x.8))
+        (circuit %serialize_ShieldedMint.9 ([%x.10 (tstruct ShieldedMint
+                                                     (commitment (tbytes 32))
+                                                     (domainSep (tbytes 32))
+                                                     (amount (tstruct Maybe
+                                                               (tag (tboolean))
+                                                               (s0 (tunsigned
+                                                                     340282366920938463463374607431768211455)))))])
              (tbytes 81)
-          (call %serialize.1 %x.9))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref (elt-ref %x.10 amount 2) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 amount 2) s0 1)
+                        (default
+                          (tunsigned
+                            340282366920938463463374607431768211455))))
+                "argument x of circuit serialize_ShieldedMint contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %x.10)))))
     )
 
   (test
@@ -35515,20 +38480,20 @@ groups than for single tests.
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedBurn
                                            (nullifier (tbytes 32))
                                            (amount (tstruct Maybe
-                                                     (is_some (tboolean))
-                                                     (value (tunsigned
-                                                              340282366920938463463374607431768211455)))))])
+                                                     (tag (tboolean))
+                                                     (s0 (tunsigned
+                                                           340282366920938463463374607431768211455)))))])
              (tbytes 49)
           (let* ([[%t.3 (tstruct Maybe
-                          (is_some (tboolean))
-                          (value (tunsigned
-                                   340282366920938463463374607431768211455)))]
+                          (tag (tboolean))
+                          (s0 (tunsigned
+                                340282366920938463463374607431768211455)))]
                   (elt-ref %value.2 amount 1)])
             (vector->bytes 49
               (vector
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 nullifier 0)))
-                (if (elt-ref %t.3 is_some 0)
+                (if (elt-ref %t.3 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 16
@@ -35537,44 +38502,74 @@ groups than for single tests.
                       (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %t.3 value 1)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 49)])
+                        (elt-ref %t.3 s0 1)))))))))
+        (circuit %deserialize.4 ([%bytes.5 (tbytes 49)])
              (tstruct ShieldedBurn
                (nullifier (tbytes 32))
                (amount (tstruct Maybe
-                         (is_some (tboolean))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))))
-          (new (tstruct ShieldedBurn
-                 (nullifier (tbytes 32))
-                 (amount (tstruct Maybe
-                           (is_some (tboolean))
-                           (value (tunsigned
-                                    340282366920938463463374607431768211455)))))
-            (bytes-slice %value.5 0 32)
-            (new (tstruct Maybe
-                   (is_some (tboolean))
-                   (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.5 32)) 1)
-              (cast-from-bytes (tunsigned
-                                 340282366920938463463374607431768211455) 16
-                (bytes-slice %value.5 33 16)))))
-        (circuit %deserialize_ShieldedBurn.6 ([%x.7 (tbytes 49)])
+                         (tag (tboolean))
+                         (s0 (tunsigned
+                               340282366920938463463374607431768211455)))))
+          (let* ([[%t.6 (tstruct ShieldedBurn
+                          (nullifier (tbytes 32))
+                          (amount (tstruct Maybe
+                                    (tag (tboolean))
+                                    (s0 (tunsigned
+                                          340282366920938463463374607431768211455)))))]
+                  (new (tstruct ShieldedBurn
+                         (nullifier (tbytes 32))
+                         (amount (tstruct Maybe
+                                   (tag (tboolean))
+                                   (s0 (tunsigned
+                                         340282366920938463463374607431768211455)))))
+                    (bytes-slice %bytes.5 0 32)
+                    (new (tstruct Maybe
+                           (tag (tboolean))
+                           (s0 (tunsigned
+                                 340282366920938463463374607431768211455)))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.5 32)) 1)
+                      (cast-from-bytes (tunsigned
+                                         340282366920938463463374607431768211455) 16
+                        (bytes-slice %bytes.5 33 16))))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref (elt-ref %t.6 amount 1) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 amount 1) s0 1)
+                          (default
+                            (tunsigned
+                              340282366920938463463374607431768211455))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.6)))
+        (circuit %deserialize_ShieldedBurn.7 ([%x.8 (tbytes 49)])
              (tstruct ShieldedBurn
                (nullifier (tbytes 32))
                (amount (tstruct Maybe
-                         (is_some (tboolean))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))))
-          (call %deserialize.4 %x.7))
-        (circuit %serialize_ShieldedBurn.8 ([%x.9 (tstruct ShieldedBurn
-                                                    (nullifier (tbytes 32))
-                                                    (amount (tstruct Maybe
-                                                              (is_some (tboolean))
-                                                              (value (tunsigned
-                                                                       340282366920938463463374607431768211455)))))])
+                         (tag (tboolean))
+                         (s0 (tunsigned
+                               340282366920938463463374607431768211455)))))
+          (call %deserialize.4 %x.8))
+        (circuit %serialize_ShieldedBurn.9 ([%x.10 (tstruct ShieldedBurn
+                                                     (nullifier (tbytes 32))
+                                                     (amount (tstruct Maybe
+                                                               (tag (tboolean))
+                                                               (s0 (tunsigned
+                                                                     340282366920938463463374607431768211455)))))])
              (tbytes 49)
-          (call %serialize.1 %x.9))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref (elt-ref %x.10 amount 1) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 amount 1) s0 1)
+                        (default
+                          (tunsigned
+                            340282366920938463463374607431768211455))))
+                "argument x of circuit serialize_ShieldedBurn contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %x.10)))))
     )
 
   (test
@@ -35588,116 +38583,165 @@ groups than for single tests.
      "}"
      )
    (returns
-      (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedSpend
-                                           (sender (tstruct Either
-                                                     (is_left (tboolean))
-                                                     (left (tstruct ZswapCoinPublicKey
-                                                             (bytes (tbytes
-                                                                      32))))
-                                                     (right (tstruct ContractAddress
-                                                              (bytes (tbytes
-                                                                       32))))))
-                                           (domainSep (tbytes 32))
-                                           (tokenType (tbytes 32))
-                                           (amount (tunsigned
-                                                     340282366920938463463374607431768211455)))])
-             (tbytes 145)
-          (let* ([[%t.3 (tstruct Either
-                          (is_left (tboolean))
-                          (left (tstruct ZswapCoinPublicKey
-                                  (bytes (tbytes 32))))
-                          (right (tstruct ContractAddress
-                                   (bytes (tbytes 32)))))]
-                  (elt-ref %value.2 sender 0)])
-            (vector->bytes 145
-              (vector
-                (if (elt-ref %t.3 is_left 0)
-                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
-                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
-                (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
-                (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
-                (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
-                (spread 16
-                  (bytes->vector 16
-                    (field->bytes 16 (field-native)
-                      (safe-cast (tfield (field-native))
-                                 (tunsigned
-                                   340282366920938463463374607431768211455)
-                        (elt-ref %value.2 amount 3)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
-             (tstruct UnshieldedSpend
-               (sender (tstruct Either
-                         (is_left (tboolean))
-                         (left (tstruct ZswapCoinPublicKey
+     (program
+       (kernel-declaration (%kernel.0 () (Kernel)))
+       (public-ledger-declaration () (constructor () (tuple)))
+       (circuit %serialize.1 ([%value.2 (tstruct UnshieldedSpend
+                                          (sender (tstruct ShieldedRecipient
+                                                    (tag (tboolean))
+                                                    (User (tstruct ZswapCoinPublicKey
+                                                            (bytes (tbytes
+                                                                     32))))
+                                                    (Contract (tstruct ContractAddress
+                                                                (bytes (tbytes
+                                                                         32))))))
+                                          (domainSep (tbytes 32))
+                                          (tokenType (tbytes 32))
+                                          (amount (tunsigned
+                                                    340282366920938463463374607431768211455)))])
+            (tbytes 145)
+         (let* ([[%t.3 (tstruct ShieldedRecipient
+                         (tag (tboolean))
+                         (User (tstruct ZswapCoinPublicKey
                                  (bytes (tbytes 32))))
-                         (right (tstruct ContractAddress
-                                  (bytes (tbytes 32))))))
-               (domainSep (tbytes 32))
-               (tokenType (tbytes 32))
-               (amount (tunsigned
-                         340282366920938463463374607431768211455)))
-          (new (tstruct UnshieldedSpend
-                 (sender (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
-                                   (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
+                         (Contract (tstruct ContractAddress
+                                     (bytes (tbytes 32)))))]
+                 (elt-ref %value.2 sender 0)])
+           (vector->bytes 145
+             (vector
+               (if (elt-ref %t.3 tag 0)
+                   (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                   (safe-cast (tunsigned 255) (tunsigned 0) 0))
+               (spread 32
+                 (bytes->vector 32 (elt-ref (elt-ref %t.3 User 1) bytes 0)))
+               (spread 32
+                 (bytes->vector 32
+                   (elt-ref (elt-ref %t.3 Contract 2) bytes 0)))
+               (spread 32
+                 (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
+               (spread 32
+                 (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
+               (spread 16
+                 (bytes->vector 16
+                   (field->bytes 16 (field-native)
+                     (safe-cast (tfield (field-native))
+                                (tunsigned
+                                  340282366920938463463374607431768211455)
+                       (elt-ref %value.2 amount 3)))))))))
+       (circuit %deserialize.4 ([%bytes.5 (tbytes 145)])
+            (tstruct UnshieldedSpend
+              (sender (tstruct ShieldedRecipient
+                        (tag (tboolean))
+                        (User (tstruct ZswapCoinPublicKey
+                                (bytes (tbytes 32))))
+                        (Contract (tstruct ContractAddress
                                     (bytes (tbytes 32))))))
-                 (domainSep (tbytes 32))
-                 (tokenType (tbytes 32))
-                 (amount (tunsigned
-                           340282366920938463463374607431768211455)))
-            (new (tstruct Either
-                   (is_left (tboolean))
-                   (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                   (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
-              (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.5 1 32))
-              (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.5 33 32)))
-            (bytes-slice %value.5 65 32)
-            (bytes-slice %value.5 97 32)
-            (cast-from-bytes (tunsigned
-                               340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 129 16))))
-        (circuit %deserialize_UnshieldedSpend.6 ([%x.7 (tbytes
-                                                         145)])
-             (tstruct UnshieldedSpend
-               (sender (tstruct Either
-                         (is_left (tboolean))
-                         (left (tstruct ZswapCoinPublicKey
-                                 (bytes (tbytes 32))))
-                         (right (tstruct ContractAddress
-                                  (bytes (tbytes 32))))))
-               (domainSep (tbytes 32))
-               (tokenType (tbytes 32))
-               (amount (tunsigned
-                         340282366920938463463374607431768211455)))
-          (call %deserialize.4 %x.7))
-        (circuit %serialize_UnshieldedSpend.8 ([%x.9 (tstruct UnshieldedSpend
-                                                       (sender (tstruct Either
-                                                                 (is_left (tboolean))
-                                                                 (left (tstruct ZswapCoinPublicKey
+              (domainSep (tbytes 32))
+              (tokenType (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))
+         (let* ([[%t.6 (tstruct UnshieldedSpend
+                         (sender (tstruct ShieldedRecipient
+                                   (tag (tboolean))
+                                   (User (tstruct ZswapCoinPublicKey
+                                           (bytes (tbytes 32))))
+                                   (Contract (tstruct ContractAddress
+                                               (bytes (tbytes 32))))))
+                         (domainSep (tbytes 32))
+                         (tokenType (tbytes 32))
+                         (amount (tunsigned
+                                   340282366920938463463374607431768211455)))]
+                 (new (tstruct UnshieldedSpend
+                        (sender (tstruct ShieldedRecipient
+                                  (tag (tboolean))
+                                  (User (tstruct ZswapCoinPublicKey
+                                          (bytes (tbytes 32))))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))))
+                        (domainSep (tbytes 32))
+                        (tokenType (tbytes 32))
+                        (amount (tunsigned
+                                  340282366920938463463374607431768211455)))
+                   (new (tstruct ShieldedRecipient
+                          (tag (tboolean))
+                          (User (tstruct ZswapCoinPublicKey
+                                  (bytes (tbytes 32))))
+                          (Contract (tstruct ContractAddress
+                                      (bytes (tbytes 32)))))
+                     (== (downcast-unsigned 255 1 (bytes-ref %bytes.5 0)) 1)
+                     (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                       (bytes-slice %bytes.5 1 32))
+                     (new (tstruct ContractAddress (bytes (tbytes 32)))
+                       (bytes-slice %bytes.5 33 32)))
+                   (bytes-slice %bytes.5 65 32)
+                   (bytes-slice %bytes.5 97 32)
+                   (cast-from-bytes (tunsigned
+                                      340282366920938463463374607431768211455) 16
+                     (bytes-slice %bytes.5 129 16)))])
+           (seq
+             (seq
+               (assert
+                 (if (elt-ref (elt-ref %t.6 sender 0) tag 0)
+                     #t
+                     (== (elt-ref (elt-ref %t.6 sender 0) User 1)
+                         (default
+                           (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                 "the deserialized value contains an invalid enum value")
+               (assert
+                 (if (if (elt-ref (elt-ref %t.6 sender 0) tag 0) #f #t)
+                     #t
+                     (== (elt-ref (elt-ref %t.6 sender 0) Contract 2)
+                         (default
+                           (tstruct ContractAddress (bytes (tbytes 32))))))
+                 "the deserialized value contains an invalid enum value")
+               (tuple))
+             %t.6)))
+       (circuit %deserialize_UnshieldedSpend.7 ([%x.8 (tbytes
+                                                        145)])
+            (tstruct UnshieldedSpend
+              (sender (tstruct ShieldedRecipient
+                        (tag (tboolean))
+                        (User (tstruct ZswapCoinPublicKey
+                                (bytes (tbytes 32))))
+                        (Contract (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+              (domainSep (tbytes 32))
+              (tokenType (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))
+         (call %deserialize.4 %x.8))
+       (circuit %serialize_UnshieldedSpend.9 ([%x.10 (tstruct UnshieldedSpend
+                                                       (sender (tstruct ShieldedRecipient
+                                                                 (tag (tboolean))
+                                                                 (User (tstruct ZswapCoinPublicKey
                                                                          (bytes (tbytes
                                                                                   32))))
-                                                                 (right (tstruct ContractAddress
-                                                                          (bytes (tbytes
-                                                                                   32))))))
+                                                                 (Contract (tstruct ContractAddress
+                                                                             (bytes (tbytes
+                                                                                      32))))))
                                                        (domainSep (tbytes 32))
                                                        (tokenType (tbytes 32))
                                                        (amount (tunsigned
                                                                  340282366920938463463374607431768211455)))])
-             (tbytes 145)
-          (call %serialize.1 %x.9))))
+            (tbytes 145)
+         (seq
+           (seq
+             (assert
+               (if (elt-ref (elt-ref %x.10 sender 0) tag 0)
+                   #t
+                   (== (elt-ref (elt-ref %x.10 sender 0) User 1)
+                       (default
+                         (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+               "argument x of circuit serialize_UnshieldedSpend contains an invalid enum value")
+             (assert
+               (if (if (elt-ref (elt-ref %x.10 sender 0) tag 0) #f #t)
+                   #t
+                   (== (elt-ref (elt-ref %x.10 sender 0) Contract 2)
+                       (default
+                         (tstruct ContractAddress (bytes (tbytes 32))))))
+               "argument x of circuit serialize_UnshieldedSpend contains an invalid enum value")
+             (tuple))
+           (call %serialize.1 %x.10)))))
     )
 
   (test
@@ -35715,35 +38759,36 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct UnshieldedReceive
-                                           (recipient (tstruct Either
-                                                        (is_left (tboolean))
-                                                        (left (tstruct ZswapCoinPublicKey
+                                           (recipient (tstruct ShieldedRecipient
+                                                        (tag (tboolean))
+                                                        (User (tstruct ZswapCoinPublicKey
                                                                 (bytes (tbytes
                                                                          32))))
-                                                        (right (tstruct ContractAddress
-                                                                 (bytes (tbytes
-                                                                          32))))))
+                                                        (Contract (tstruct ContractAddress
+                                                                    (bytes (tbytes
+                                                                             32))))))
                                            (domainSep (tbytes 32))
                                            (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 145)
-          (let* ([[%t.3 (tstruct Either
-                          (is_left (tboolean))
-                          (left (tstruct ZswapCoinPublicKey
+          (let* ([[%t.3 (tstruct ShieldedRecipient
+                          (tag (tboolean))
+                          (User (tstruct ZswapCoinPublicKey
                                   (bytes (tbytes 32))))
-                          (right (tstruct ContractAddress
-                                   (bytes (tbytes 32)))))]
+                          (Contract (tstruct ContractAddress
+                                      (bytes (tbytes 32)))))]
                   (elt-ref %value.2 recipient 0)])
             (vector->bytes 145
               (vector
-                (if (elt-ref %t.3 is_left 0)
+                (if (elt-ref %t.3 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 User 1) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
+                  (bytes->vector 32
+                    (elt-ref (elt-ref %t.3 Contract 2) bytes 0)))
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
                 (spread 32
@@ -35755,74 +38800,122 @@ groups than for single tests.
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %value.2 amount 3)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
+        (circuit %deserialize.4 ([%bytes.5 (tbytes 145)])
              (tstruct UnshieldedReceive
-               (recipient (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ZswapCoinPublicKey
+               (recipient (tstruct ShieldedRecipient
+                            (tag (tboolean))
+                            (User (tstruct ZswapCoinPublicKey
                                     (bytes (tbytes 32))))
-                            (right (tstruct ContractAddress
-                                     (bytes (tbytes 32))))))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))))
                (domainSep (tbytes 32))
                (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (new (tstruct UnshieldedReceive
-                 (recipient (tstruct Either
-                              (is_left (tboolean))
-                              (left (tstruct ZswapCoinPublicKey
-                                      (bytes (tbytes 32))))
-                              (right (tstruct ContractAddress
-                                       (bytes (tbytes 32))))))
-                 (domainSep (tbytes 32))
-                 (tokenType (tbytes 32))
-                 (amount (tunsigned
-                           340282366920938463463374607431768211455)))
-            (new (tstruct Either
-                   (is_left (tboolean))
-                   (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                   (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
-              (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.5 1 32))
-              (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.5 33 32)))
-            (bytes-slice %value.5 65 32)
-            (bytes-slice %value.5 97 32)
-            (cast-from-bytes (tunsigned
-                               340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 129 16))))
-        (circuit %deserialize_UnshieldedReceive.6 ([%x.7 (tbytes
+          (let* ([[%t.6 (tstruct UnshieldedReceive
+                          (recipient (tstruct ShieldedRecipient
+                                       (tag (tboolean))
+                                       (User (tstruct ZswapCoinPublicKey
+                                               (bytes (tbytes 32))))
+                                       (Contract (tstruct ContractAddress
+                                                   (bytes (tbytes 32))))))
+                          (domainSep (tbytes 32))
+                          (tokenType (tbytes 32))
+                          (amount (tunsigned
+                                    340282366920938463463374607431768211455)))]
+                  (new (tstruct UnshieldedReceive
+                         (recipient (tstruct ShieldedRecipient
+                                      (tag (tboolean))
+                                      (User (tstruct ZswapCoinPublicKey
+                                              (bytes (tbytes 32))))
+                                      (Contract (tstruct ContractAddress
+                                                  (bytes (tbytes 32))))))
+                         (domainSep (tbytes 32))
+                         (tokenType (tbytes 32))
+                         (amount (tunsigned
+                                   340282366920938463463374607431768211455)))
+                    (new (tstruct ShieldedRecipient
+                           (tag (tboolean))
+                           (User (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (Contract (tstruct ContractAddress
+                                       (bytes (tbytes 32)))))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.5 0)) 1)
+                      (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                        (bytes-slice %bytes.5 1 32))
+                      (new (tstruct ContractAddress (bytes (tbytes 32)))
+                        (bytes-slice %bytes.5 33 32)))
+                    (bytes-slice %bytes.5 65 32)
+                    (bytes-slice %bytes.5 97 32)
+                    (cast-from-bytes (tunsigned
+                                       340282366920938463463374607431768211455) 16
+                      (bytes-slice %bytes.5 129 16)))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref (elt-ref %t.6 recipient 0) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 recipient 0) User 1)
+                          (default
+                            (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                  "the deserialized value contains an invalid enum value")
+                (assert
+                  (if (if (elt-ref (elt-ref %t.6 recipient 0) tag 0) #f #t)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 recipient 0) Contract 2)
+                          (default
+                            (tstruct ContractAddress (bytes (tbytes 32))))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.6)))
+        (circuit %deserialize_UnshieldedReceive.7 ([%x.8 (tbytes
                                                            145)])
              (tstruct UnshieldedReceive
-               (recipient (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ZswapCoinPublicKey
+               (recipient (tstruct ShieldedRecipient
+                            (tag (tboolean))
+                            (User (tstruct ZswapCoinPublicKey
                                     (bytes (tbytes 32))))
-                            (right (tstruct ContractAddress
-                                     (bytes (tbytes 32))))))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))))
                (domainSep (tbytes 32))
                (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (call %deserialize.4 %x.7))
-        (circuit %serialize_UnshieldedReceive.8 ([%x.9 (tstruct UnshieldedReceive
-                                                         (recipient (tstruct Either
-                                                                      (is_left (tboolean))
-                                                                      (left (tstruct ZswapCoinPublicKey
-                                                                              (bytes (tbytes
-                                                                                       32))))
-                                                                      (right (tstruct ContractAddress
+          (call %deserialize.4 %x.8))
+        (circuit %serialize_UnshieldedReceive.9 ([%x.10 (tstruct UnshieldedReceive
+                                                          (recipient (tstruct ShieldedRecipient
+                                                                       (tag (tboolean))
+                                                                       (User (tstruct ZswapCoinPublicKey
                                                                                (bytes (tbytes
-                                                                                        32))))))
-                                                         (domainSep (tbytes
-                                                                      32))
-                                                         (tokenType (tbytes
-                                                                      32))
-                                                         (amount (tunsigned
-                                                                   340282366920938463463374607431768211455)))])
+                                                                                        32))))
+                                                                       (Contract (tstruct ContractAddress
+                                                                                   (bytes (tbytes
+                                                                                            32))))))
+                                                          (domainSep (tbytes
+                                                                       32))
+                                                          (tokenType (tbytes
+                                                                       32))
+                                                          (amount (tunsigned
+                                                                    340282366920938463463374607431768211455)))])
              (tbytes 145)
-          (call %serialize.1 %x.9))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref (elt-ref %x.10 recipient 0) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 recipient 0) User 1)
+                        (default
+                          (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                "argument x of circuit serialize_UnshieldedReceive contains an invalid enum value")
+              (assert
+                (if (if (elt-ref (elt-ref %x.10 recipient 0) tag 0) #f #t)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 recipient 0) Contract 2)
+                        (default
+                          (tstruct ContractAddress (bytes (tbytes 32))))))
+                "argument x of circuit serialize_UnshieldedReceive contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %x.10)))))
     )
 
   (test
@@ -35911,34 +39004,35 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct UnshieldedBurn
-                                           (sender (tstruct Either
-                                                     (is_left (tboolean))
-                                                     (left (tstruct ZswapCoinPublicKey
+                                           (sender (tstruct ShieldedRecipient
+                                                     (tag (tboolean))
+                                                     (User (tstruct ZswapCoinPublicKey
                                                              (bytes (tbytes
                                                                       32))))
-                                                     (right (tstruct ContractAddress
-                                                              (bytes (tbytes
-                                                                       32))))))
+                                                     (Contract (tstruct ContractAddress
+                                                                 (bytes (tbytes
+                                                                          32))))))
                                            (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (let* ([[%t.3 (tstruct Either
-                          (is_left (tboolean))
-                          (left (tstruct ZswapCoinPublicKey
+          (let* ([[%t.3 (tstruct ShieldedRecipient
+                          (tag (tboolean))
+                          (User (tstruct ZswapCoinPublicKey
                                   (bytes (tbytes 32))))
-                          (right (tstruct ContractAddress
-                                   (bytes (tbytes 32)))))]
+                          (Contract (tstruct ContractAddress
+                                      (bytes (tbytes 32)))))]
                   (elt-ref %value.2 sender 0)])
             (vector->bytes 113
               (vector
-                (if (elt-ref %t.3 is_left 0)
+                (if (elt-ref %t.3 tag 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 User 1) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
+                  (bytes->vector 32
+                    (elt-ref (elt-ref %t.3 Contract 2) bytes 0)))
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 tokenType 1)))
                 (spread 16
@@ -35948,66 +39042,113 @@ groups than for single tests.
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %value.2 amount 2)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
+        (circuit %deserialize.4 ([%bytes.5 (tbytes 113)])
              (tstruct UnshieldedBurn
-               (sender (tstruct Either
-                         (is_left (tboolean))
-                         (left (tstruct ZswapCoinPublicKey
+               (sender (tstruct ShieldedRecipient
+                         (tag (tboolean))
+                         (User (tstruct ZswapCoinPublicKey
                                  (bytes (tbytes 32))))
-                         (right (tstruct ContractAddress
-                                  (bytes (tbytes 32))))))
+                         (Contract (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
                (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (new (tstruct UnshieldedBurn
-                 (sender (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
+          (let* ([[%t.6 (tstruct UnshieldedBurn
+                          (sender (tstruct ShieldedRecipient
+                                    (tag (tboolean))
+                                    (User (tstruct ZswapCoinPublicKey
+                                            (bytes (tbytes 32))))
+                                    (Contract (tstruct ContractAddress
+                                                (bytes (tbytes 32))))))
+                          (tokenType (tbytes 32))
+                          (amount (tunsigned
+                                    340282366920938463463374607431768211455)))]
+                  (new (tstruct UnshieldedBurn
+                         (sender (tstruct ShieldedRecipient
+                                   (tag (tboolean))
+                                   (User (tstruct ZswapCoinPublicKey
+                                           (bytes (tbytes 32))))
+                                   (Contract (tstruct ContractAddress
+                                               (bytes (tbytes 32))))))
+                         (tokenType (tbytes 32))
+                         (amount (tunsigned
+                                   340282366920938463463374607431768211455)))
+                    (new (tstruct ShieldedRecipient
+                           (tag (tboolean))
+                           (User (tstruct ZswapCoinPublicKey
                                    (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
-                                    (bytes (tbytes 32))))))
-                 (tokenType (tbytes 32))
-                 (amount (tunsigned
-                           340282366920938463463374607431768211455)))
-            (new (tstruct Either
-                   (is_left (tboolean))
-                   (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                   (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (downcast-unsigned 255 1 (bytes-ref %value.5 0)) 1)
-              (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.5 1 32))
-              (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.5 33 32)))
-            (bytes-slice %value.5 65 32)
-            (cast-from-bytes (tunsigned
-                               340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 97 16))))
-        (circuit %deserialize_UnshieldedBurn.6 ([%x.7 (tbytes 113)])
+                           (Contract (tstruct ContractAddress
+                                       (bytes (tbytes 32)))))
+                      (== (downcast-unsigned 255 1 (bytes-ref %bytes.5 0)) 1)
+                      (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                        (bytes-slice %bytes.5 1 32))
+                      (new (tstruct ContractAddress (bytes (tbytes 32)))
+                        (bytes-slice %bytes.5 33 32)))
+                    (bytes-slice %bytes.5 65 32)
+                    (cast-from-bytes (tunsigned
+                                       340282366920938463463374607431768211455) 16
+                      (bytes-slice %bytes.5 97 16)))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref (elt-ref %t.6 sender 0) tag 0)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 sender 0) User 1)
+                          (default
+                            (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                  "the deserialized value contains an invalid enum value")
+                (assert
+                  (if (if (elt-ref (elt-ref %t.6 sender 0) tag 0) #f #t)
+                      #t
+                      (== (elt-ref (elt-ref %t.6 sender 0) Contract 2)
+                          (default
+                            (tstruct ContractAddress (bytes (tbytes 32))))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.6)))
+        (circuit %deserialize_UnshieldedBurn.7 ([%x.8 (tbytes 113)])
              (tstruct UnshieldedBurn
-               (sender (tstruct Either
-                         (is_left (tboolean))
-                         (left (tstruct ZswapCoinPublicKey
+               (sender (tstruct ShieldedRecipient
+                         (tag (tboolean))
+                         (User (tstruct ZswapCoinPublicKey
                                  (bytes (tbytes 32))))
-                         (right (tstruct ContractAddress
-                                  (bytes (tbytes 32))))))
+                         (Contract (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
                (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (call %deserialize.4 %x.7))
-        (circuit %serialize_UnshieldedBurn.8 ([%x.9 (tstruct UnshieldedBurn
-                                                      (sender (tstruct Either
-                                                                (is_left (tboolean))
-                                                                (left (tstruct ZswapCoinPublicKey
-                                                                        (bytes (tbytes
-                                                                                 32))))
-                                                                (right (tstruct ContractAddress
+          (call %deserialize.4 %x.8))
+        (circuit %serialize_UnshieldedBurn.9 ([%x.10 (tstruct UnshieldedBurn
+                                                       (sender (tstruct ShieldedRecipient
+                                                                 (tag (tboolean))
+                                                                 (User (tstruct ZswapCoinPublicKey
                                                                          (bytes (tbytes
-                                                                                  32))))))
-                                                      (tokenType (tbytes 32))
-                                                      (amount (tunsigned
-                                                                340282366920938463463374607431768211455)))])
+                                                                                  32))))
+                                                                 (Contract (tstruct ContractAddress
+                                                                             (bytes (tbytes
+                                                                                      32))))))
+                                                       (tokenType (tbytes 32))
+                                                       (amount (tunsigned
+                                                                 340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (call %serialize.1 %x.9))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref (elt-ref %x.10 sender 0) tag 0)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 sender 0) User 1)
+                        (default
+                          (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))))
+                "argument x of circuit serialize_UnshieldedBurn contains an invalid enum value")
+              (assert
+                (if (if (elt-ref (elt-ref %x.10 sender 0) tag 0) #f #t)
+                    #t
+                    (== (elt-ref (elt-ref %x.10 sender 0) Contract 2)
+                        (default
+                          (tstruct ContractAddress (bytes (tbytes 32))))))
+                "argument x of circuit serialize_UnshieldedBurn contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %x.10)))))
     )
 
   (test
@@ -36231,20 +39372,28 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct Maybe
-                                           (is_some (tboolean))
-                                           (value (tbytes 32)))])
+                                           (tag (tboolean))
+                                           (s0 (tbytes 32)))])
              (tbytes 33)
           (vector->bytes 33
             (vector
-              (if (elt-ref %value.2 is_some 0)
+              (if (elt-ref %value.2 tag 0)
                   (safe-cast (tunsigned 255) (tunsigned 1) 1)
                   (safe-cast (tunsigned 255) (tunsigned 0) 0))
-              (spread 32 (bytes->vector 32 (elt-ref %value.2 value 1))))))
+              (spread 32 (bytes->vector 32 (elt-ref %value.2 s0 1))))))
         (circuit %non_event_serialize.3 ([%m.4 (tstruct Maybe
-                                                 (is_some (tboolean))
-                                                 (value (tbytes 32)))])
+                                                 (tag (tboolean))
+                                                 (s0 (tbytes 32)))])
              (tbytes 33)
-          (call %serialize.1 %m.4))))
+          (seq
+            (seq
+              (assert
+                (if (elt-ref %m.4 tag 0)
+                    #t
+                    (== (elt-ref %m.4 s0 1) (default (tbytes 32))))
+                "argument m of circuit non_event_serialize contains an invalid enum value")
+              (tuple))
+            (call %serialize.1 %m.4)))))
     )
 
   (test
@@ -36258,16 +39407,26 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %deserialize.1 ([%value.2 (tbytes 33)])
-             (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
-          (new (tstruct Maybe
-                 (is_some (tboolean))
-                 (value (tbytes 32)))
-            (== (downcast-unsigned 255 1 (bytes-ref %value.2 0)) 1)
-            (bytes-slice %value.2 1 32)))
-        (circuit %non_event_deserialize.3 ([%x.4 (tbytes 33)])
-             (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
-          (call %deserialize.1 %x.4))))
+        (circuit %deserialize.1 ([%bytes.2 (tbytes 33)])
+             (tstruct Maybe (tag (tboolean)) (s0 (tbytes 32)))
+          (let* ([[%t.3 (tstruct Maybe
+                          (tag (tboolean))
+                          (s0 (tbytes 32)))]
+                  (new (tstruct Maybe (tag (tboolean)) (s0 (tbytes 32)))
+                    (== (downcast-unsigned 255 1 (bytes-ref %bytes.2 0)) 1)
+                    (bytes-slice %bytes.2 1 32))])
+            (seq
+              (seq
+                (assert
+                  (if (elt-ref %t.3 tag 0)
+                      #t
+                      (== (elt-ref %t.3 s0 1) (default (tbytes 32))))
+                  "the deserialized value contains an invalid enum value")
+                (tuple))
+              %t.3)))
+        (circuit %non_event_deserialize.4 ([%x.5 (tbytes 33)])
+             (tstruct Maybe (tag (tboolean)) (s0 (tbytes 32)))
+          (call %deserialize.1 %x.5))))
     )
 )
 
@@ -38245,13 +41404,13 @@ groups than for single tests.
          "        \"name\": \"Maybe\","
          "        \"elements\": ["
          "          {"
-         "            \"name\": \"is_some\","
+         "            \"name\": \"tag\","
          "            \"type\": {"
          "              \"type-name\": \"Boolean\""
          "            }"
          "          },"
          "          {"
-         "            \"name\": \"value\","
+         "            \"name\": \"s0\","
          "            \"type\": {"
          "              \"type-name\": \"Field\""
          "            }"
@@ -38336,6 +41495,51 @@ groups than for single tests.
          "          \"set\""
          "        ]"
          "      }"
+         "    }"
+         "  ],"
+         "  \"enums\": ["
+         "    {"
+         "      \"name\": \"Maybe\","
+         "      \"layout\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"Maybe\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"tag\","
+         "            \"type\": {"
+         "              \"type-name\": \"Boolean\""
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s0\","
+         "            \"type\": {"
+         "              \"type-name\": \"Field\""
+         "            }"
+         "          }"
+         "        ]"
+         "      },"
+         "      \"variants\": ["
+         "        {"
+         "          \"name\": \"None\","
+         "          \"tag\": 0,"
+         "          \"fields\": ["
+         "          ]"
+         "        },"
+         "        {"
+         "          \"name\": \"Some\","
+         "          \"tag\": 1,"
+         "          \"fields\": ["
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Field\""
+         "              },"
+         "              \"slots\": ["
+         "                \"s0\""
+         "              ]"
+         "            }"
+         "          ]"
+         "        }"
+         "      ]"
          "    }"
          "  ]"
          "}"))
@@ -38426,6 +41630,51 @@ groups than for single tests.
          "        \"type-name\": \"Bytes\","
          "        \"length\": 32"
          "      }"
+         "    }"
+         "  ],"
+         "  \"enums\": ["
+         "    {"
+         "      \"name\": \"Maybe\","
+         "      \"layout\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"Maybe\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"tag\","
+         "            \"type\": {"
+         "              \"type-name\": \"Boolean\""
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s0\","
+         "            \"type\": {"
+         "              \"type-name\": \"Field\""
+         "            }"
+         "          }"
+         "        ]"
+         "      },"
+         "      \"variants\": ["
+         "        {"
+         "          \"name\": \"None\","
+         "          \"tag\": 0,"
+         "          \"fields\": ["
+         "          ]"
+         "        },"
+         "        {"
+         "          \"name\": \"Some\","
+         "          \"tag\": 1,"
+         "          \"fields\": ["
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Field\""
+         "              },"
+         "              \"slots\": ["
+         "                \"s0\""
+         "              ]"
+         "            }"
+         "          ]"
+         "        }"
+         "      ]"
          "    }"
          "  ]"
          "}"))
@@ -40548,6 +43797,211 @@ groups than for single tests.
      ))
 )
 
+(run-tests save-contract-info
+  (test-group
+    ((create-file "testfile.compact"
+       '(
+         "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+         "enum Opt<T> { None, Some(T) }"
+         "export pure circuit foo(o: Order): Opt<Field> { return Opt<Field>::None; }"))
+     ; an enum with fields appears as the struct it is lowered to wherever it is used, and its
+     ; declaration and layout are recorded under "enums"
+     (output-file "compiler/testdir/testfile/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"foo\","
+         "      \"pure\": true,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "        {"
+         "          \"name\": \"o\","
+         "          \"type\": {"
+         "            \"type-name\": \"Struct\","
+         "            \"name\": \"Order\","
+         "            \"elements\": ["
+         "              {"
+         "                \"name\": \"tag\","
+         "                \"type\": {"
+         "                  \"type-name\": \"Uint\","
+         "                  \"maxval\": 2"
+         "                }"
+         "              },"
+         "              {"
+         "                \"name\": \"s0\","
+         "                \"type\": {"
+         "                  \"type-name\": \"Bytes\","
+         "                  \"length\": 32"
+         "                }"
+         "              },"
+         "              {"
+         "                \"name\": \"s1\","
+         "                \"type\": {"
+         "                  \"type-name\": \"Uint\","
+         "                  \"maxval\": 18446744073709551615"
+         "                }"
+         "              }"
+         "            ]"
+         "          }"
+         "        }"
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"Opt\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"tag\","
+         "            \"type\": {"
+         "              \"type-name\": \"Boolean\""
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s0\","
+         "            \"type\": {"
+         "              \"type-name\": \"Field\""
+         "            }"
+         "          }"
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "  ],"
+         "  \"enums\": ["
+         "    {"
+         "      \"name\": \"Order\","
+         "      \"layout\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"Order\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"tag\","
+         "            \"type\": {"
+         "              \"type-name\": \"Uint\","
+         "              \"maxval\": 2"
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s0\","
+         "            \"type\": {"
+         "              \"type-name\": \"Bytes\","
+         "              \"length\": 32"
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s1\","
+         "            \"type\": {"
+         "              \"type-name\": \"Uint\","
+         "              \"maxval\": 18446744073709551615"
+         "            }"
+         "          }"
+         "        ]"
+         "      },"
+         "      \"variants\": ["
+         "        {"
+         "          \"name\": \"Open\","
+         "          \"tag\": 0,"
+         "          \"fields\": ["
+         "          ]"
+         "        },"
+         "        {"
+         "          \"name\": \"Filled\","
+         "          \"tag\": 1,"
+         "          \"fields\": ["
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Bytes\","
+         "                \"length\": 32"
+         "              },"
+         "              \"slots\": ["
+         "                \"s0\""
+         "              ]"
+         "            },"
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Uint\","
+         "                \"maxval\": 18446744073709551615"
+         "              },"
+         "              \"slots\": ["
+         "                \"s1\""
+         "              ]"
+         "            }"
+         "          ]"
+         "        },"
+         "        {"
+         "          \"name\": \"Cancelled\","
+         "          \"tag\": 2,"
+         "          \"fields\": ["
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Bytes\","
+         "                \"length\": 32"
+         "              },"
+         "              \"slots\": ["
+         "                \"s0\""
+         "              ]"
+         "            }"
+         "          ]"
+         "        }"
+         "      ]"
+         "    },"
+         "    {"
+         "      \"name\": \"Opt\","
+         "      \"layout\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"Opt\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"tag\","
+         "            \"type\": {"
+         "              \"type-name\": \"Boolean\""
+         "            }"
+         "          },"
+         "          {"
+         "            \"name\": \"s0\","
+         "            \"type\": {"
+         "              \"type-name\": \"Field\""
+         "            }"
+         "          }"
+         "        ]"
+         "      },"
+         "      \"variants\": ["
+         "        {"
+         "          \"name\": \"None\","
+         "          \"tag\": 0,"
+         "          \"fields\": ["
+         "          ]"
+         "        },"
+         "        {"
+         "          \"name\": \"Some\","
+         "          \"tag\": 1,"
+         "          \"fields\": ["
+         "            {"
+         "              \"type\": {"
+         "                \"type-name\": \"Field\""
+         "              },"
+         "              \"slots\": ["
+         "                \"s0\""
+         "              ]"
+         "            }"
+         "          ]"
+         "        }"
+         "      ]"
+         "    }"
+         "  ]"
+         "}"))
+     ))
+)
+
 (run-tests drop-ledger-runtime
   (test
     '(
@@ -40651,13 +44105,13 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "export circuit foo(x: Names): Boolean {"
-      "  return x == Names.bill;"
+      "  return x == Names::bill;"
       "}"
       "export circuit rats(): Boolean {"
-      "  return foo(Names.bill);"
+      "  return foo(Names::bill);"
       "}"
       "export circuit mice(): Boolean {"
-      "  return foo(Names.george);"
+      "  return foo(Names::george);"
       "}"
       )
     (returns
@@ -40676,7 +44130,7 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "circuit foo<A>(): Boolean {"
-      "  return A.bill;"
+      "  return A::bill;"
       "}"
       "export circuit bar(): Boolean {"
       "  return foo<Names>();"
@@ -40691,7 +44145,7 @@ groups than for single tests.
     '(
       "enum Names { bill, sally, fred, george, }"
       "circuit foo<A>(): A {"
-      "  return A.bill;"
+      "  return A::bill;"
       "}"
       "export circuit bar(): Names {"
       "  return foo<Names>();"
@@ -43083,13 +46537,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.writeCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insertCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(disclose(x), disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insertCoin(disclose(x), disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFrontCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  return q;"
       "}"
       )
@@ -43226,62 +46680,62 @@ groups than for single tests.
           (= #t %t.75 (public-ledger %field4.5 (4) resetToDefault))
           (= #t %t.76 (public-ledger %field5.6 (5) resetToDefault))
           (= #t %t.77 (public-ledger %field6.7 (6) resetToDefault))
-          (= #t %value.78 (public-ledger %kernel.0 () self))
+          (= #t %t.78 (public-ledger %kernel.0 () self))
           (= #t %t.79
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
           (= #t %tmp.80
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+             (new (tstruct ShieldedRecipient
+                    (tag (tboolean))
+                    (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (Contract (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
                %t.79
-               %value.78))
+               %t.78))
           (= #t %t.81
              (public-ledger %field7.8 (7) writeCoin %ci.14 %tmp.80))
           (= #t %t.82 (public-ledger %field8.9 (8) resetToDefault))
-          (= #t %value.83 (public-ledger %kernel.0 () self))
+          (= #t %t.83 (public-ledger %kernel.0 () self))
           (= #t %t.84
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
           (= #t %tmp.85
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+             (new (tstruct ShieldedRecipient
+                    (tag (tboolean))
+                    (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (Contract (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
                %t.84
-               %value.83))
+               %t.83))
           (= #t %t.86
              (public-ledger %field8.9 (8) insertCoin %ci.14 %tmp.85))
           (= #t %t.87 (public-ledger %field9.10 (9) resetToDefault))
-          (= #t %value.88 (public-ledger %kernel.0 () self))
+          (= #t %t.88 (public-ledger %kernel.0 () self))
           (= #t %t.89
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
           (= #t %tmp.90
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+             (new (tstruct ShieldedRecipient
+                    (tag (tboolean))
+                    (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (Contract (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
                %t.89
-               %value.88))
+               %t.88))
           (= #t %t.91
              (public-ledger %field9.10 (9) insertCoin
                %x.13
                %ci.14
                %tmp.90))
           (= #t %t.92 (public-ledger %field10.11 (10) resetToDefault))
-          (= #t %value.93 (public-ledger %kernel.0 () self))
+          (= #t %t.93 (public-ledger %kernel.0 () self))
           (= #t %t.94
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
           (= #t %tmp.95
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+             (new (tstruct ShieldedRecipient
+                    (tag (tboolean))
+                    (User (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (Contract (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
                %t.94
-               %value.93))
+               %t.93))
           (= #t %t.96
              (public-ledger %field10.11 (10) pushFrontCoin
                %ci.14
@@ -45249,7 +48703,7 @@ groups than for single tests.
       "enum Names { bill, sally, fred, george, }"
       "circuit foo<A>(): A {"
       "  forceProof();"
-      "  return A.sally;"
+      "  return A::sally;"
       "}"
       "export circuit bar(): Names {"
       "  forceProof();"
@@ -48845,7 +52299,7 @@ groups than for single tests.
       ""
       "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): [] {"
       "  receiveShielded(disclose(coin));"
-      "  const foo = sendImmediateShielded(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(disclose(target)), disclose(coin.value));"
+      "  const foo = sendImmediateShielded(disclose(coin), ShieldedRecipient::Contract(disclose(target)), disclose(coin.value));"
       "}"
       )
     (returns
@@ -49079,7 +52533,7 @@ groups than for single tests.
       ""
       "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): ShieldedSendResult {"
       "  receiveShielded(disclose(coin));"
-      "  return sendImmediateShielded(disclose(coin), disclose(right<ZswapCoinPublicKey, ContractAddress>(target)), disclose(coin.value));"
+      "  return sendImmediateShielded(disclose(coin), disclose(ShieldedRecipient::Contract(target)), disclose(coin.value));"
       "}"
       )
     (returns
@@ -51353,9 +54807,7 @@ groups than for single tests.
         (public-ledger-declaration
           %topic.46
           (__compact_Cell
-            (tstruct Maybe
-              (is_some (tboolean))
-              (value (topaque "string")))))
+            (tsum Maybe #f (None) (Some (topaque "string")))))
         (public-ledger-declaration %tally_yes.47 (Counter))
         (public-ledger-declaration
           %committed_votes.48
@@ -51419,9 +54871,7 @@ groups than for single tests.
               (tenum PublicState setup commit reveal final)))
           (%topic.46
             (__compact_Cell
-              (tstruct Maybe
-                (is_some (tboolean))
-                (value (topaque "string")))))
+              (tsum Maybe #f (None) (Some (topaque "string")))))
           (%tally_yes.47 (Counter))
           (%committed_votes.48 (MerkleTree 10 (tbytes 32)))
           (%committed.49 (Set (tbytes 32)))
@@ -51559,9 +55009,7 @@ groups than for single tests.
              (%topic.46
                (1 10)
                (__compact_Cell
-                 (tstruct Maybe
-                   (is_some (tboolean))
-                   (value (topaque "string")))))
+                 (tstruct Maybe (tag (tboolean)) (s0 (topaque "string")))))
              (%tally_yes.47 (1 11) (Counter))
              (%committed_votes.48 (1 12) (MerkleTree 10 (tbytes 32)))
              (%committed.49 (1 13) (Set (tbytes 32)))
@@ -53384,7 +56832,7 @@ groups than for single tests.
       "enum Weasleys { Bill, Charley, Percy, Fred, George, Ron, Ginny }"
       "export circuit foo(): Weasleys {"
       "  impure = true;"
-      "  const x = Weasleys.Fred;"
+      "  const x = Weasleys::Fred;"
       "  return x;"
       "}"
      )
@@ -53588,7 +57036,7 @@ groups than for single tests.
       "enum Names { karen, katy, kenny, kulta }"
       "export circuit foo(x: Names, y: Opaque<'string'>, z: Opaque<'string'>): Field {"
       "  impure = true;"
-      "  return (x == Names.kenny ? 1 : 0) + (y == z ? 2 : 0) as Field;"
+      "  return (x == Names::kenny ? 1 : 0) + (y == z ? 2 : 0) as Field;"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -53660,23 +57108,23 @@ groups than for single tests.
       "circuit foo(s1: S, s2: S) : Boolean { return s1 == s2; }"
       "export circuit bar1(x: Opaque<'string'>, y: Field) : Boolean {"
       "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> });"
       "}"
       "export circuit bar2(x: Opaque<'string'>) : Boolean {"
       "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'd3f'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'd3f'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
       "}"
       "export circuit bar3(x: Opaque<'string'>) : Boolean {"
       "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.kulta, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::kulta, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
       "}"
       "export circuit bar4(x: Opaque<'string'>) : Boolean {"
       "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: false, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: false, p: x }, z: 101 as Field, w: 73 });"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir" #f)
@@ -55039,7 +58487,7 @@ groups than for single tests.
       "export { Maybe }"
       "export circuit foo(x: Maybe<Boolean>): Boolean {"
       "  impure = true;"
-      "  return x.is_some && x.value;"
+      "  return match x { Some(b) => b, None => false };"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -55057,11 +58505,14 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.1\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%x.0\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.3\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.0\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%x.0\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     )
@@ -55192,13 +58643,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.writeCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insertCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(disclose(x), disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insertCoin(disclose(x), disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFrontCoin(disclose(ci), ShieldedRecipient::Contract(kernel.self()));"
       "  return q;"
       "}"
      )
@@ -55385,13 +58836,13 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.34\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.35\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.34\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.35\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%t.34\", \"%t.35\"] },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.34\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.35\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.38\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\"] },"
@@ -55405,13 +58856,13 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.41\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.42\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.41\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.42\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.41\", \"%value.42\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.44\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.42\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%t.41\", \"%t.42\"] },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.41\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.44\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.42\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.45\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.43\", \"%data.44\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\"] },"
@@ -55427,13 +58878,13 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.48\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.49\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.48\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.49\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.48\", \"%value.49\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.50\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.48\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.51\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.49\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%t.48\", \"%t.49\"] },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.50\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.48\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.51\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.49\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.52\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.50\", \"%data.51\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\"] },"
@@ -55449,13 +58900,13 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.55\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.56\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.55\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.56\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.55\", \"%value.56\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.57\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.55\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.58\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.56\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%t.55\", \"%t.56\"] },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.57\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.55\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%data.58\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%t.56\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.59\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.57\", \"%data.58\"] },"
         "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\"] },"
@@ -55557,11 +59008,11 @@ groups than for single tests.
       "export enum Names { bill, sally, fred, george, }"
       "export circuit uno(q: Q<Boolean>): Names {"
       "  impure = true;"
-      "  return q.x ? Names.sally : Names.fred;"
+      "  return q.x ? Names::sally : Names::fred;"
       "}"
       "export circuit dos(q: Q<Field>): Names {"
       "  impure = true;"
-      "  return q.x == q.y ? Names.bill : Names.george;"
+      "  return q.x == q.y ? Names::bill : Names::george;"
       "}"
     )
     (output-file "compiler/testdir/zkir/uno.zkir"
@@ -55615,11 +59066,11 @@ groups than for single tests.
       "export enum Names { bill, sally, fred, george, }"
       "export circuit uno(q: Q<Boolean>): Names {"
       "  impure = true;"
-      "  return q.x ? Names.sally : Names.fred;"
+      "  return q.x ? Names::sally : Names::fred;"
       "}"
       "export circuit dos(q: Q<Field>): Names {"
       "  impure = true;"
-      "  return q.x == q.y ? Names.bill : Names.george;"
+      "  return q.x == q.y ? Names::bill : Names::george;"
       "}"
      )
     (output-file "compiler/testdir/zkir/uno.zkir"
@@ -55673,11 +59124,11 @@ groups than for single tests.
       "export enum Names { bill, sally, fred, george, }"
       "export circuit uno(q: Q<Boolean, Vector<3, Uint<32>>>): Names {"
       "  impure = true;"
-      "  return q.x ? Names.sally : Names.fred;"
+      "  return q.x ? Names::sally : Names::fred;"
       "}"
       "export circuit dos(q: Q<Vector<3, Field>,Vector<3,Field>>): Names {"
       "  impure = true;"
-      "  return q.x == q.y ? Names.bill : Names.george;"
+      "  return q.x == q.y ? Names::bill : Names::george;"
       "}"
      )
     (output-file "compiler/testdir/zkir/uno.zkir"
@@ -56054,7 +59505,7 @@ groups than for single tests.
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
       "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
       "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
-      "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
+      "export circuit functions(Maybe: Maybe<Field>): Field { return match Maybe { Some(v) => v, None => 0 as Field } + 17; }"
       "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
      )
     (output-file "compiler/testdir/zkir/_arguments.zkir"
@@ -56370,7 +59821,7 @@ groups than for single tests.
       ""
       "constructor(organizer_secret_key: Bytes<32>) {"
       "  organizer = public_key(disclose(organizer_secret_key));"
-      "  state = LedgerState.setup;"
+      "  state = LedgerState::setup;"
       "}"
       ""
       "circuit public_key(sk: Bytes<32>): Bytes<32> {"
@@ -57493,21 +60944,21 @@ groups than for single tests.
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M1 {"
       "  import CompactStandardLibrary;"
-      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
-      "  export { left, ownPublicKey, createZswapInput, createZswapOutput };"
+      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ShieldedRecipient };"
+      "  export { ownPublicKey, createZswapInput, createZswapOutput };"
       "}"
       "import M1 prefix std$;"
       "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
       "  forceProof();"
       "  std$createZswapInput(qcoin);"
-      "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
+      "  std$createZswapOutput(coin, std$ShieldedRecipient::User(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
       "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "    forceProof();"
       "    createZswapInput(qcoin);"
-      "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "    createZswapOutput(coin, ShieldedRecipient::User(ownPublicKey()));"
       "  }"
       "}"
       "import M2;"
@@ -57549,10 +61000,10 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.11\", \"bits\": 8 },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.12\", \"bits\": 248 }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
@@ -57602,7 +61053,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  createZswapInput(qcoin);"
-      "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "  createZswapOutput(coin, ShieldedRecipient::User(ownPublicKey()));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir" #f)
@@ -57615,7 +61066,7 @@ groups than for single tests.
       "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  forceProof();"
       "  createZswapInput(qcoin);"
-      "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "  createZswapOutput(coin, ShieldedRecipient::User(ownPublicKey()));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -57653,10 +61104,10 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.11\", \"bits\": 8 },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.12\", \"bits\": 248 }"
         "  ]"
         "}"))
     )
@@ -60563,9 +64014,533 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  ; one type has one layout however its type arguments are written; when the layout
+  ; depended on how they were written, f, g, and k failed with an internal error.  The
+  ; fields of G have different types that are each the same as the empty tuple, and must
+  ; not share a slot
+  (test
+    '(
+      "type Feet = Field;"
+      "module M {"
+      "  type Inches = Field;"
+      "  export contract C { circuit f(x: Inches): Field; }"
+      "}"
+      "module N {"
+      "  export contract C { circuit f(x: Field): Field; }"
+      "}"
+      "import M prefix M_;"
+      "import N prefix N_;"
+      "enum E<T> { A(T), B(Vector<2, Field>) }"
+      "enum G { A(Vector<0, Field>), B(Vector<0, Boolean>) }"
+      "enum H<T> { A(T), B(M_C) }"
+      "export circuit f(x: E<Vector<2, Feet>>): E<Vector<2, Field>> { return x; }"
+      "export circuit g(x: E<[Field, Field]>): E<Vector<2, Field>> { return x; }"
+      "export circuit h(x: Vector<0, Boolean>): G { return G::B(x); }"
+      "export circuit k(x: H<N_C>): H<M_C> { return x; }"
+      )
+    (succeeds)
+    )
   )
 
 (parameterize ([no-communications-commitment #t])
+(run-tests print-zkir-v3
+  ; a program that takes enums apart with match, followed by its twin, written with the
+  ; structs the enums are lowered to and the conditionals the matches compile to
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "enum Addr { User(Bytes<32>), Contract(Bytes<32>) }"
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "export ledger b: Bytes<32>;"
+      "export ledger n: Uint<64>;"
+      "export circuit t1(c: Opt<Addr>): Bytes<32> {"
+      "  return match disclose(c) {"
+      "    Some(Contract(k)) => k,"
+      "    Some(User(u)) => u,"
+      "    None => default<Bytes<32>>"
+      "  };"
+      "}"
+      "export circuit t2(x: Order): [] {"
+      "  match disclose(x) {"
+      "    Open => { }"
+      "    Filled(who, amount) => { b = who; n = amount; }"
+      "    Cancelled(who) => { assert(who != default<Bytes<32>>, \"nobody cancelled\"); b = who; }"
+      "  }"
+      "}"
+      "export circuit t3(c: Opt<Addr>): [] {"
+      "  b = match disclose(c) { Some(Contract(k)) => k, Some(User(u)) => u, None => default<Bytes<32>> };"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/t2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"less_than\", \"output\": \"%tmp.4\", \"a\": \"%x.0\", \"b\": \"0x03\", \"bits\": 2 },"
+        "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.2\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.3\", \"bits\": 64 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.5\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.8\", \"a\": \"%x.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%t.7\", \"a\": \"%t.8\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%t.5\", \"a\": \"%t.9\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.10\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.12\", \"a\": \"%x.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.13\", \"bit\": \"%t.11\", \"a\": \"0x01\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.13\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.11\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.11\", \"a\": \"0x00\", \"b\": \"%t.6\" },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%x.1\", \"%x.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"%x.3\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.16\", \"a\": \"%x.0\", \"b\": \"0x02\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.17\", \"bit\": \"%t.15\", \"a\": \"%t.16\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.17\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.18\", \"bit\": \"%t.9\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.19\", \"bit\": \"%t.15\", \"a\": \"%t.18\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.19\" },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%x.1\", \"%x.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t3.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.1\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%c.2\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%c.3\", \"bits\": 248 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%c.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%c.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.4\", \"a\": \"%t.5\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%c.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.6\", \"a\": \"%t.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%c.0\", \"a\": \"0x01\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.9\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%c.0\", \"a\": \"%c.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.11\", \"bit\": \"%c.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%c.0\", \"a\": \"%t.11\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.13\", \"bit\": \"%t.12\", \"a\": \"%c.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%c.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.15\", \"bit\": \"%t.10\", \"a\": \"%c.2\", \"b\": \"%t.13\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.16\", \"bit\": \"%t.10\", \"a\": \"%c.3\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.15\", \"%tmp.16\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "struct Addr { tag: Boolean, s0: Bytes<32> }"
+      "struct Opt { tag: Boolean, s0: Addr }"
+      "struct Order { tag: Uint<0..3>, s0: Bytes<32>, s1: Uint<64> }"
+      "export ledger b: Bytes<32>;"
+      "export ledger n: Uint<64>;"
+      "export circuit t1(c: Opt): Bytes<32> {"
+      "  assert(c.tag || c.s0 == default<Addr>, \"argument c of circuit t1 contains an invalid enum value\");"
+      "  const t = disclose(c);"
+      "  return (t.tag && t.s0.tag) ? t.s0.s0 : (t.tag && !t.s0.tag) ? t.s0.s0 : default<Bytes<32>>;"
+      "}"
+      "export circuit t2(x: Order): [] {"
+      "  assert(x.tag != 0 || x.s0 == default<Bytes<32>>, \"argument x of circuit t2 contains an invalid enum value\");"
+      "  assert(x.tag == 1 || x.s1 == default<Uint<64>>, \"argument x of circuit t2 contains an invalid enum value\");"
+      "  const t = disclose(x);"
+      "  if (t.tag == 0) { }"
+      "  else if (t.tag == 1) { b = t.s0; n = t.s1; }"
+      "  else { assert(t.s0 != default<Bytes<32>>, \"nobody cancelled\"); b = t.s0; }"
+      "}"
+      "export circuit t3(c: Opt): [] {"
+      "  assert(c.tag || c.s0 == default<Addr>, \"argument c of circuit t3 contains an invalid enum value\");"
+      "  const t = disclose(c);"
+      "  b = (t.tag && t.s0.tag) ? t.s0.s0 : (t.tag && !t.s0.tag) ? t.s0.s0 : default<Bytes<32>>;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/t2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"less_than\", \"output\": \"%tmp.4\", \"a\": \"%x.0\", \"b\": \"0x03\", \"bits\": 2 },"
+        "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.2\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.3\", \"bits\": 64 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.5\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.8\", \"a\": \"%x.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%t.7\", \"a\": \"%t.8\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%t.5\", \"a\": \"%t.9\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.10\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.12\", \"a\": \"%x.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.13\", \"bit\": \"%t.11\", \"a\": \"0x01\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.13\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.11\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.11\", \"a\": \"0x00\", \"b\": \"%t.6\" },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%x.1\", \"%x.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"%x.3\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.14\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.16\", \"bit\": \"%t.9\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.17\", \"bit\": \"%t.15\", \"a\": \"%t.16\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.17\" },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%x.1\", \"%x.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"%t.15\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t3.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.1\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%c.2\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%c.3\", \"bits\": 248 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%c.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%c.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.4\", \"a\": \"%t.5\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%c.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.6\", \"a\": \"%t.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%c.0\", \"a\": \"0x01\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.9\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%c.0\", \"a\": \"%c.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.11\", \"bit\": \"%c.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%c.0\", \"a\": \"%t.11\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.13\", \"bit\": \"%t.12\", \"a\": \"%c.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%c.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.15\", \"bit\": \"%t.10\", \"a\": \"%c.2\", \"b\": \"%t.13\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.16\", \"bit\": \"%t.10\", \"a\": \"%c.3\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.15\", \"%tmp.16\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+)
+
+(run-tests print-zkir-v3
+  ; each program with an enum is followed by its twin, written with the struct the enum is
+  ; lowered to and the asserts that guard it; the two must produce the same circuits
+  (test
+    '(
+      "enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }"
+      "enum Opt<T> { None, Some(T) }"
+      "enum Ei<L, R> { Right(R), Left(L) }"
+      "export ledger o: Order;"
+      "export ledger f: Opt<Field>;"
+      "export ledger e: Ei<Bytes<32>, Bytes<32>>;"
+      "witness w(): Opt<Field>;"
+      "export circuit t1(m: Opt<Field>): [] { f = disclose(m); }"
+      "export circuit t2(): [] { f = disclose(w()); }"
+      "export circuit t3(x: Order): [] { o = disclose(x); }"
+      "export circuit t7(who: Bytes<32>, n: Uint<64>, c: Boolean): [] {"
+      "  o = disclose(c ? Order::Filled(who, n) : Order::Cancelled(who));"
+      "  e = disclose(c ? Ei<Bytes<32>, Bytes<32>>::Left(who) : Ei<Bytes<32>, Bytes<32>>::Right(who));"
+      "  f = Opt<Field>::Some(disclose(n) as Field);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/t1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%m.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%m.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%m.0\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%m.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%m.0\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"%m.0\", \"%m.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.0\" },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.0\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t3.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"less_than\", \"output\": \"%tmp.4\", \"a\": \"%x.0\", \"b\": \"0x03\", \"bits\": 2 },"
+        "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.2\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.3\", \"bits\": 64 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%x.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.6\", \"a\": \"%t.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%t.5\", \"a\": \"%t.8\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.9\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%x.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%t.10\", \"a\": \"0x01\", \"b\": \"%t.11\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.12\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x01\", \"0x20\", \"0x08\", \"%x.0\", \"%x.1\", \"%x.2\", \"%x.3\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t7.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%who.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%who.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%who.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%who.1\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%n.2\", \"bits\": 64 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.3\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.4\", \"bit\": \"%c.3\", \"a\": \"0x01\", \"b\": \"0x02\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.5\", \"bit\": \"%c.3\", \"a\": \"%n.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x01\", \"0x20\", \"0x08\", \"%tmp.4\", \"%who.0\", \"%who.1\", \"%tmp.5\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"0x20\", \"%c.3\", \"%who.0\", \"%who.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x01\", \"%n.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "struct Opt { tag: Boolean, s0: Field }"
+      "struct Order { tag: Uint<0..3>, s0: Bytes<32>, s1: Uint<64> }"
+      "struct Ei { tag: Boolean, s0: Bytes<32> }"
+      "export ledger o: Order;"
+      "export ledger f: Opt;"
+      "export ledger e: Ei;"
+      "witness w(): Opt;"
+      "export circuit t1(m: Opt): [] {"
+      "  assert(m.tag || m.s0 == default<Field>, \"argument m of circuit t1 contains an invalid enum value\");"
+      "  f = disclose(m);"
+      "}"
+      "export circuit t2(): [] {"
+      "  const t = w();"
+      "  assert(t.tag || t.s0 == default<Field>, \"the result of witness w contains an invalid enum value\");"
+      "  f = disclose(t);"
+      "}"
+      "export circuit t3(x: Order): [] {"
+      "  assert(x.tag != 0 || x.s0 == default<Bytes<32>>, \"argument x of circuit t3 contains an invalid enum value\");"
+      "  assert(x.tag == 1 || x.s1 == default<Uint<64>>, \"argument x of circuit t3 contains an invalid enum value\");"
+      "  o = disclose(x);"
+      "}"
+      "export circuit t7(who: Bytes<32>, n: Uint<64>, c: Boolean): [] {"
+      "  o = disclose(c ? Order { tag: 1, s0: who, s1: n } : Order { tag: 2, s0: who, s1: default<Uint<64>> });"
+      "  e = disclose(c ? Ei { tag: true, s0: who } : Ei { tag: false, s0: who });"
+      "  f = Opt { tag: true, s0: disclose(n) as Field };"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/t1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%m.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%m.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%m.0\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%m.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%m.0\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"%m.0\", \"%m.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.0\" },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.0\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t3.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"less_than\", \"output\": \"%tmp.4\", \"a\": \"%x.0\", \"b\": \"0x03\", \"bits\": 2 },"
+        "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.2\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%x.3\", \"bits\": 64 },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%x.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.6\", \"a\": \"%t.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%t.5\", \"a\": \"%t.8\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.9\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%x.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%t.10\", \"a\": \"0x01\", \"b\": \"%t.11\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.12\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x01\", \"0x20\", \"0x08\", \"%x.0\", \"%x.1\", \"%x.2\", \"%x.3\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/t7.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%who.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%who.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%who.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%who.1\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%n.2\", \"bits\": 64 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.3\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.4\", \"bit\": \"%c.3\", \"a\": \"0x01\", \"b\": \"0x02\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%tmp.5\", \"bit\": \"%c.3\", \"a\": \"%n.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x01\", \"0x20\", \"0x08\", \"%tmp.4\", \"%who.0\", \"%who.1\", \"%tmp.5\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"0x20\", \"%c.3\", \"%who.0\", \"%who.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x01\", \"%n.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
+)
+
 (run-tests print-zkir-v3
   (test
     '(
@@ -61213,7 +65188,7 @@ groups than for single tests.
       "  ledger value: Field;"
       "  export circuit init(v: Field): [] {"
       "    value = disclose(v);"
-      "    state = STATE.set;"
+      "    state = STATE::set;"
       "  }"
       "}"
       ""
@@ -61846,6 +65821,32 @@ groups than for single tests.
         "});"
         )))
 
+  ; one type has one layout however its type arguments are written; when the layout
+  ; depended on how they were written, f, g, and k failed with an internal error.  The
+  ; fields of G have different types that are each the same as the empty tuple, and must
+  ; not share a slot
+  (test
+    '(
+      "type Feet = Field;"
+      "module M {"
+      "  type Inches = Field;"
+      "  export contract C { circuit f(x: Inches): Field; }"
+      "}"
+      "module N {"
+      "  export contract C { circuit f(x: Field): Field; }"
+      "}"
+      "import M prefix M_;"
+      "import N prefix N_;"
+      "enum E<T> { A(T), B(Vector<2, Field>) }"
+      "enum G { A(Vector<0, Field>), B(Vector<0, Boolean>) }"
+      "enum H<T> { A(T), B(M_C) }"
+      "export circuit f(x: E<Vector<2, Feet>>): E<Vector<2, Field>> { return x; }"
+      "export circuit g(x: E<[Field, Field]>): E<Vector<2, Field>> { return x; }"
+      "export circuit h(x: Vector<0, Boolean>): G { return G::B(x); }"
+      "export circuit k(x: H<N_C>): H<M_C> { return x; }"
+      )
+    (succeeds)
+    )
   )
 
 (run-tests save-manifest
@@ -62146,41 +66147,43 @@ groups than for single tests.
          (type-descriptors
            (%descriptor.0 (tunsigned 18446744073709551615))
            (%descriptor.1 (tboolean))
-           (%descriptor.2 (tbytes 32))
-           (%descriptor.3 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tbytes 32))
-                            (right (tbytes 32))))
-           (%descriptor.4 (tunsigned
+           (%descriptor.2 (tunsigned 2))
+           (%descriptor.3 (tbytes 32))
+           (%descriptor.4 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+           (%descriptor.5 (tunsigned
                             340282366920938463463374607431768211455))
-           (%descriptor.5 (tstruct ContractAddress
+           (%descriptor.6 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
-           (%descriptor.7 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-           (%descriptor.8 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-           (%descriptor.9 (tunsigned 255))
-           (%descriptor.10 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.11 () (Kernel)))
+           (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.8 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.9 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+           (%descriptor.10 (tunsigned 255))
+           (%descriptor.11 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.12 () (Kernel)))
          (public-ledger-declaration
-           ((%calc.12
+           ((%calc.13
               (0)
               (__compact_Cell
                 (tcontract Calculator
                   (get_square #f ((tunsigned 100)) (tunsigned 10000))))))
-           (constructor ([%c.13 (tcontract Calculator
+           (constructor ([%c.14 (tcontract Calculator
                                   (get_square #f ((tunsigned 100))
                                     (tunsigned 10000)))])
-             (seq (public-ledger %calc.12 (0) write %c.13) (tuple))))))
+             (seq (public-ledger %calc.13 (0) write %c.14) (tuple))))))
       ))
 
   (test
@@ -63283,7 +67286,7 @@ groups than for single tests.
     '(
       "enum Weasleys { Bill, Charley, Percy, Fred, George, Ron, Ginny }"
       "export circuit foo(): Weasleys {"
-      "  const x = Weasleys.Fred;"
+      "  const x = Weasleys::Fred;"
       "  return x;"
       "}"
       )
@@ -63446,7 +67449,7 @@ groups than for single tests.
     '(
       "enum Names { karen, katy, kenny, kulta }"
       "export circuit foo(x: Names, y: Opaque<'string'>, z: Opaque<'string'>): Field {"
-      "  return ((x == Names.kenny ? 1 : 0) + (y == z ? 2 : 0)) as Field;"
+      "  return ((x == Names::kenny ? 1 : 0) + (y == z ? 2 : 0)) as Field;"
       "}"
       )
     (stage-javascript
@@ -63537,20 +67540,20 @@ groups than for single tests.
       "struct S { x: Vector<2, Bytes<3>>, y: T, z: Field, w: Uint<32> }"
       "circuit foo(s1: S, s2: S) : Boolean { return s1 == s2; }"
       "export circuit bar1(x: Opaque<'string'>, y: Field) : Boolean {"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> });"
       "}"
       "export circuit bar2(x: Opaque<'string'>) : Boolean {"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'd3f'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'd3f'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
       "}"
       "export circuit bar3(x: Opaque<'string'>) : Boolean {"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.kulta, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::kulta, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
       "}"
       "export circuit bar4(x: Opaque<'string'>) : Boolean {"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: false, p: x }, z: 101 as Field, w: 73 });"
+      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
+      "             S{ x: ['abc', 'def'], y: T{ name: Names::katy, mt: [], eh: false, p: x }, z: 101 as Field, w: 73 });"
       "}"
       )
     (stage-javascript
@@ -64103,39 +68106,41 @@ groups than for single tests.
           (%descriptor.0 (tunsigned 18446744073709551615))
           (%descriptor.1 (tfield (field-native)))
           (%descriptor.2 (tboolean))
-          (%descriptor.3 (tbytes 32))
-          (%descriptor.4 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.5 (tunsigned
+          (%descriptor.3 (tunsigned 2))
+          (%descriptor.4 (tbytes 32))
+          (%descriptor.5 (tstruct TokenType
+                           (tag (tunsigned 2))
+                           (Unshielded (tbytes 32))
+                           (Shielded (tbytes 32))))
+          (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455))
-          (%descriptor.6 (tstruct ContractAddress
+          (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.8 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ContractAddress (bytes (tbytes 32))))
-                           (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.9 (tstruct Maybe
-                           (is_some (tboolean))
-                           (value (tstruct Either
-                                    (is_left (tboolean))
-                                    (left (tstruct ContractAddress
-                                            (bytes (tbytes 32))))
-                                    (right (tstruct UserAddress
-                                             (bytes (tbytes 32))))))))
-          (%descriptor.10 (tunsigned 255))
-          (%descriptor.11 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.12 () (Kernel)))
+          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.9 (tstruct PublicAddress
+                           (tag (tboolean))
+                           (Contract (tstruct ContractAddress
+                                       (bytes (tbytes 32))))
+                           (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.10 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.13 (0) (Counter)))
+          ((%field1.14 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %foo.14 ()
+        (circuit %foo.15 ()
              (tfield (field-native))
           (safe-cast (tfield (field-native))
                      (tunsigned 18446744073709551615)
-            (public-ledger %field1.13 (0) read)))))
+            (public-ledger %field1.14 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -64237,44 +68242,46 @@ groups than for single tests.
           (%descriptor.1 (tunsigned 18446744073709551615))
           (%descriptor.2 (tfield (field-native)))
           (%descriptor.3 (tboolean))
-          (%descriptor.4 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.5 (tunsigned
+          (%descriptor.4 (tunsigned 2))
+          (%descriptor.5 (tstruct TokenType
+                           (tag (tunsigned 2))
+                           (Unshielded (tbytes 32))
+                           (Shielded (tbytes 32))))
+          (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455))
-          (%descriptor.6 (tstruct ContractAddress
+          (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.8 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ContractAddress (bytes (tbytes 32))))
-                           (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.9 (tstruct Maybe
-                           (is_some (tboolean))
-                           (value (tstruct Either
-                                    (is_left (tboolean))
-                                    (left (tstruct ContractAddress
-                                            (bytes (tbytes 32))))
-                                    (right (tstruct UserAddress
-                                             (bytes (tbytes 32))))))))
-          (%descriptor.10 (tunsigned 65535))
-          (%descriptor.11 (tunsigned 255))
-          (%descriptor.12 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.13 () (Kernel)))
+          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.9 (tstruct PublicAddress
+                           (tag (tboolean))
+                           (Contract (tstruct ContractAddress
+                                       (bytes (tbytes 32))))
+                           (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.10 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.11 (tunsigned 65535))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.14 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.14 (0) (Counter)))
-          (constructor ([%state.15 (tunsigned 65535)])
+          ((%field1.15 (0) (Counter)))
+          (constructor ([%state.16 (tunsigned 65535)])
             (seq
-              (public-ledger %field1.14 (0) increment %state.15)
+              (public-ledger %field1.15 (0) increment %state.16)
               (tuple))))
-        (circuit %foo.16 ([%x.17 (tbytes 32)])
+        (circuit %foo.17 ([%x.18 (tbytes 32)])
              (tfield (field-native))
           (seq
-            (public-ledger %kernel.13 () claimZswapNullifier %x.17)
+            (public-ledger %kernel.14 () claimZswapNullifier %x.18)
             (safe-cast (tfield (field-native))
                        (tunsigned 18446744073709551615)
-              (public-ledger %field1.14 (0) read))))))
+              (public-ledger %field1.15 (0) read))))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -64730,34 +68737,34 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export { Maybe }"
       "export circuit foo(x: Maybe<Boolean>): Boolean {"
-      "  return x.is_some && x.value;"
+      "  return match x { Some(b) => b, None => false };"
       "}"
       )
     (stage-javascript
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: false})).result).toEqual(false);"
+        "  expect((await C.circuits.foo(Ctxt, { tag: 'None' })).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: true})).result).toEqual(false);"
+        "  await expect(C.circuits.foo(Ctxt, <any>{ tag: false, s0: true })).rejects.toThrow('type error: foo argument 1');"
         "});"
         "test('check 3', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: false})).result).toEqual(false);"
+        "  expect((await C.circuits.foo(Ctxt, { tag: 'Some', value: false })).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: true})).result).toEqual(true);"
+        "  expect((await C.circuits.foo(Ctxt, { tag: 'Some', value: true })).result).toEqual(true);"
         "});"
         "test('check 5a', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.foo(Ctxt, <any>{tag: 'Some', xalue: true})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type struct Maybe<is_some: Boolean, value: Boolean> but received { is_some: true, xalue: true }');"
+        "  await expect(C.circuits.foo(Ctxt, <any>{tag: 'Some', xalue: true})).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type enum Maybe<None, Some(Boolean)> but received { tag: \\'Some\\', xalue: true }');"
         "});"
         ))
     )
@@ -64871,13 +68878,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.writeCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insertCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insertCoin(x, ci, ShieldedRecipient::Contract(kernel.self()));"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFrontCoin(ci, ShieldedRecipient::Contract(kernel.self()));"
       "  return q;"
       "}"
       )
@@ -65010,17 +69017,10 @@ groups than for single tests.
       `(
         "test('caller defaults to None when no caller is set', async () => {"
         "  const [c, context] = await startContract(contractCode, {}, 0);"
-        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
-        "    is_some: false,"
-        "    value: {"
-        "      is_left: false,"
-        "      left: { bytes: new Uint8Array(32) },"
-        "      right: { bytes: new Uint8Array(32) },"
-        "    },"
-        "  });"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({ tag: 'None' });"
         "});"
         ""
-        "test('caller returns Some(left(contract)) when called from a contract', async () => {"
+        "test('caller returns Some(Contract(address)) when called from a contract', async () => {"
         "  const [c, context] = await startContract(contractCode, {}, 0);"
         "  const rawCallerAddress = runtime.sampleContractAddress();"
         "  context.callContext.currentQueryContext.block = {"
@@ -65028,16 +69028,12 @@ groups than for single tests.
         "    caller: { tag: 'contract', address: rawCallerAddress },"
         "  };"
         "  expect((await c.circuits.testCaller(context)).result).toEqual({"
-        "    is_some: true,"
-        "    value: {"
-        "      is_left: true,"
-        "      left: { bytes: runtime.encodeContractAddress(rawCallerAddress) },"
-        "      right: { bytes: new Uint8Array(32) },"
-        "    },"
+        "    tag: 'Some',"
+        "    value: { tag: 'Contract', value: { bytes: runtime.encodeContractAddress(rawCallerAddress) } },"
         "  });"
         "});"
         ""
-        "test('caller returns Some(right(user)) when called from a user', async () => {"
+        "test('caller returns Some(User(address)) when called from a user', async () => {"
         "  const [c, context] = await startContract(contractCode, {}, 0);"
         "  const rawCallerAddress = runtime.sampleUserAddress();"
         "  context.callContext.currentQueryContext.block = {"
@@ -65045,12 +69041,8 @@ groups than for single tests.
         "    caller: { tag: 'user', address: rawCallerAddress },"
         "  };"
         "  expect((await c.circuits.testCaller(context)).result).toEqual({"
-        "    is_some: true,"
-        "    value: {"
-        "      is_left: false,"
-        "      left: { bytes: new Uint8Array(32) },"
-        "      right: { bytes: runtime.encodeUserAddress(rawCallerAddress) },"
-        "    },"
+        "    tag: 'Some',"
+        "    value: { tag: 'User', value: { bytes: runtime.encodeUserAddress(rawCallerAddress) } },"
         "  });"
         "});"
         )))
@@ -65133,13 +69125,19 @@ groups than for single tests.
     ((source-file "test-center/composable/EntryPoint/Caller.compact")
      (stage-javascript callerCode "test-center/ts/composable/entry-point.ts")))
 
+  (test-group
+    ((source-file "test-center/composable/Enums/Callee.compact")
+     (stage-javascript calleeCode '()))
+    ((source-file "test-center/composable/Enums/Caller.compact")
+     (stage-javascript callerCode "test-center/ts/composable/enums.ts")))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Maybe<T> = { is_some: boolean; value: T };"
+        "export type Maybe<T> = { tag: 'None' } | { tag: 'Some', value: T };"
         ""
         "export type Witnesses<PS> = {"
         "  private$secret_key(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
@@ -65191,7 +69189,7 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-         ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
+        ,(format "__compactRuntime.checkRuntimeVersion(\'~a\');" runtime-version-string)
         ""
         "const _descriptor_0 = __compactRuntime.CompactTypeField;"
         ""
@@ -65207,12 +69205,12 @@ groups than for single tests.
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_some: _descriptor_3.fromValue(value_0),"
-        "      value: _descriptor_0.fromValue(value_0)"
+        "      tag: _descriptor_3.fromValue(value_0),"
+        "      s0: _descriptor_0.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_0.toValue(value_0.value));"
+        "    return _descriptor_3.toValue(value_0.tag).concat(_descriptor_0.toValue(value_0.s0));"
         "  }"
         "}"
         ""
@@ -65222,25 +69220,27 @@ groups than for single tests.
         ""
         "const _descriptor_6 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
         ""
-        "class _Either_0 {"
+        "const _descriptor_7 = new __compactRuntime.CompactTypeUnsignedInteger(2n, 1);"
+        ""
+        "class _TokenType_0 {"
         "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_1.alignment().concat(_descriptor_1.alignment()));"
+        "    return _descriptor_7.alignment().concat(_descriptor_1.alignment().concat(_descriptor_1.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_3.fromValue(value_0),"
-        "      left: _descriptor_1.fromValue(value_0),"
-        "      right: _descriptor_1.fromValue(value_0)"
+        "      tag: _descriptor_7.fromValue(value_0),"
+        "      Unshielded: _descriptor_1.fromValue(value_0),"
+        "      Shielded: _descriptor_1.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_1.toValue(value_0.left).concat(_descriptor_1.toValue(value_0.right)));"
+        "    return _descriptor_7.toValue(value_0.tag).concat(_descriptor_1.toValue(value_0.Unshielded).concat(_descriptor_1.toValue(value_0.Shielded)));"
         "  }"
         "}"
         ""
-        "const _descriptor_7 = new _Either_0();"
+        "const _descriptor_8 = new _TokenType_0();"
         ""
-        "const _descriptor_8 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
         ""
         "class _ContractAddress_0 {"
         "  alignment() {"
@@ -65256,7 +69256,7 @@ groups than for single tests.
         "  }"
         "}"
         ""
-        "const _descriptor_9 = new _ContractAddress_0();"
+        "const _descriptor_10 = new _ContractAddress_0();"
         ""
         "class _UserAddress_0 {"
         "  alignment() {"
@@ -65272,46 +69272,46 @@ groups than for single tests.
         "  }"
         "}"
         ""
-        "const _descriptor_10 = new _UserAddress_0();"
+        "const _descriptor_11 = new _UserAddress_0();"
         ""
-        "class _Either_1 {"
+        "class _PublicAddress_0 {"
         "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_9.alignment().concat(_descriptor_10.alignment()));"
+        "    return _descriptor_3.alignment().concat(_descriptor_10.alignment().concat(_descriptor_11.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_3.fromValue(value_0),"
-        "      left: _descriptor_9.fromValue(value_0),"
-        "      right: _descriptor_10.fromValue(value_0)"
+        "      tag: _descriptor_3.fromValue(value_0),"
+        "      Contract: _descriptor_10.fromValue(value_0),"
+        "      User: _descriptor_11.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_9.toValue(value_0.left).concat(_descriptor_10.toValue(value_0.right)));"
+        "    return _descriptor_3.toValue(value_0.tag).concat(_descriptor_10.toValue(value_0.Contract).concat(_descriptor_11.toValue(value_0.User)));"
         "  }"
         "}"
         ""
-        "const _descriptor_11 = new _Either_1();"
+        "const _descriptor_12 = new _PublicAddress_0();"
         ""
         "class _Maybe_1 {"
         "  alignment() {"
-        "    return _descriptor_3.alignment().concat(_descriptor_11.alignment());"
+        "    return _descriptor_3.alignment().concat(_descriptor_12.alignment());"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_some: _descriptor_3.fromValue(value_0),"
-        "      value: _descriptor_11.fromValue(value_0)"
+        "      tag: _descriptor_3.fromValue(value_0),"
+        "      s0: _descriptor_12.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_11.toValue(value_0.value));"
+        "    return _descriptor_3.toValue(value_0.tag).concat(_descriptor_12.toValue(value_0.s0));"
         "  }"
         "}"
         ""
-        "const _descriptor_12 = new _Maybe_1();"
+        "const _descriptor_13 = new _Maybe_1();"
         ""
-        "const _descriptor_13 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
         ""
-        "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_15 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -65385,7 +69385,7 @@ groups than for single tests.
         "        const result_0 = await this._get_0(context, partialProofData);"
         "        partialProofData.output = { value: _descriptor_4.toValue(result_0), alignment: _descriptor_4.alignment() };"
         "        __compactRuntime.finalizeCallProofData(context, partialProofData);"
-        "        return { result: result_0, context: context, gasCost: context.callContext.currentGasCost };"
+        "        return { result: _decode_0(result_0), context: context, gasCost: context.callContext.currentGasCost };"
         "      },"
         "      clear: async (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -65471,8 +69471,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(0n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(32)),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -65481,8 +69481,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(1n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -65491,8 +69491,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(2n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -65503,8 +69503,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(0n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -65513,8 +69513,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(1n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -65523,8 +69523,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(2n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -65536,8 +69536,8 @@ groups than for single tests.
         "      currentZswapLocalState: context.callContext.currentZswapLocalState"
         "    }"
         "  }"
-        "  _some_0(value_0) { return { is_some: true, value: value_0 }; }"
-        "  _none_0() { return { is_some: false, value: 0n }; }"
+        "  _some_0(value_0) { return { tag: true, s0: value_0 }; }"
+        "  _none_0() { return { tag: false, s0: 0n }; }"
         "  _persistentHash_0(value_0) {"
         "    const result_0 = __compactRuntime.persistentHash(_descriptor_5, value_0);"
         "    return result_0;"
@@ -65568,8 +69568,8 @@ groups than for single tests.
         "                                                                               pushPath: false,"
         "                                                                               path: ["
         "                                                                                      { tag: 'value',"
-        "                                                                                        value: { value: _descriptor_13.toValue(2n),"
-        "                                                                                                 alignment: _descriptor_13.alignment() } }] } },"
+        "                                                                                        value: { value: _descriptor_14.toValue(2n),"
+        "                                                                                                 alignment: _descriptor_14.alignment() } }] } },"
         "                                                                      { popeq: { cached: false,"
         "                                                                                 result: undefined } }]).value)"
         "           ==="
@@ -65584,8 +69584,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(0n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(apk_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -65594,8 +69594,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(1n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -65604,8 +69604,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(2n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -65622,8 +69622,8 @@ groups than for single tests.
         "                                                                                              pushPath: false,"
         "                                                                                              path: ["
         "                                                                                                     { tag: 'value',"
-        "                                                                                                       value: { value: _descriptor_13.toValue(1n),"
-        "                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
+        "                                                                                                       value: { value: _descriptor_14.toValue(1n),"
+        "                                                                                                                alignment: _descriptor_14.alignment() } }] } },"
         "                                                                                     { popeq: { cached: false,"
         "                                                                                                result: undefined } }]).value));"
         "    } else {"
@@ -65644,8 +69644,8 @@ groups than for single tests.
         "                                                                                                              pushPath: false,"
         "                                                                                                              path: ["
         "                                                                                                                     { tag: 'value',"
-        "                                                                                                                       value: { value: _descriptor_13.toValue(0n),"
-        "                                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
+        "                                                                                                                       value: { value: _descriptor_14.toValue(0n),"
+        "                                                                                                                                alignment: _descriptor_14.alignment() } }] } },"
         "                                                                                                     { popeq: { cached: false,"
         "                                                                                                                result: undefined } }]).value)),"
         "                            'clear: attempted clear without proper authorization');"
@@ -65654,8 +69654,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(0n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -65664,8 +69664,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(1n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -65674,8 +69674,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
-        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_14.toValue(2n),"
+        "                                                                                              alignment: _descriptor_14.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -65714,8 +69714,8 @@ groups than for single tests.
         "                                                                                 pushPath: false,"
         "                                                                                 path: ["
         "                                                                                        { tag: 'value',"
-        "                                                                                          value: { value: _descriptor_13.toValue(1n),"
-        "                                                                                                   alignment: _descriptor_13.alignment() } }] } },"
+        "                                                                                          value: { value: _descriptor_14.toValue(1n),"
+        "                                                                                                   alignment: _descriptor_14.alignment() } }] } },"
         "                                                                        { popeq: { cached: false,"
         "                                                                                   result: undefined } }]).value);"
         "    }"
@@ -65743,11 +69743,19 @@ groups than for single tests.
         "    return _dummyContract._public_key_0(sk_0);"
         "  }"
         "};"
+        "function _decode_0(v) {"
+        "  switch (v.tag) {"
+        "    case false: return { tag: 'None' };"
+        "    case true: return { tag: 'Some', value: v.s0 };"
+        "    default: throw new __compactRuntime.CompactError(`${v.tag} is not the tag of a variant of enum Maybe`);"
+        "  }"
+        "}"
+        ""
         "export const expectedVk = {};"
         ""
         "export const circuitSignatures = {"
         "  'set': {pure: false, provable: true, argumentTypes: [{tag: 'Field'}], resultType: {tag: 'Tuple', types: []}},"
-        "  'get': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Struct', name: 'Maybe', elements: [{name: 'is_some', type: {tag: 'Boolean'}}, {name: 'value', type: {tag: 'Field'}}]}},"
+        "  'get': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Struct', name: 'Maybe', elements: [{name: 'tag', type: {tag: 'Boolean'}}, {name: 's0', type: {tag: 'Field'}}]}},"
         "  'clear': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Tuple', types: []}},"
         "  'public_key': {pure: true, provable: false, argumentTypes: [{tag: 'Bytes', length: 32}], resultType: {tag: 'Bytes', length: 32}},"
         "};"
@@ -65763,7 +69771,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECvCD,AAAA,OAEC,CAFsB,OAAQ,4BACP,OAAK,KAC5B;EAED,AAAA,OAEC,qCAAA;EA1BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD2C;;;;;;;;;;;uHAAK;;;;GAChD;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -65880,11 +69888,11 @@ groups than for single tests.
      '(
        "const witnesses = {"
        "                   set_local_id(participant: any): any { return; },"
-       "                   local_sk(ps: any): any { return [ps, {is_some: true, value: new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}];}"
+       "                   local_sk(ps: any): any { return [ps, { tag: 'Some', value: new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) }];}"
        "                  };"
        "test('check 1', async () => {"
-       "class Maybe{is_some: boolean; value: string; constructor(is_some: boolean, value: string) { this.is_some = is_some; this.value = value;}}"
-       "const p1 = new Maybe( true, 'p1' );"
+       "class Maybe{tag: string; value: string; constructor(tag: string, value: string) { this.tag = tag; this.value = value;}}"
+       "const p1 = new Maybe( 'Some', 'p1' );"
        "const participants: Maybe[] = new Array(5000).fill(p1);"
        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, participants);"
        "  expect(typeof(C.circuits)).toEqual('object');"
@@ -65943,10 +69951,10 @@ groups than for single tests.
       "export struct Q<a> { x: a, y: Field }"
       "export enum Names { bill, sally, fred, george, }"
       "export circuit uno(q: Q<Boolean>): Names {"
-      "  return q.x ? Names.sally : Names.fred;"
+      "  return q.x ? Names::sally : Names::fred;"
       "}"
       "export circuit dos(q: Q<Field>): Names {"
-      "  return q.x == q.y ? Names.bill : Names.george;"
+      "  return q.x == q.y ? Names::bill : Names::george;"
       "}"
       )
     (stage-javascript
@@ -65991,10 +69999,10 @@ groups than for single tests.
       "export struct Q<a, b> { x: a, y: b }"
       "export enum Names { bill, sally, fred, george, }"
       "export circuit uno(q: Q<Boolean, Vector<3, Uint<32>>>): Names {"
-      "  return q.x ? Names.sally : Names.fred;"
+      "  return q.x ? Names::sally : Names::fred;"
       "}"
       "export circuit dos(q: Q<Vector<3, Field>,Vector<3,Field>>): Names {"
-      "  return q.x == q.y ? Names.bill : Names.george;"
+      "  return q.x == q.y ? Names::bill : Names::george;"
       "}"
       )
     (stage-javascript
@@ -66363,14 +70371,14 @@ groups than for single tests.
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
       "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
       "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
-      "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
+      "export circuit functions(Maybe: Maybe<Field>): Field { return match Maybe { Some(v) => v, None => 0 as Field } + 17; }"
       "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
       )
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Maybe<T> = { is_some: boolean; value: T };"
+        "export type Maybe<T> = { tag: 'None' } | { tag: 'Some', value: T };"
         ""
         "export type Witnesses<PS> = {"
         "  witnesses(context: __compactRuntime.WitnessContext<Ledger, PS>,"
@@ -66686,7 +70694,7 @@ groups than for single tests.
       ""
       "constructor(organizerSecretKey: Bytes<32>) {"
       "  organizer = publicKey(disclose(organizerSecretKey));"
-      "  state = LedgerState.setup;"
+      "  state = LedgerState::setup;"
       "}"
       ""
       "circuit publicKey(sk: Bytes<32>): Bytes<32> {"
@@ -67036,7 +71044,7 @@ groups than for single tests.
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  let tmp = await C.circuits.foo(Ctxt);"
-        "  expect(tmp.result).toEqual({ is_some: true, value: 9n });"
+        "  expect(tmp.result).toEqual({ tag: 'Some', value: 9n });"
         "  });"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
@@ -67229,7 +71237,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit get(b: Boolean, n: Uint<16>): Field {"
-      "  return field1.lookup(b).lookup(n).head().value;"
+      "  return match field1.lookup(b).lookup(n).head() { Some(q) => q, None => 0 as Field };"
       "}"
       )
     (stage-javascript
@@ -67249,7 +71257,7 @@ groups than for single tests.
         "  expect(L.field1.size()).toEqual(1n);"
         "  expect(L.field1.member(true)).toEqual(true);"
         "  expect(L.field1.member(false)).toEqual(false);"
-        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ is_some: true, value: 999999999n });"
+        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ tag: 'Some', value: 999999999n });"
         "  expect(() => L.field1.lookup(false)).toThrow(runtime.CompactError);"
         "  expect(() => L.field1.lookup(false)).toThrow(`Map value undefined for false`);"
         "  expect(() => L.field1.lookup(false).lookup(7n)).toThrow(runtime.CompactError);"
@@ -67281,7 +71289,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(b).lookup(n).head().value;"
+      "  return match field1.lookup(b).lookup(n).head() { Some(q) => q, None => 0 as Field };"
       "}"
       )
     (oops
@@ -67312,7 +71320,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n)).head().value;"
+      "  return match field1.lookup(disclose(b)).lookup(disclose(n)).head() { Some(q) => q, None => default<S> };"
       "}"
       )
     (oops
@@ -67343,7 +71351,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n)).head().value;"
+      "  return match field1.lookup(disclose(b)).lookup(disclose(n)).head() { Some(q) => q, None => default<S> };"
       "}"
       )
     (stage-javascript
@@ -67364,7 +71372,7 @@ groups than for single tests.
         "  expect(L.field1.size()).toEqual(1n);"
         "  expect(L.field1.member(true)).toEqual(true);"
         "  expect(L.field1.member(false)).toEqual(false);"
-        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ is_some: true, value: val });"
+        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ tag: 'Some', value: val });"
         "  expect(() => L.field1.lookup(false)).toThrow(runtime.CompactError);"
         "  expect(() => L.field1.lookup(false)).toThrow(`Map value undefined for false`);"
         "  expect(() => L.field1.lookup(false).lookup(7n)).toThrow(runtime.CompactError);"
@@ -67647,7 +71655,7 @@ groups than for single tests.
         "  tmp = await C.circuits.isEmpty(tmp.context);"
         "  expect(tmp.result).toEqual(false);"
         "  tmp = await C.circuits.head(tmp.context);"
-        "  expect(tmp.result).toEqual({is_some: true, value: 5n});"
+        "  expect(tmp.result).toEqual({ tag: 'Some', value: 5n });"
         "  tmp = await C.circuits.length(tmp.context);"
         "  expect(tmp.result).toEqual(1n);"
         "  tmp = await C.circuits.popFront(tmp.context);"
@@ -67659,8 +71667,7 @@ groups than for single tests.
         "  let L = contractCode.ledger(tmp.context.callContext.currentQueryContext.state);"
         "  expect(L.list.isEmpty()).toEqual(false);"
         "  expect(L.list.length()).toEqual(3n);"
-        "  expect(L.list.head().is_some).toEqual(true);"
-        "  expect(L.list.head().value).toEqual(11n);"
+        "  expect(L.list.head()).toEqual({ tag: 'Some', value: 11n });"
         "  var sum: bigint = 3n;"
         "  for(const n of L.list) { sum = sum + n; }"
         "  expect(sum).toEqual(26n);"
@@ -67955,42 +71962,44 @@ groups than for single tests.
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tboolean))
           (%descriptor.2 (tunsigned 18446744073709551615))
-          (%descriptor.3 (tbytes 32))
-          (%descriptor.4 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.5 (tunsigned
+          (%descriptor.3 (tunsigned 2))
+          (%descriptor.4 (tbytes 32))
+          (%descriptor.5 (tstruct TokenType
+                           (tag (tunsigned 2))
+                           (Unshielded (tbytes 32))
+                           (Shielded (tbytes 32))))
+          (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455))
-          (%descriptor.6 (tstruct ContractAddress
+          (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.8 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ContractAddress (bytes (tbytes 32))))
-                           (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.9 (tstruct Maybe
-                           (is_some (tboolean))
-                           (value (tstruct Either
-                                    (is_left (tboolean))
-                                    (left (tstruct ContractAddress
-                                            (bytes (tbytes 32))))
-                                    (right (tstruct UserAddress
-                                             (bytes (tbytes 32))))))))
-          (%descriptor.10 (tunsigned 255))
-          (%descriptor.11 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.12 () (Kernel)))
+          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.9 (tstruct PublicAddress
+                           (tag (tboolean))
+                           (Contract (tstruct ContractAddress
+                                       (bytes (tbytes 32))))
+                           (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.10 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration
-          ((%fld.13
+          ((%fld.14
              (0)
              (Map (tboolean) (Map (tfield (field-native)) (Counter)))))
           (constructor () (tuple)))
-        (circuit %bogus.14 ([%v.15 (tfield (field-native))])
+        (circuit %bogus.15 ([%v.16 (tfield (field-native))])
              (ttuple)
           (seq
-            (public-ledger %fld.13 (0 ((tboolean) #t) ((tfield
+            (public-ledger %fld.14 (0 ((tboolean) #t) ((tfield
                                                          (field-native))
-                                                        %v.15)) read)
+                                                        %v.16)) read)
             (tuple)))))
     )
 
@@ -68116,7 +72125,7 @@ groups than for single tests.
         ""
         "export type value_type = {  };"
         ""
-        "export type Maybe<T> = { is_some: boolean; value: T };"
+        "export type Maybe<T> = { tag: 'None' } | { tag: 'Some', value: T };"
         ""
         "export type MerkleTreeDigest = { field: bigint };"
         ""
@@ -68738,7 +72747,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  createZswapInput(qcoin);"
-      "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "  createZswapOutput(coin, ShieldedRecipient::User(ownPublicKey()));"
       "}"
       )
     (stage-javascript
@@ -68748,7 +72757,7 @@ groups than for single tests.
         "  const qcoin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 57n, mt_index: 3n };"
         "  const coin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 73n };"
         "  const encodedOwnPublicKey = runtime.encodeCoinPublicKey('0'.repeat(64))"
-        "  const expectedRecipient = { is_left: true, left: { bytes: encodedOwnPublicKey }, right: { bytes: new Uint8Array(32) } }"
+        "  const expectedRecipient = { tag: true, User: { bytes: encodedOwnPublicKey }, Contract: { bytes: new Uint8Array(32) } }"
         "  const circuitResult = await C.circuits.foo(Ctxt, qcoin, coin)"
         "  expect(circuitResult.result).toEqual([]);"
         "  expect(circuitResult.context.callContext.currentZswapLocalState).toEqual({"
@@ -69313,9 +73322,9 @@ groups than for single tests.
       "ledger accum: Field;"
       "circuit bar(op0: OP, x0: Field): [] {"
       "  const op = disclose(op0); const x = disclose(x0);"
-      "  if (op == OP.plus)"
+      "  if (op == OP::plus)"
       "    accum = accum + x;"
-      "  else if (op == OP.minus)"
+      "  else if (op == OP::minus)"
       "    accum = accum - x;"
       "  else"
       "    accum = accum * x;"
@@ -69340,9 +73349,9 @@ groups than for single tests.
       "enum OP { plus, minus, times }"
       "ledger accum: Field;"
       "circuit bar(op: OP, x: Field): [] {"
-      "  if (op == OP.plus)"
+      "  if (op == OP::plus)"
       "    accum = accum + x;"
-      "  else if (op == OP.minus)"
+      "  else if (op == OP::minus)"
       "    accum = accum - x;"
       "  else"
       "    accum = accum * x;"
@@ -69380,9 +73389,9 @@ groups than for single tests.
       "enum OP { plus, minus, times }"
       "ledger accum: Field;"
       "circuit bar(op: OP, x: Field): [] {"
-      "  if (disclose(op) == OP.plus)"
+      "  if (disclose(op) == OP::plus)"
       "    accum = accum + disclose(x);"
-      "  else if (disclose(op) == OP.minus)"
+      "  else if (disclose(op) == OP::minus)"
       "    accum = accum - disclose(x);"
       "  else"
       "    accum = accum * disclose(x);"
@@ -69407,9 +73416,9 @@ groups than for single tests.
       "enum OP { plus, minus, times }"
       "ledger accum: Field;"
       "circuit bar(op: OP, x: Field): [] {"
-      "  if (disclose(op) == OP.plus)"
+      "  if (disclose(op) == OP::plus)"
       "    accum = accum + disclose(x);"
-      "  else if (disclose(op) == OP.minus)"
+      "  else if (disclose(op) == OP::minus)"
       "    accum = accum - disclose(x);"
       "  else"
       "    accum = accum * disclose(x);"
@@ -69515,7 +73524,7 @@ groups than for single tests.
       "  M5$fld.insert(3, default<Map<Uint<8>, List<Boolean>>>);"
       "  M5$fld.lookup(3).insert(4, default<List<Boolean>>);"
       "  M5$fld.lookup(3).lookup(4).pushFront(true);"
-      "  return [M1$fld as Field, M2$fld as Field, M3$fld.size() as Field, M4$fld, M6$fld.lookup(3).lookup(4).head().value as Field];"
+      "  return [M1$fld as Field, M2$fld as Field, M3$fld.size() as Field, M4$fld, (match M6$fld.lookup(3).lookup(4).head() { Some(b) => b, None => false }) as Field];"
       "}"
       "export {M1$fld, M2$fld, M3$fld, M4$fld, M5$fld, M6$fld};"
       )
@@ -69533,11 +73542,11 @@ groups than for single tests.
         "  expect(L.M3$fld.member(93n)).toEqual(true);"
         "  expect(L.M4$fld).toEqual(71n);"
         "  expect(L.M5$fld.lookup(3n).member(4n)).toEqual(true);"
-        "  expect(L.M5$fld.lookup(3n).lookup(4n).head().value).toEqual(true);"
+        "  expect(L.M5$fld.lookup(3n).lookup(4n).head()).toEqual({ tag: 'Some', value: true });"
         "  expect(L.M5$fld.lookup(3n).member(5n)).toEqual(false);"
-        "  expect(L.M6$fld.lookup(3n).lookup(4n).head().value).toEqual(true);"
+        "  expect(L.M6$fld.lookup(3n).lookup(4n).head()).toEqual({ tag: 'Some', value: true });"
         "  expect(L.M6$fld.lookup(3n).member(4n)).toEqual(true);"
-        "  expect(L.M6$fld.lookup(3n).lookup(4n).head().value).toEqual(true);"
+        "  expect(L.M6$fld.lookup(3n).lookup(4n).head()).toEqual({ tag: 'Some', value: true });"
         "  expect(L.M6$fld.lookup(3n).member(5n)).toEqual(false);"
         "});"
         ))
@@ -70160,54 +74169,56 @@ groups than for single tests.
                            (a (tfield (field-native)))
                            (b (tboolean))))
           (%descriptor.3 (tunsigned 18446744073709551615))
-          (%descriptor.4 (tbytes 32))
-          (%descriptor.5 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.6 (tunsigned
+          (%descriptor.4 (tunsigned 2))
+          (%descriptor.5 (tbytes 32))
+          (%descriptor.6 (tstruct TokenType
+                           (tag (tunsigned 2))
+                           (Unshielded (tbytes 32))
+                           (Shielded (tbytes 32))))
+          (%descriptor.7 (tunsigned
                            340282366920938463463374607431768211455))
-          (%descriptor.7 (tstruct ContractAddress
+          (%descriptor.8 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.9 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ContractAddress (bytes (tbytes 32))))
-                           (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.10 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.11 (tunsigned 255))
-          (%descriptor.12 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.13 () (Kernel)))
+          (%descriptor.9 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.10 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.11 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.14 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.14 ([%x.15 (tboolean)]
-                          [%y.16 (tfield (field-native))])
+        (circuit %bar.15 ([%x.16 (tboolean)]
+                          [%y.17 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
           (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
-            %y.16
-            %x.15))
-        (circuit %foo.17 ([%x.18 (tboolean)]
-                          [%y.19 (tfield (field-native))])
+            %y.17
+            %x.16))
+        (circuit %foo.18 ([%x.19 (tboolean)]
+                          [%y.20 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (const [%__compact_pattern_tmp1.20 (tstruct S
+            (const [%__compact_pattern_tmp1.21 (tstruct S
                                                  (a (tfield (field-native)))
                                                  (b (tboolean)))]
-              (call %bar.14 %x.18 %y.19))
+              (call %bar.15 %x.19 %y.20))
             (seq
-              (const [%b.21 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.20 b 1))
-              (if %b.21
-                  %y.19
+              (const [%b.22 (tboolean)]
+                (elt-ref %__compact_pattern_tmp1.21 b 1))
+              (if %b.22
+                  %y.20
                   (* (tfield (field-native))
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)
-                     %y.19)))))))
+                     %y.20)))))))
     )
 
   (test
@@ -70477,7 +74488,7 @@ groups than for single tests.
       "export ledger coins: List<QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  receiveShielded(disclose(dust));"
-      "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.pushFrontCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70498,7 +74509,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: List<QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.pushFrontCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70520,7 +74531,7 @@ groups than for single tests.
       "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  receiveShielded(disclose(dust));"
-      "  coins.insertCoin(0 as Field, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.insertCoin(0 as Field, disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70541,7 +74552,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.insertCoin(0 as Field, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.insertCoin(0 as Field, disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70563,7 +74574,7 @@ groups than for single tests.
       "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  receiveShielded(disclose(dust));"
-      "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.insertCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70584,7 +74595,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coins.insertCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70606,7 +74617,7 @@ groups than for single tests.
       "export ledger coin: QualifiedShieldedCoinInfo;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  receiveShielded(disclose(dust));"
-      "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coin.writeCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -70627,7 +74638,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coin: QualifiedShieldedCoinInfo;"
       "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  coin.writeCoin(disclose(dust), ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -72313,42 +76324,43 @@ groups than for single tests.
           (%descriptor.34 (tvector 62 (tunsigned 255)))
           (%descriptor.35 (tunsigned 18446744073709551615))
           (%descriptor.36 (tboolean))
-          (%descriptor.37 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tbytes 32))
-                            (right (tbytes 32))))
-          (%descriptor.38 (tunsigned
+          (%descriptor.37 (tunsigned 2))
+          (%descriptor.38 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+          (%descriptor.39 (tunsigned
                             340282366920938463463374607431768211455))
-          (%descriptor.39 (tstruct ContractAddress
+          (%descriptor.40 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.40 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.41 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress
-                                    (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.42 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.43 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.44 () (Kernel)))
+          (%descriptor.41 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.42 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.43 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.44 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.45 () (Kernel)))
         (public-ledger-declaration
-          ((%F.45 (0) (__compact_Cell (tbytes 32))))
+          ((%F.46 (0) (__compact_Cell (tbytes 32))))
           (constructor () (tuple)))
-        (circuit %foo.46 ([%v.47 (tvector 62 (tunsigned 255))])
+        (circuit %foo.47 ([%v.48 (tvector 62 (tunsigned 255))])
              (tbytes 32)
           (seq
             (seq
-              (const [%tmp.48 (tbytes 32)]
+              (const [%tmp.49 (tbytes 32)]
                 (vector->bytes 32
-                  (vector (spread 32 (tuple-slice %v.47 7 32)))))
-              (public-ledger %F.45 (0) write %tmp.48))
-            (public-ledger %F.45 (0) read)))))
+                  (vector (spread 32 (tuple-slice %v.48 7 32)))))
+              (public-ledger %F.46 (0) write %tmp.49))
+            (public-ledger %F.46 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -72585,48 +76597,49 @@ groups than for single tests.
           (%descriptor.72 (tvector 1000 (tunsigned 63)))
           (%descriptor.73 (tunsigned 18446744073709551615))
           (%descriptor.74 (tboolean))
-          (%descriptor.75 (tbytes 32))
-          (%descriptor.76 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tbytes 32))
-                            (right (tbytes 32))))
-          (%descriptor.77 (tunsigned
+          (%descriptor.75 (tunsigned 2))
+          (%descriptor.76 (tbytes 32))
+          (%descriptor.77 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+          (%descriptor.78 (tunsigned
                             340282366920938463463374607431768211455))
-          (%descriptor.78 (tstruct ContractAddress
+          (%descriptor.79 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.79 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.80 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress
-                                    (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.81 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.82 (tunsigned 255))
-          (%descriptor.83 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.84 () (Kernel)))
+          (%descriptor.80 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.81 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.82 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.83 (tunsigned 255))
+          (%descriptor.84 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.85 () (Kernel)))
         (public-ledger-declaration
-          ((%F.85 (0) (__compact_Cell (tbytes 70))))
+          ((%F.86 (0) (__compact_Cell (tbytes 70))))
           (constructor () (tuple)))
-        (circuit %foo.86 ([%v.87 (tvector 1000 (tunsigned 63))])
+        (circuit %foo.87 ([%v.88 (tvector 1000 (tunsigned 63))])
              (tbytes 70)
           (seq
             (seq
-              (const [%tmp.88 (tbytes 70)]
+              (const [%tmp.89 (tbytes 70)]
                 (vector->bytes 70
                   (vector
                     (spread 70
                       (safe-cast (tvector 70 (tunsigned 255))
                                  (tvector 70 (tunsigned 63))
-                        (tuple-slice %v.87 0 70))))))
-              (public-ledger %F.85 (0) write %tmp.88))
-            (public-ledger %F.85 (0) read)))))
+                        (tuple-slice %v.88 0 70))))))
+              (public-ledger %F.86 (0) write %tmp.89))
+            (public-ledger %F.86 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -75008,52 +79021,54 @@ groups than for single tests.
          (type-descriptors
            (%descriptor.0 (tunsigned 18446744073709551615))
            (%descriptor.1 (tboolean))
-           (%descriptor.2 (tbytes 32))
-           (%descriptor.3 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tbytes 32))
-                            (right (tbytes 32))))
-           (%descriptor.4 (tunsigned
+           (%descriptor.2 (tunsigned 2))
+           (%descriptor.3 (tbytes 32))
+           (%descriptor.4 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+           (%descriptor.5 (tunsigned
                             340282366920938463463374607431768211455))
-           (%descriptor.5 (tstruct ContractAddress
+           (%descriptor.6 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
-           (%descriptor.7 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-           (%descriptor.8 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-           (%descriptor.9 (tunsigned 255))
-           (%descriptor.10 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.11 () (Kernel)))
+           (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.8 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.9 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+           (%descriptor.10 (tunsigned 255))
+           (%descriptor.11 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.12 () (Kernel)))
          (public-ledger-declaration
-           ((%F.12
+           ((%F.13
               (0)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tfield (field-native)))
                   (bar #f () (ttuple)))))
-            (%F.13
+            (%F.14
               (1)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native)))
                     (tfield (field-native)))))))
-           (constructor ([%c1.14 (tcontract C
+           (constructor ([%c1.15 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native)))
                                    (bar #f () (ttuple)))])
              (seq
-               (public-ledger %F.12 (0) write %c1.14)
+               (public-ledger %F.13 (0) write %c1.15)
                (seq
-                 (const [%tmp.15 (tcontract C
+                 (const [%tmp.16 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native))))]
                    (safe-cast (tcontract C
@@ -75063,8 +79078,8 @@ groups than for single tests.
                                 (foo #f ((tfield (field-native)))
                                   (tfield (field-native)))
                                 (bar #f () (ttuple)))
-                     %c1.14))
-                 (public-ledger %F.13 (1) write %tmp.15))
+                     %c1.15))
+                 (public-ledger %F.14 (1) write %tmp.16))
                (tuple))))))))
 
   ; downcast failure for Contract types
@@ -75161,10 +79176,10 @@ groups than for single tests.
       "export circuit foo(ix: Field): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
-      "  if (x == 0 as Field) assert(F == E.fore, 'oops0');"
-      "  else if (x == 1 as Field) assert(F == E.the, 'oops1');"
-      "  else if (x == 2 as Field) assert(F == E.ring, 'oops2');"
-      "  else if (x == 3 as Field) assert(F == E.pinky, 'oops3');"
+      "  if (x == 0 as Field) assert(F == E::fore, 'oops0');"
+      "  else if (x == 1 as Field) assert(F == E::the, 'oops1');"
+      "  else if (x == 2 as Field) assert(F == E::ring, 'oops2');"
+      "  else if (x == 3 as Field) assert(F == E::pinky, 'oops3');"
       "  return F;"
       "}"
       )
@@ -75189,10 +79204,10 @@ groups than for single tests.
       "export circuit foo(ix: Uint<8>): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
-      "  if (x == 0) assert(F == E.fore, 'oops0');"
-      "  else if (x == 1) assert(F == E.the, 'oops1');"
-      "  else if (x == 2) assert(F == E.ring, 'oops2');"
-      "  else if (x == 3) assert(F == E.pinky, 'oops3');"
+      "  if (x == 0) assert(F == E::fore, 'oops0');"
+      "  else if (x == 1) assert(F == E::the, 'oops1');"
+      "  else if (x == 2) assert(F == E::ring, 'oops2');"
+      "  else if (x == 3) assert(F == E::pinky, 'oops3');"
       "  return F;"
       "}"
       )
@@ -75217,11 +79232,11 @@ groups than for single tests.
       "export circuit foo(ix: Uint<0..4>): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
-      "  if (x == 0) assert(F == E.thumb, 'oops0');"
-      "  else if (x == 1) assert(F == E.fore, 'oops1');"
-      "  else if (x == 2) assert(F == E.the, 'oops2');"
-      "  else if (x == 3) assert(F == E.ring, 'oops3');"
-      "  else if (x == 4) assert(F == E.pinky, 'oops4');"
+      "  if (x == 0) assert(F == E::thumb, 'oops0');"
+      "  else if (x == 1) assert(F == E::fore, 'oops1');"
+      "  else if (x == 2) assert(F == E::the, 'oops2');"
+      "  else if (x == 3) assert(F == E::ring, 'oops3');"
+      "  else if (x == 4) assert(F == E::pinky, 'oops4');"
       "  return F;"
       "}"
       )
@@ -75246,11 +79261,11 @@ groups than for single tests.
       "export circuit foo(ix: Uint<0..5>): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
-      "  if (x == 0) assert(F == E.thumb, 'oops0');"
-      "  else if (x == 1) assert(F == E.fore, 'oops1');"
-      "  else if (x == 2) assert(F == E.the, 'oops2');"
-      "  else if (x == 3) assert(F == E.ring, 'oops3');"
-      "  else if (x == 4) assert(F == E.pinky, 'oops4');"
+      "  if (x == 0) assert(F == E::thumb, 'oops0');"
+      "  else if (x == 1) assert(F == E::fore, 'oops1');"
+      "  else if (x == 2) assert(F == E::the, 'oops2');"
+      "  else if (x == 3) assert(F == E::ring, 'oops3');"
+      "  else if (x == 4) assert(F == E::pinky, 'oops4');"
       "  return F;"
       "}"
       )
@@ -75387,7 +79402,7 @@ groups than for single tests.
       "enum E { spring, summer, fall, winter }"
       "ledger F: [ Field, Field, Field, Field ];"
       "export circuit foo() : [ Field, Field, Field, Field ] {"
-      "  F = [E.summer as Field, E.spring as Field, E.winter as Field, E.fall as Field];"
+      "  F = [E::summer as Field, E::spring as Field, E::winter as Field, E::fall as Field];"
       "  return F;"
       "}"
       )
@@ -75405,7 +79420,7 @@ groups than for single tests.
       "enum E { spring, summer, fall, winter }"
       "ledger F: Vector<4, Uint<0..5>>;"
       "export circuit foo() : Vector<4, Uint<0..5>> {"
-      "  F = [E.summer as Uint<0..5>, E.spring as Uint<0..5>, E.winter as Uint<0..5>, E.fall as Uint<0..5>];"
+      "  F = [E::summer as Uint<0..5>, E::spring as Uint<0..5>, E::winter as Uint<0..5>, E::fall as Uint<0..5>];"
       "  return F;"
       "}"
       )
@@ -75423,7 +79438,7 @@ groups than for single tests.
       "enum E { spring, summer, fall, winter }"
       "ledger F: Vector<4, Uint<0..4>>;"
       "export circuit foo() : Vector<4, Uint<0..4>> {"
-      "  F = [E.summer as Uint<0..4>, E.spring as Uint<0..4>, E.winter as Uint<0..4>, E.fall as Uint<0..4>];"
+      "  F = [E::summer as Uint<0..4>, E::spring as Uint<0..4>, E::winter as Uint<0..4>, E::fall as Uint<0..4>];"
       "  return F;"
       "}"
       )
@@ -75441,7 +79456,7 @@ groups than for single tests.
       "enum E { spring, summer, fall, winter }"
       "ledger F: Vector<4, Uint<0..3>>;"
       "export circuit foo() : Vector<4, Uint<0..3>> {"
-      "  F = [E.summer as Uint<0..3>, E.spring as Uint<0..3>, E.winter as Uint<0..3>, E.fall as Uint<0..3>];"
+      "  F = [E::summer as Uint<0..3>, E::spring as Uint<0..3>, E::winter as Uint<0..3>, E::fall as Uint<0..3>];"
       "  return F;"
       "}"
       )
@@ -75450,7 +79465,7 @@ groups than for single tests.
         "test('check 1', async () => {"
         "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow('testfile.compact line 4 char 56: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
+        "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow('testfile.compact line 4 char 58: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "});"
         ))
     )
@@ -76155,7 +80170,7 @@ groups than for single tests.
       "  Active"
       "}"
       "export circuit test(): Status {"
-      "  return Status.Active;"
+      "  return Status::Active;"
       "}"
     )
     (stage-javascript
@@ -76897,7 +80912,7 @@ groups than for single tests.
       "export enum E { x, y, z };"
       "export new type T = E;"
       "export circuit foo(t: T): [T, T, T, T] {"
-      "  return [t, T.x, T.y, T.z];"
+      "  return [t, T::x, T::y, T::z];"
       "}"
       )
     (stage-javascript
@@ -76919,7 +80934,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 18" "parse error: found ~a looking for~?" ("\".\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\""))))
+      irritants: '("testfile.compact line 4 char 18" "parse error: found ~a looking for~?" ("\".\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\"" "\"::\""))))
     )
 
   (test
@@ -77572,7 +81587,7 @@ groups than for single tests.
       "type ET = E;"
       "type Q<A> = A;"
       "circuit foo<A, B>(): [E, E, E] {"
-      "  return [ET.a, A.b, B.c];"
+      "  return [ET::a, A::b, B::c];"
       "}"
       "export circuit bar(): [E, E, E] {"
       "  return foo<E, ET>();"
@@ -77639,7 +81654,7 @@ groups than for single tests.
       ""
       "export circuit foo(): [] {"
       "  const coin1 = ShieldedCoinInfo {pad(32, 'coinNonce1'), pad(32, 'coinColor1'), 300};"
-      "  createZswapOutput(coin1, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  createZswapOutput(coin1, ShieldedRecipient::Contract(kernel.self()));"
       "}"
       )
     (stage-javascript
@@ -79316,7 +83331,7 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-         ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
+        ,(format "__compactRuntime.checkRuntimeVersion(\'~a\');" runtime-version-string)
         ""
         "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);"
         ""
@@ -79324,25 +83339,27 @@ groups than for single tests.
         ""
         "const _descriptor_2 = __compactRuntime.CompactTypeBoolean;"
         ""
-        "class _Either_0 {"
+        "const _descriptor_3 = new __compactRuntime.CompactTypeUnsignedInteger(2n, 1);"
+        ""
+        "class _TokenType_0 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_0.alignment().concat(_descriptor_0.alignment()));"
+        "    return _descriptor_3.alignment().concat(_descriptor_0.alignment().concat(_descriptor_0.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_2.fromValue(value_0),"
-        "      left: _descriptor_0.fromValue(value_0),"
-        "      right: _descriptor_0.fromValue(value_0)"
+        "      tag: _descriptor_3.fromValue(value_0),"
+        "      Unshielded: _descriptor_0.fromValue(value_0),"
+        "      Shielded: _descriptor_0.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_0.toValue(value_0.left).concat(_descriptor_0.toValue(value_0.right)));"
+        "    return _descriptor_3.toValue(value_0.tag).concat(_descriptor_0.toValue(value_0.Unshielded).concat(_descriptor_0.toValue(value_0.Shielded)));"
         "  }"
         "}"
         ""
-        "const _descriptor_3 = new _Either_0();"
+        "const _descriptor_4 = new _TokenType_0();"
         ""
-        "const _descriptor_4 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        "const _descriptor_5 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
         ""
         "class _ContractAddress_0 {"
         "  alignment() {"
@@ -79358,7 +83375,7 @@ groups than for single tests.
         "  }"
         "}"
         ""
-        "const _descriptor_5 = new _ContractAddress_0();"
+        "const _descriptor_6 = new _ContractAddress_0();"
         ""
         "class _UserAddress_0 {"
         "  alignment() {"
@@ -79374,46 +83391,46 @@ groups than for single tests.
         "  }"
         "}"
         ""
-        "const _descriptor_6 = new _UserAddress_0();"
+        "const _descriptor_7 = new _UserAddress_0();"
         ""
-        "class _Either_1 {"
+        "class _PublicAddress_0 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_5.alignment().concat(_descriptor_6.alignment()));"
+        "    return _descriptor_2.alignment().concat(_descriptor_6.alignment().concat(_descriptor_7.alignment()));"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_left: _descriptor_2.fromValue(value_0),"
-        "      left: _descriptor_5.fromValue(value_0),"
-        "      right: _descriptor_6.fromValue(value_0)"
+        "      tag: _descriptor_2.fromValue(value_0),"
+        "      Contract: _descriptor_6.fromValue(value_0),"
+        "      User: _descriptor_7.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_5.toValue(value_0.left).concat(_descriptor_6.toValue(value_0.right)));"
+        "    return _descriptor_2.toValue(value_0.tag).concat(_descriptor_6.toValue(value_0.Contract).concat(_descriptor_7.toValue(value_0.User)));"
         "  }"
         "}"
         ""
-        "const _descriptor_7 = new _Either_1();"
+        "const _descriptor_8 = new _PublicAddress_0();"
         ""
         "class _Maybe_0 {"
         "  alignment() {"
-        "    return _descriptor_2.alignment().concat(_descriptor_7.alignment());"
+        "    return _descriptor_2.alignment().concat(_descriptor_8.alignment());"
         "  }"
         "  fromValue(value_0) {"
         "    return {"
-        "      is_some: _descriptor_2.fromValue(value_0),"
-        "      value: _descriptor_7.fromValue(value_0)"
+        "      tag: _descriptor_2.fromValue(value_0),"
+        "      s0: _descriptor_8.fromValue(value_0)"
         "    }"
         "  }"
         "  toValue(value_0) {"
-        "    return _descriptor_2.toValue(value_0.is_some).concat(_descriptor_7.toValue(value_0.value));"
+        "    return _descriptor_2.toValue(value_0.tag).concat(_descriptor_8.toValue(value_0.s0));"
         "  }"
         "}"
         ""
-        "const _descriptor_8 = new _Maybe_0();"
+        "const _descriptor_9 = new _Maybe_0();"
         ""
-        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
         ""
-        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -79516,12 +83533,12 @@ groups than for single tests.
         "                                             ["
         "                                              { push: { storage: false,"
         "                                                        value: __compactRuntime.StateValue.newArray()"
-        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
-        "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
-        "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
+        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_11.toValue(1n),"
+        "                                                                                                                  alignment: _descriptor_11.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                                                                                                                                            alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
+        "                                                                                                                                                                                                                                                                                                                                       this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                   partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                      alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
         "  }"
@@ -79783,21 +83800,21 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
+      "    ciphertext: Maybe<Bytes<512>>::Some(disclose(c)),"
+      "    contractAddress: Maybe<Bytes<32>>::Some(disclose(n))"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
+      "    ciphertext: Maybe<Bytes<512>>::Some(disclose(c)),"
+      "    contractAddress: Maybe<Bytes<32>>::Some(disclose(n))"
       "  });"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) },"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: false, value: disclose(n) }"
+      "    ciphertext: Maybe<Bytes<512>>::None,"
+      "    contractAddress: Maybe<Bytes<32>>::None"
       "  });"
       "  return n;"
       "}"
@@ -79805,8 +83822,8 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedReceive {"
       "      commitment: disclose(n),"
-      "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
-      "      contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
+      "      ciphertext: Maybe<Bytes<512>>::Some(disclose(c)),"
+      "      contractAddress: Maybe<Bytes<32>>::Some(disclose(n))"
       "    });"
       "  }"
       "  return n;"
@@ -79873,24 +83890,37 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contractAddress: { is_some: true, value: N32() },"
-        "    ciphertext: { is_some: true, value: N512() }"
+        "    contractAddress: { tag: 'Some', value: N32() },"
+        "    ciphertext: { tag: 'Some', value: N512() }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedReceive(Ctxt, orig);"
         "  expect(r.result).toBeInstanceOf(Uint8Array);"
         "  expect(r.result.length).toBe(578);"
         "});"
         ""
-        "test('serialize is structural: inactive-variant payload is preserved verbatim', async () => {"
+        "test('a ShieldedReceive survives a roundtrip', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contractAddress: { is_some: true, value: N32() },"
-        "    ciphertext: { is_some: false, value: N512() }"
+        "    contractAddress: { tag: 'Some', value: N32() },"
+        "    ciphertext: { tag: 'None' }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedReceive(Ctxt, orig);"
-        "  // serialize is purely structural."
         "  expect(r.result).toEqual(orig);"
+        "});"
+        ""
+        "test('a None that carries a value is rejected', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const orig = {"
+        "    commitment: N32(),"
+        "    contractAddress: { tag: 'Some' as const, value: N32() },"
+        "    ciphertext: { tag: 'Some' as const, value: N512() }"
+        "  };"
+        "  const bytes = (await C.circuits.serialize_ShieldedReceive(Ctxt, orig)).result;"
+        "  const none = (await C.circuits.serialize_ShieldedReceive(Ctxt, { ...orig, ciphertext: { tag: 'None' as const } })).result;"
+        "  const tag = bytes.findIndex((b: number, i: number) => b != none[i]);"
+        "  bytes[tag] = none[tag];"
+        "  await expect(C.circuits.deserialize_ShieldedReceive(Ctxt, bytes)).rejects.toThrow('contains an invalid enum value');"
         "});"
         ))
     )
@@ -79902,7 +83932,7 @@ groups than for single tests.
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domainSep: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: true, value: 1000 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::Some(1000 as Uint<128>)"
       "  });"
       "  return n;"
       "}"
@@ -79910,12 +83940,12 @@ groups than for single tests.
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domainSep: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: true, value: 100 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::Some(100 as Uint<128>)"
       "  });"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domainSep: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::None"
       "  });"
       "  return n;"
       "}"
@@ -79924,7 +83954,7 @@ groups than for single tests.
       "    emit(ShieldedMint {"
       "      commitment: disclose(n),"
       "      domainSep: disclose(n),"
-      "      amount: Maybe<Uint<128>> { is_some: true, value: 42 as Uint<128> }"
+      "      amount: Maybe<Uint<128>>::Some(42 as Uint<128>)"
       "    });"
       "  }"
       "  return n;"
@@ -79988,7 +84018,7 @@ groups than for single tests.
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
-        "    amount: { is_some: true, value: 999n }"
+        "    amount: { tag: 'Some', value: 999n }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedMint(Ctxt, orig);"
         "  expect(r.result.length).toBe(81);"
@@ -79999,7 +84029,7 @@ groups than for single tests.
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
-        "    amount: { is_some: true, value: 12345n }"
+        "    amount: { tag: 'Some', value: 12345n }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedMint(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -80013,18 +84043,18 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: true, value: 500 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::Some(500 as Uint<128>)"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: true, value: 1 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::Some(1 as Uint<128>)"
       "  });"
       "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
-      "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
+      "    amount: Maybe<Uint<128>>::None"
       "  });"
       "  return n;"
       "}"
@@ -80032,7 +84062,7 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedBurn {"
       "      nullifier: disclose(n),"
-      "      amount: Maybe<Uint<128>> { is_some: true, value: 7 as Uint<128> }"
+      "      amount: Maybe<Uint<128>>::Some(7 as Uint<128>)"
       "    });"
       "  }"
       "  return n;"
@@ -80093,14 +84123,14 @@ groups than for single tests.
         ""
         "test('serialize_ShieldedBurn returns 49-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { nullifier: N32(), amount: { is_some: true, value: 100n } };"
+        "  const orig = { nullifier: N32(), amount: { tag: 'Some', value: 100n } };"
         "  const r = await C.circuits.serialize_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result.length).toBe(49);"
         "});"
         ""
         "test('roundtrip preserves ShieldedBurn struct', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { nullifier: N32(), amount: { is_some: false, value: 0n } };"
+        "  const orig = { nullifier: N32(), amount: { tag: 'None' } };"
         "  const r = await C.circuits.roundtrip_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
         "});"
@@ -80112,11 +84142,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedSpend {"
-      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: true,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    sender: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
@@ -80125,21 +84151,13 @@ groups than for single tests.
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedSpend {"
-      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: true,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    sender: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedSpend {"
-      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: false,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    sender: ShieldedRecipient::Contract(ContractAddress { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
@@ -80149,11 +84167,7 @@ groups than for single tests.
       "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
       "    emit(UnshieldedSpend {"
-      "      sender: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "        is_left: true,"
-      "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "        right: ContractAddress { bytes: disclose(n) }"
-      "      },"
+      "      sender: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "      domainSep: disclose(n),"
       "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
@@ -80178,11 +84192,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
-        "const senderL = () => ({"
-        "  is_left: true,"
-        "  left: { bytes: N32() },"
-        "  right: { bytes: N32() }"
-        "});"
+        "const senderL = () => ({ tag: 'User', value: { bytes: N32() } });"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
@@ -80227,11 +84237,18 @@ groups than for single tests.
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
-        "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
+        "test('an UnshieldedSpend survives a roundtrip', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
+        "});"
+        ""
+        "test('a sender written as the struct it is lowered to is rejected', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const sender = { tag: true, User: { bytes: N32() }, Contract: { bytes: N32() } };"
+        "  const orig = { sender, domainSep: N32(), tokenType: N32(), amount: 555n };"
+        "  await expect(C.circuits.roundtrip_UnshieldedSpend(Ctxt, <any>orig)).rejects.toThrow('type error: roundtrip_UnshieldedSpend argument 1');"
         "});"
         ))
     )
@@ -80241,11 +84258,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedReceive {"
-      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: true,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    recipient: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
@@ -80254,21 +84267,13 @@ groups than for single tests.
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedReceive {"
-      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: true,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    recipient: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedReceive {"
-      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "      is_left: false,"
-      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "      right: ContractAddress { bytes: disclose(n) }"
-      "    },"
+      "    recipient: ShieldedRecipient::Contract(ContractAddress { bytes: disclose(n) }),"
       "    domainSep: disclose(n),"
       "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
@@ -80278,11 +84283,7 @@ groups than for single tests.
       "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
       "    emit(UnshieldedReceive {"
-      "      recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
-      "        is_left: true,"
-      "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
-      "        right: ContractAddress { bytes: disclose(n) }"
-      "      },"
+      "      recipient: ShieldedRecipient::User(ZswapCoinPublicKey { bytes: disclose(n) }),"
       "      domainSep: disclose(n),"
       "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
@@ -80307,11 +84308,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
-        "const recipL = () => ({"
-        "  is_left: true,"
-        "  left: { bytes: N32() },"
-        "  right: { bytes: N32() }"
-        "});"
+        "const recipL = () => ({ tag: 'User', value: { bytes: N32() } });"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
@@ -80356,15 +84353,18 @@ groups than for single tests.
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
-        "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
+        "test('an UnshieldedReceive survives a roundtrip', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
-        "  // serialize is purely structural — no Either canonicalization."
-        "  // whatever bytes sit in the inactive variant (right when is_left=true)"
-        "  // survive the roundtrip. Use Compact's Either constructors for"
-        "  // canonical form."
         "  expect(r.result).toEqual(orig);"
+        "});"
+        ""
+        "test('a recipient written as the struct it is lowered to is rejected', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const recipient = { tag: false, User: { bytes: N32() }, Contract: { bytes: N32() } };"
+        "  const orig = { recipient, domainSep: N32(), tokenType: N32(), amount: 555n };"
+        "  await expect(C.circuits.roundtrip_UnshieldedReceive(Ctxt, <any>orig)).rejects.toThrow('type error: roundtrip_UnshieldedReceive argument 1');"
         "});"
         ))
     )
@@ -81310,31 +85310,32 @@ groups than for single tests.
                            (tfield (field-base (curve-secp256k1)))))
           (%descriptor.6 (tunsigned 18446744073709551615))
           (%descriptor.7 (tboolean))
-          (%descriptor.8 (tbytes 32))
-          (%descriptor.9 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.10 (tunsigned
+          (%descriptor.8 (tunsigned 2))
+          (%descriptor.9 (tbytes 32))
+          (%descriptor.10 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+          (%descriptor.11 (tunsigned
                             340282366920938463463374607431768211455))
-          (%descriptor.11 (tstruct ContractAddress
+          (%descriptor.12 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.13 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress
-                                    (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.14 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.15 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295)))
+          (%descriptor.13 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.14 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.15 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.16 (tunsigned 255))
+          (%descriptor.17 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -81417,31 +85418,32 @@ groups than for single tests.
                            (tfield (field-base (curve-secp256r1)))))
           (%descriptor.6 (tunsigned 18446744073709551615))
           (%descriptor.7 (tboolean))
-          (%descriptor.8 (tbytes 32))
-          (%descriptor.9 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.10 (tunsigned
+          (%descriptor.8 (tunsigned 2))
+          (%descriptor.9 (tbytes 32))
+          (%descriptor.10 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+          (%descriptor.11 (tunsigned
                             340282366920938463463374607431768211455))
-          (%descriptor.11 (tstruct ContractAddress
+          (%descriptor.12 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.13 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress
-                                    (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.14 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.15 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295)))
+          (%descriptor.13 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.14 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.15 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.16 (tunsigned 255))
+          (%descriptor.17 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -81524,31 +85526,32 @@ groups than for single tests.
                            (tfield (field-base (curve-curve25519)))))
           (%descriptor.6 (tunsigned 18446744073709551615))
           (%descriptor.7 (tboolean))
-          (%descriptor.8 (tbytes 32))
-          (%descriptor.9 (tstruct Either
-                           (is_left (tboolean))
-                           (left (tbytes 32))
-                           (right (tbytes 32))))
-          (%descriptor.10 (tunsigned
+          (%descriptor.8 (tunsigned 2))
+          (%descriptor.9 (tbytes 32))
+          (%descriptor.10 (tstruct TokenType
+                            (tag (tunsigned 2))
+                            (Unshielded (tbytes 32))
+                            (Shielded (tbytes 32))))
+          (%descriptor.11 (tunsigned
                             340282366920938463463374607431768211455))
-          (%descriptor.11 (tstruct ContractAddress
+          (%descriptor.12 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
-          (%descriptor.13 (tstruct Either
-                            (is_left (tboolean))
-                            (left (tstruct ContractAddress
-                                    (bytes (tbytes 32))))
-                            (right (tstruct UserAddress (bytes (tbytes 32))))))
-          (%descriptor.14 (tstruct Maybe
-                            (is_some (tboolean))
-                            (value (tstruct Either
-                                     (is_left (tboolean))
-                                     (left (tstruct ContractAddress
-                                             (bytes (tbytes 32))))
-                                     (right (tstruct UserAddress
-                                              (bytes (tbytes 32))))))))
-          (%descriptor.15 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295)))
+          (%descriptor.13 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.14 (tstruct PublicAddress
+                            (tag (tboolean))
+                            (Contract (tstruct ContractAddress
+                                        (bytes (tbytes 32))))
+                            (User (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.15 (tstruct Maybe
+                            (tag (tboolean))
+                            (s0 (tstruct PublicAddress
+                                  (tag (tboolean))
+                                  (Contract (tstruct ContractAddress
+                                              (bytes (tbytes 32))))
+                                  (User (tstruct UserAddress
+                                          (bytes (tbytes 32))))))))
+          (%descriptor.16 (tunsigned 255))
+          (%descriptor.17 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -85132,15 +89135,15 @@ groups than for single tests.
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  let r = await contract.circuits.setNone(context);"
         "  let l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
-        "  expect(l.mp).toEqual({ is_some: false, value: runtime.curve25519MulGenerator(0n) });"
-        "  expect(l.ms).toEqual({ is_some: false, value: 0n });"
-        "  expect(l.eb).toEqual({ is_left: false, left: 0n, right: 1n });"
+        "  expect(l.mp).toEqual({ tag: 'None' });"
+        "  expect(l.ms).toEqual({ tag: 'None' });"
+        "  expect(l.eb).toEqual({ tag: 'Right', value: 1n });"
         "  const p = runtime.curve25519MulGenerator(5n);"
         "  r = await contract.circuits.setSome(r.context, p, 7n, 9n);"
         "  l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
-        "  expect(l.mp).toEqual({ is_some: true, value: p });"
-        "  expect(l.ms).toEqual({ is_some: true, value: 7n });"
-        "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
+        "  expect(l.mp).toEqual({ tag: 'Some', value: p });"
+        "  expect(l.ms).toEqual({ tag: 'Some', value: 7n });"
+        "  expect(l.eb).toEqual({ tag: 'Left', value: 9n });"
         "  });"
         ))
     )
@@ -85777,8 +89780,8 @@ groups than for single tests.
       "export ledger callerIsSome: Boolean;"
       "export ledger nativeBalance: Uint<128>;"
       "constructor() {"
-      "  callerIsSome = kernel.caller().is_some;"
-      "  nativeBalance = kernel.balance(left<Bytes<32>, Bytes<32>>(nativeToken()));"
+      "  callerIsSome = isSome<PublicAddress>(kernel.caller());"
+      "  nativeBalance = kernel.balance(TokenType::Unshielded(nativeToken()));"
       "}"
       )
     (stage-javascript
@@ -85797,7 +89800,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
       "constructor(c: ShieldedCoinInfo) {"
-      "  coins.insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  coins.insertCoin(disclose(c), ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (stage-javascript
@@ -85814,7 +89817,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
       "constructor(c: ShieldedCoinInfo) {"
-      "  coins.insertCoin(1 as Field, disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  coins.insertCoin(1 as Field, disclose(c), ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (stage-javascript
@@ -85831,7 +89834,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: List<QualifiedShieldedCoinInfo>;"
       "constructor(c: ShieldedCoinInfo) {"
-      "  coins.pushFrontCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  coins.pushFrontCoin(disclose(c), ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (stage-javascript
@@ -85848,7 +89851,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coins: Map<Field, Set<QualifiedShieldedCoinInfo>>;"
       "constructor(c: ShieldedCoinInfo) {"
-      "  coins.lookup(1 as Field).insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  coins.lookup(1 as Field).insertCoin(disclose(c), ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       )
     (stage-javascript
@@ -85865,7 +89868,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger coin: QualifiedShieldedCoinInfo;"
       "circuit store(c: ShieldedCoinInfo): [] {"
-      "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "  coin.writeCoin(disclose(c), ShieldedRecipient::User(default<ZswapCoinPublicKey>));"
       "}"
       "constructor(c: ShieldedCoinInfo, write: Boolean) {"
       "  if (disclose(write)) { store(c); }"
@@ -85904,6 +89907,110 @@ groups than for single tests.
         "  const result = await contract.initialState(runtime.createConstructorContext(undefined, key));"
         "  const L = contractCode.ledger(result.currentContractState.data);"
         "  expect(L.ctorKey).toEqual(Uint8Array.from(Buffer.from(key, 'hex')));"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger tt: TokenType;"
+      "export ledger who: PublicAddress;"
+      "export circuit setDust(): [] { tt = TokenType::Dust; }"
+      "export circuit setShielded(c: Bytes<32>): [] { tt = TokenType::Shielded(disclose(c)); }"
+      "export circuit setToken(t: TokenType): [] { tt = disclose(t); }"
+      "export circuit setWho(p: PublicAddress): [] { who = disclose(p); }"
+      "export circuit bytesOf(p: PublicAddress): Bytes<32> {"
+      "  return match p { User(u) => u.bytes, Contract(c) => c.bytes };"
+      "}"
+      "export circuit classify(m: Maybe<Field>, e: Either<Field, Boolean>): [Boolean, Boolean, Boolean, Boolean] {"
+      "  return [isSome<Field>(m), isNone<Field>(m), isLeft<Field, Boolean>(e), isRight<Field, Boolean>(e)];"
+      "}"
+      "export circuit pick(e: Either<Field, Field>): Field {"
+      "  return match e { Left(x) => x, Right(y) => y + 1 };"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const Z32 = () => new Uint8Array(32);"
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        "const ledgerOf = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        ""
+        "test('the ledger enums cross as unions', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect(ledgerOf({ context: Ctxt }).tt).toEqual({ tag: 'Shielded', value: Z32() });"
+        "  expect(ledgerOf({ context: Ctxt }).who).toEqual({ tag: 'User', value: { bytes: Z32() } });"
+        "  let r = await C.circuits.setDust(Ctxt);"
+        "  expect(ledgerOf(r).tt).toEqual({ tag: 'Dust' });"
+        "  r = await C.circuits.setShielded(r.context, N32());"
+        "  expect(ledgerOf(r).tt).toEqual({ tag: 'Shielded', value: N32() });"
+        "  r = await C.circuits.setToken(r.context, { tag: 'Unshielded', value: N32() });"
+        "  expect(ledgerOf(r).tt).toEqual({ tag: 'Unshielded', value: N32() });"
+        "  const contract = { tag: 'Contract' as const, value: { bytes: N32() } };"
+        "  r = await C.circuits.setWho(r.context, contract);"
+        "  expect(ledgerOf(r).who).toEqual(contract);"
+        "  expect((await C.circuits.bytesOf(r.context, contract)).result).toEqual(N32());"
+        "  expect((await C.circuits.bytesOf(r.context, { tag: 'User', value: { bytes: N32() } })).result).toEqual(N32());"
+        "});"
+        ""
+        "test('an enum written as the struct it is lowered to, or with a tag that names no variant, is rejected', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const typeError = (name: string) => `type error: ${name} argument 1`;"
+        "  await expect(C.circuits.setWho(Ctxt, <any>{ tag: true, Contract: { bytes: N32() }, User: { bytes: Z32() } })).rejects.toThrow(typeError('setWho'));"
+        "  await expect(C.circuits.setToken(Ctxt, <any>{ tag: 2n, Unshielded: Z32(), Shielded: Z32() })).rejects.toThrow(typeError('setToken'));"
+        "  await expect(C.circuits.setToken(Ctxt, <any>{ tag: 'Dusty' })).rejects.toThrow(typeError('setToken'));"
+        "  await expect(C.circuits.setToken(Ctxt, <any>{ tag: 'Shielded' })).rejects.toThrow(typeError('setToken'));"
+        "  await expect(C.circuits.setToken(Ctxt, <any>{ tag: 'Shielded', value: 3n })).rejects.toThrow(typeError('setToken'));"
+        "});"
+        ""
+        "test('isSome, isNone, isLeft and isRight', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.classify(Ctxt, { tag: 'Some', value: 7n }, { tag: 'Left', value: 3n })).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.classify(Ctxt, { tag: 'None' }, { tag: 'Right', value: true })).result).toEqual([false, true, false, true]);"
+        "  await expect(C.circuits.classify(Ctxt, <any>{ tag: false, s0: 7n }, { tag: 'Right', value: true })).rejects.toThrow('type error: classify argument 1');"
+        "});"
+        ""
+        "test('the variants of Either<Field, Field> share one slot', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.pick(Ctxt, { tag: 'Left', value: 5n })).result).toEqual(5n);"
+        "  expect((await C.circuits.pick(Ctxt, { tag: 'Right', value: 5n })).result).toEqual(6n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "enum Opt<T> { None, Some(T) }"
+      "witness quote(i: Uint<8>): Opt<Field>;"
+      "export circuit direct(i: Uint<8>): Boolean {"
+      "  return match disclose(quote(i)) { Some(_) => true, None => false };"
+      "}"
+      "export circuit mapped(v: Vector<2, Uint<8>>): Boolean {"
+      "  const qs = disclose(map(quote, v));"
+      "  return match qs[1] { Some(_) => true, None => false };"
+      "}"
+      "export circuit folded(v: Vector<2, Uint<8>>): Boolean {"
+      "  const q = disclose(fold((acc: Opt<Field>, i: Uint<8>): Opt<Field> => quote(i), Opt<Field>::None, v));"
+      "  return match q { Some(_) => true, None => false };"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const invalid = 'type error: quote return value';"
+        "const witnesses = (bad: bigint) => ({"
+        "  quote(context: any, i: bigint): [any, any] {"
+        "    return [context.privateState, i == bad ? { tag: false, s0: 7n } : { tag: 'Some', value: i }];"
+        "  }"
+        "});"
+        "test('a witness result is checked however the witness is called', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, witnesses(1n), 0);"
+        "  expect((await C.circuits.direct(Ctxt, 0n)).result).toEqual(true);"
+        "  expect((await C.circuits.mapped(Ctxt, [0n, 2n])).result).toEqual(true);"
+        "  expect((await C.circuits.folded(Ctxt, [0n, 2n])).result).toEqual(true);"
+        "  await expect(C.circuits.direct(Ctxt, 1n)).rejects.toThrow(invalid);"
+        "  await expect(C.circuits.mapped(Ctxt, [1n, 2n])).rejects.toThrow(invalid);"
+        "  await expect(C.circuits.mapped(Ctxt, [0n, 1n])).rejects.toThrow(invalid);"
+        "  await expect(C.circuits.folded(Ctxt, [1n, 2n])).rejects.toThrow(invalid);"
         "});"
         ))
     )

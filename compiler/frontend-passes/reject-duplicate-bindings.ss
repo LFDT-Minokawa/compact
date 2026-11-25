@@ -30,6 +30,9 @@
     (define (arg->sym arg)
       (nanopass-case (Lhoisted Argument) arg
         [(,src ,var-name ,type) var-name]))
+    (define (variant->sym variant)
+      (nanopass-case (Lhoisted Variant) variant
+        [(,src ,elt-name ,type* ...) elt-name]))
     (define (type-param->tvar-name type-param)
       (nanopass-case (Lhoisted Type-Param) type-param
         [(nat-valued ,src ,tvar-name) tvar-name]
@@ -55,8 +58,9 @@
      (reject-duplicate! src "field name" (map arg->sym arg*))
      ir])
   (Enum-Definition : Enum-Definition (ir) -> Enum-Definition ()
-    [(enum ,src ,exported? ,enum-name ,elt-name ,elt-name* ...)
-     (reject-duplicate! src "element name" (cons elt-name elt-name*))
+    [(enum ,src ,exported? ,enum-name (,type-param* ...) ,variant ,variant* ...)
+     (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
+     (reject-duplicate! src "element name" (map variant->sym (cons variant variant*)))
      ir])
   (Type-Definition : Type-Definition (ir) -> Type-Definition ()
     [(typedef ,src ,exported? ,nominal? ,type-name (,type-param* ...) ,type)

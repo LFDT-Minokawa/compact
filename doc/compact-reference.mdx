@@ -642,26 +642,76 @@ and accessed via
 Enumeration types are defined via `enum` declarations with the following form:
 
 <div className="lang-ref-table">
-|                    |         |                                                                                                                                                                     |
-|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| *enum-declaration* | &xrarr; | `export`<sup>opt</sup> `enum` [*enum-name*](#terminal-names) `{` [*id*](#terminal-names) `,` ⋯¹ `,` [*id*](#terminal-names) `,`<sup>opt</sup> `}` `;`<sup>opt</sup> |
+|                    |         |                                                                                                                                                                                                                                                  |
+|--------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| *enum-declaration* | &xrarr; | `export`<sup>opt</sup> `enum` [*enum-name*](#terminal-names) [*gparams*](#generic-parameters-and-arguments)<sup>opt</sup> `{` [*variant*](#enumeration-types) `,` ⋯¹ `,` [*variant*](#enumeration-types) `,`<sup>opt</sup> `}` `;`<sup>opt</sup> |
+| *variant*          | &xrarr; | [*id*](#terminal-names) `(` [*type*](#primitive-types) `,` ⋯¹ `,` [*type*](#primitive-types) `,`<sup>opt</sup> `)`                                                                                                                               |
+|                    | \|      | [*id*](#terminal-names)                                                                                                                                                                                                                          |
 </div>
 
-An enumeration declaration has a non-empty sequence of named elements separated by commas.
+An enumeration declaration has a non-empty sequence of named variants separated by commas.
 A trailing comma is allowed but not required.
+A variant is a name, optionally followed by a parenthesized, non-empty sequence of
+types separated by commas.
+These are the types of the variant's fields, which are identified by position.
 
 An enumeration declaration introduces a named enumeration type, such as `Arrow`
-in the example below:
+and `Order` in the example below:
 
 ```compact
 enum Arrow { up, down, left, right };
+enum Order { Open, Filled(Bytes<32>, Uint<64>), Cancelled(Bytes<32>) }
 ```
 
-Within the scope of this declaration, a value of type `Arrow` can have one of
-four values, selected via `Arrow.up`, `Arrow.down`, `Arrow.left`, and `Arrow.right`.
+Within the scope of these declarations, a value of type `Arrow` can have one of
+four values, selected via `Arrow::up`, `Arrow::down`, `Arrow::left`, and `Arrow::right`.
+A value of type `Order` is `Order::Open`, or `Order::Filled(`*b*`, `*n*`)` for
+some `Bytes<32>` value *b* and `Uint<64>` value *n*, or `Order::Cancelled(`*b*`)`
+for some `Bytes<32>` value *b*.
+A value of an enumeration type is always exactly one of the type's variants.
 
-Two enumeration types are the same if they have the same name and the same element
-names (in the same order) and distinct otherwise.
+Enumeration types may be generic.
+A generic enumeration type must be fully specialized via explicit generic
+arguments at the point of use, just like a generic structure type:
+
+```compact
+enum Option<T> { None, Some(T) }
+
+circuit wrap(x: Field): Option<Field> {
+  return Option<Field>::Some(x);
+}
+```
+
+An enumeration type is not permitted to contain itself, directly or indirectly.
+
+Two enumeration types are the same if they have the same name, the same variant
+names (in the same order), and the same field types for each variant, and distinct
+otherwise.
+
+Values of enumeration types are created with
+[**enumeration-variant** expressions](#enumeration-variant-expressions)
+and taken apart with [`match` statements](#match-statements) and
+[`match` expressions](#match-expressions).
+The fields of a value of an enumeration type cannot be accessed via
+structure-field-access expressions.
+
+An enumeration type none of whose variants has fields can be
+[cast](#casts-of-enum-types-to-and-from-field-and-uint) to and from `Field` and `Uint` types.
+An enumeration type with fields has no casts.
+
+The representation of a value of an enumeration type with fields consists of a tag
+identifying the variant, followed by *slots* that the variants share.
+A slot holds one field.
+Each field of a variant, in order, occupies the first slot of the field's type that
+the variant does not already use, and slots are ordered by first use, reading the
+variants in declaration order.
+A field whose type is an alias has the type the alias stands for.
+Thus `Order` above has a tag, one `Bytes<32>` slot shared by `Filled` and `Cancelled`,
+and one `Uint<64>` slot.
+Slots that a variant does not use hold the default value of the slot's type.
+The compiler verifies this property for each value of an enumeration type that
+is passed to an exported circuit or the constructor, returned by a witness or a
+call to another contract, or produced by `deserialize`.
 
 #### Contract types
 
@@ -1822,7 +1872,7 @@ module PublicState {
   ledger value: Field;
   export circuit init(v: Field): [] {
     value = disclose(v);
-    state = STATE.set;
+    state = STATE::set;
   }
 }
 
@@ -2001,6 +2051,7 @@ kinds of statements.
 |                    | \|      | `for` `(` `const` [*id*](#terminal-names) `of` [*expr-seq*](#syntax-of-expressions) `)` [*stmt*](#syntax-of-statements)                                 |
 |                    | \|      | `return` [*expr-seq*](#syntax-of-expressions) `;`                                                                                                       |
 |                    | \|      | `return` `;`                                                                                                                                            |
+|                    | \|      | `match` [*expr*](#syntax-of-expressions) `{` [*match-block-arm*](#match-statements) ⋯¹ [*match-block-arm*](#match-statements) `}`                       |
 |                    | \|      | [*block*](#blocks)                                                                                                                                      |
 | *start*            | &xrarr; | [*tsize*](#primitive-types)                                                                                                                             |
 | *end*              | &xrarr; | [*tsize*](#primitive-types)                                                                                                                             |
@@ -2133,6 +2184,45 @@ Evaluating an `if` expression involves first determining the value *v* of
 If *v* is `true`, *then-statement* is evaluated.
 Otherwise, *v* must be `false`, in which case *else-statement*
 (if present), is evaluated.
+
+### `match` statements
+
+A `match` statement selects one of several blocks according to the shape of a value:
+
+`match` *expr* `{` *mpattern* `=>` *block* ⋯ *mpattern* `=>` *block* `}`
+
+<div className="lang-ref-table">
+|                   |         |                                                          |
+|-------------------|---------|----------------------------------------------------------|
+| *match-block-arm* | &xrarr; | [*mpattern*](#match-expressions) `=>` [*block*](#blocks) |
+</div>
+
+Each *mpattern* `=>` *block* is an *arm*.
+The arms are not separated by commas.
+The patterns of a `match` statement and the rules that apply to them are those of a
+[`match` expression](#match-expressions).
+
+Evaluating a `match` statement involves first determining the value *v* of *expr*,
+then evaluating the block of the first arm whose pattern matches *v*, with the
+pattern's variables bound to the corresponding parts of *v*.
+The block of an arm is a nested scope, and a `return` statement within it returns
+from the enclosing circuit or constructor, as it does within an `if` statement.
+
+```compact
+enum Recipient { User(Bytes<32>), Contract(Bytes<32>) }
+
+export ledger last: Bytes<32>;
+
+export circuit record(r: Recipient): [] {
+  match disclose(r) {
+    User(pk) => { last = pk; }
+    Contract(addr) => {
+      assert(addr != default<Bytes<32>>, "no contract");
+      last = addr;
+    }
+  }
+}
+```
 
 ### `for` statements
 
@@ -2282,6 +2372,9 @@ of expression.
 |                    | \|      | `[` [*tuple-arg*](#syntax-of-expressions) `,` ⋯ `,` [*tuple-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `]`                                                                            |
 |                    | \|      | `Bytes` `[` [*bytes-arg*](#syntax-of-expressions) `,` ⋯ `,` [*bytes-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `]`                                                                    |
 |                    | \|      | [*tref*](#primitive-types) `{` [*struct-arg*](#syntax-of-expressions) `,` ⋯ `,` [*struct-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `}`                                               |
+|                    | \|      | `match` [*expr*](#syntax-of-expressions) `{` [*match-arm*](#match-expressions) `,` ⋯¹ `,` [*match-arm*](#match-expressions) `,`<sup>opt</sup> `}`                                          |
+|                    | \|      | [*tref*](#primitive-types) `::` [*id*](#terminal-names) `(` [*expr*](#syntax-of-expressions) `,` ⋯ `,` [*expr*](#syntax-of-expressions) `,`<sup>opt</sup> `)`                              |
+|                    | \|      | [*tref*](#primitive-types) `::` [*id*](#terminal-names)                                                                                                                                    |
 |                    | \|      | `assert` `(` [*expr*](#syntax-of-expressions) `,` [*str*](#terminal-names) `)`                                                                                                             |
 |                    | \|      | `emit` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                            |
 |                    | \|      | `disclose` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                        |
@@ -2474,8 +2567,8 @@ has static type *T* and evaluates to the default value of that type as follows:
 - `Opaque<"string">`: a zero-length string
 - `Opaque<"Uint8Array">`: a zero-length `Uint8Array`
 - Structure types: a struct with each element set to the default value of its type
-- Enumeration types: the value of *E*`.`*id* where *E* is the name of the enumeration
-  type and *id* is the first element
+- Enumeration types: the first variant of the enumeration type, with each of its
+  fields, if any, set to the default value of its type
 - alias types: the default value of the underlying type
 - `JubjubScalar` and the foreign field types (`Secp256k1Base`,
   `Secp256k1Scalar`, `Secp256r1Base`, `Secp256r1Scalar`, `Curve25519Base`,
@@ -2583,7 +2676,8 @@ has a specific structure type, so does the other.
 - **Structure types:**
   the values are equal if the values of the corresponding fields are equal.
 - **Enumeration types:**
-  the values are equal if they are the same enumeration member.
+  the values are equal if they are the same variant and the values of the
+  corresponding fields are equal.
 - **`Opaque<"string">`:**
   the values are equal if the run-time values are equal according to JavaScript's
   strict equality (`===`) operator.
@@ -2987,27 +3081,123 @@ The value of any structure field access *e*`.`*id* is the result of evaluating t
 subexpression *e* and extracting the value of the resulting structure's *id* field.
 
 Some expressions of the form *e*`.`*id* can also be
-[enumeration member selection](#enumeration-member-selection) or
 [ledger-state operations](#ledger-state-operations).
 *e*`.`*id* is recognized as a structure field access only when the
 type of *e* is a structure type.
 
-### Enumeration member selection
+### Enumeration variant expressions
 
-An expression of the form *E*`.`*id* where *E* is the name of an enumeration
-type and *id* is an identifier is an enumeration member selection.
-It is a static error if *E* does not have a member named *id*.
+An expression of the form *T*`::`*id* or *T*`::`*id*`(`*e*, ⋯, *e*`)`, where
+*T* is an enumeration type name *E* or specialized generic enumeration type
+*E*`<`*garg*, ⋯, *garg*`>`, *id* is an identifier, and *e*, ⋯, *e* is a sequence
+of one or more comma-separated argument expressions, is an enumeration variant
+expression.
+It is a static error if *T* is not an enumeration type or does not have a variant
+named *id*.
 
-The type of any enumeration member selection *E*`.`*id* is *E*.
+The form *T*`::`*id* is required for a variant without fields, and the form
+*T*`::`*id*`(`*e*, ⋯, *e*`)` is required for a variant with fields.
+In the latter case, it is a static error if the number of argument expressions
+differs from the number of fields of the variant, or if the type of an argument
+expression is not a subtype of the type of the corresponding field.
 
-*E*`.`*id* is a constant.
-That is, the value of any enumeration member selection *E*`.`*id* is *E*`.`*id*.
+The type of any enumeration variant expression is *T*.
 
-Some expressions of the form *E*`.`*id* can also be
-[structure field accesses](#structure-field-access) or
-[ledger-state operations](#ledger-state-operations).
-*E*`.`*id* is recognized as an enumeration member selection only when the
-type of *e* is an enumeration type.
+An enumeration variant expression is evaluated by evaluating the argument
+expressions, if any, in order from left to right.
+Its value is the variant *id* of *T* whose fields have the values of the
+corresponding argument expressions.
+
+Earlier versions of the language selected a variant with an expression of the
+form *E*`.`*id*, where *E* is the name of the enumeration type.
+This form is a static error, and `compact fixup` replaces it with *E*`::`*id*.
+
+### Match expressions
+
+A `match` expression selects one of several expressions according to the shape of a value:
+
+`match` *expr* `{` *mpattern* `=>` *expr*`,` ⋯`,` *mpattern* `=>` *expr* `}`
+
+<div className="lang-ref-table">
+|                       |         |                                                                                                                                |
+|-----------------------|---------|--------------------------------------------------------------------------------------------------------------------------------|
+| *match-arm*           | &xrarr; | [*mpattern*](#match-expressions) `=>` [*expr*](#syntax-of-expressions)                                                         |
+| *mpattern*            | &xrarr; | [*id*](#terminal-names) `(` [*mpattern*](#match-expressions) `,` ⋯¹ `,` [*mpattern*](#match-expressions) `,`<sup>opt</sup> `)` |
+|                       | \|      | [*id*](#terminal-names)                                                                                                        |
+|                       | \|      | `[` [*mpattern*](#match-expressions) `,` ⋯ `,` [*mpattern*](#match-expressions) `,`<sup>opt</sup> `]`                          |
+|                       | \|      | `{` [*mpattern-struct-elt*](#match-expressions) `,` ⋯ `,` [*mpattern-struct-elt*](#match-expressions) `,`<sup>opt</sup> `}`    |
+| *mpattern-struct-elt* | &xrarr; | [*id*](#terminal-names)                                                                                                        |
+|                       | \|      | [*id*](#terminal-names) `:` [*mpattern*](#match-expressions)                                                                   |
+</div>
+
+Each *mpattern* `=>` *expr* is an *arm*.
+There must be at least one arm, and a trailing comma is allowed but not required.
+The expression matched is called the *scrutinee*.
+
+A pattern is matched against a value of a known type, starting with the scrutinee
+and its type, and takes one of the following forms.
+
+- `_` matches any value and binds nothing.
+- An identifier *id* is a **variant pattern** when the type of the value is an
+  enumeration type with a variant named *id*, and a **variable pattern** otherwise.
+  A variant pattern matches a value that is the variant *id*, which must have no fields.
+  A variable pattern matches any value and binds *id* to it.
+- *id*`(`*mpattern*`,` ⋯`,` *mpattern*`)` matches a value that is the variant *id* of
+  an enumeration type and whose fields match the corresponding patterns.
+  It is a static error if the type of the value is not an enumeration type with a
+  variant named *id*, or if the number of patterns differs from the number of fields
+  of the variant.
+- `[`*mpattern*`,` ⋯`,` *mpattern*`]` matches a tuple or vector whose elements match
+  the corresponding patterns.
+  It is a static error if the type of the value is not a tuple or vector type with as
+  many elements as there are patterns.
+- `{`*id*`:` *mpattern*`,` ⋯`,` *id*`:` *mpattern*`}` matches a structure whose named
+  fields match the corresponding patterns.
+  Fields that are not named are not examined.
+  *id* alone abbreviates *id*`:` *id*.
+  It is a static error if the type of the value is not a structure type with fields of
+  those names, or if a name appears more than once.
+
+Patterns look through type aliases, including nominal ones.
+Variant names in patterns are not qualified by the name of the enumeration type:
+the type of the value determines the enumeration.
+
+The following are static errors:
+
+- a variable is bound more than once in one pattern;
+- a variable bound by a pattern is not referenced in its arm; a pattern that binds
+  nothing is written `_`, so a misspelled variant name is reported rather than
+  silently matching every value;
+- an identifier that a pattern uses as a variant is referenced as a variable in
+  the arm;
+- some value of the scrutinee's type is matched by no arm, in which case the
+  compiler reports a pattern for such a value;
+- an arm cannot be reached because earlier arms match every value its pattern matches.
+
+The types of the arms' expressions are related as the types of the two branches of
+a [conditional expression](#conditional-expressions) are: one of them must be a
+supertype of all the others, and it is the type of the `match` expression.
+
+A `match` expression is evaluated by evaluating the scrutinee once, to a value *v*,
+then evaluating the expression of the first arm whose pattern matches *v*, with the
+pattern's variables bound to the corresponding parts of *v*.
+The value of that expression is the value of the `match` expression.
+
+```compact
+enum Option<T> { None, Some(T) }
+enum Recipient { User(Bytes<32>), Contract(Bytes<32>) }
+
+circuit recipientBytes(r: Option<Recipient>): Bytes<32> {
+  return match r {
+    Some(Contract(addr)) => addr,
+    Some(User(pk)) => pk,
+    None => default<Bytes<32>>,
+  };
+}
+```
+
+Every arm of a `match` contributes to the circuit, whichever arm is selected at run
+time, just as both branches of a conditional do.
 
 ### Circuit and witness calls
 
@@ -3355,6 +3545,9 @@ Any cast not covered by one of the rules is not allowed.
   `false` and any other value to `true`).
 
 #### Casts of Enum types to and from `Field` and `Uint`
+
+These casts apply to an enum type none of whose variants has fields.
+An enum type with fields cannot be cast to or from any other type.
 
 - Any cast from an enum type to `Field` or any `Uint` type is allowed,
   sometimes requires a run-time check, and might require a run-time
@@ -3854,7 +4047,17 @@ Compact's primitive types are represented in TypeScript/JavaScript as follows:
 Other `Opaque` types are currently not supported.
 
 Program-defined types are represented in TypeScript as follows:
-- `enum` instances — a `number`, with run-time membership checks
+- `enum` instances for an enumeration type none of whose variants has fields —
+  a `number`, with run-time membership checks
+- `enum` instances for an enumeration type with fields — a union with a member
+  for each variant *V*: `{ tag: '`*V*`' }` for a variant with no field,
+  `{ tag: '`*V*`', value:` *S* `}` for a variant with one field, and
+  `{ tag: '`*V*`', values: [`*S<sub>1</sub>*, ⋯, *S<sub>n</sub>*`] }` for a
+  variant with more, where each *S<sub>i</sub>* is the TypeScript representation
+  of the field's type.
+  For example, a `Maybe<Field>` is `{ tag: 'None' } | { tag: 'Some', value: bigint }`.
+  The generated code converts between this and the tag and slots of the type's
+  representation wherever a value crosses to or from TypeScript.
 - `struct` instances with fields
   *x<sub>1</sub>*`:` *T<sub>1</sub>*, ⋯, *x<sub>n</sub>*`:` *T<sub>n</sub>*
   — an object `{` *x<sub>1</sub>*`:` *S<sub>1</sub>*, ⋯, *x<sub>n</sub>*`:` *S<sub>n</sub>* `}`

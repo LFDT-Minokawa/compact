@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /line 17 char 3:\s+parse error: found keyword "package" \(which is reserved for future use\) looking for an\s+identifier/,
+        /line 17 char 3:\s+parse error: found keyword "package" \(which is reserved for future use\) looking for an\s+enum\s+variant/,
 });

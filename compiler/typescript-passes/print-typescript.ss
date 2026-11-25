@@ -766,6 +766,17 @@
                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                    (assert cannot-happen)]
                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                  (guard (type->einfo type))
+                  (print-Q 0
+                    (make-Qconcat
+                      "export type "
+                      (let ([q (symbol->string export-name)])
+                        (if (null? tvar-name*)
+                            q
+                            (make-Qconcat q "<" (apply (make-Qsep ",") (map symbol->string tvar-name*)) ">")))
+                      " ="
+                      2 (make-Qconcat (Enum-Union type) ";")))]
+                 [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                   (print-Q 0
                     (make-Qconcat
                       "export type "
@@ -883,6 +894,22 @@
             (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
             ))))
 
+    ; the union host code sees for the enum that was lowered to the struct type
+    (define (Enum-Union type)
+      (let ([einfo (type->einfo type)])
+        (apply (make-Qsep " |")
+          (map (lambda (evariant)
+                 (let ([field-type* (evariant-field-type* evariant)]
+                       [tag (format "tag: '~a'" (evariant-name evariant))])
+                   (make-Qconcat
+                     "{ "
+                     (case (length field-type*)
+                       [(0) tag]
+                       [(1) ((make-Qsep ",") tag (make-Qconcat "value: " (Type (car field-type*))))]
+                       [else ((make-Qsep ",") tag
+                              (make-Qconcat "values: [" (apply (make-Qsep ",") (map Type field-type*)) "]"))])
+                     0 "}")))
+               (einfo-variant* einfo)))))
     (define (format-curve-type ctype)
       (strict-nanopass-case (Ltypescript Curve-Type) ctype
         [(curve-curve25519) "Curve25519"]
@@ -914,6 +941,14 @@
              elt-name* type** type*))]
         [(ttuple ,src ,type* ...)
          (format "[~{~a~^, ~}]" (map format-type type*))]
+        [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+         (guard (type->einfo type))
+         (format "enum ~a<~{~a~^, ~}>" struct-name
+           (map (lambda (evariant)
+                  (format "~a~@[(~{~a~^, ~})~]" (evariant-name evariant)
+                    (let ([field-type* (evariant-field-type* evariant)])
+                      (and (not (null? field-type*)) (map format-type field-type*)))))
+                (einfo-variant* (type->einfo type))))]
         [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
          (format "struct ~a<~{~a~^, ~}>" struct-name
            (map (lambda (elt-name type)
@@ -1086,10 +1121,29 @@
             (pl-array->public-bindings pl-array)))
 
         (module (argument-type-checks context-type-check result-type-check)
+          (define (enum-typeof einfo var)
+            (format "typeof(~a) === 'object' && (~{~a~^ || ~})" var
+              (map (lambda (evariant)
+                     (let ([field-type* (evariant-field-type* evariant)])
+                       (case (length field-type*)
+                         [(0) (format "~a.tag === '~a'" var (evariant-name evariant))]
+                         ; a variant written without its value is the likely mistake, and
+                         ; some of the checks below fail on undefined with an error of their own
+                         [(1) (format "~a.tag === '~a' && ~a.value !== undefined && ~a" var (evariant-name evariant) var
+                                (typeof (car field-type*) (format "~a.value" var)))]
+                         [else
+                          (format "~a.tag === '~a' && Array.isArray(~a.values) && ~:*~a.values.length === ~d~{ && ~a~}"
+                            var (evariant-name evariant) var (length field-type*)
+                            (map (lambda (field-type i) (typeof field-type (format "~a.values[~d]" var i)))
+                                 field-type* (enumerate field-type*)))])))
+                   (einfo-variant* einfo))))
           (define (typeof type var)
             (let ([type (de-alias type)])
               (let ([type (subst-tcontract type)])
                 (nanopass-case (Ltypescript Type) type
+                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                   (guard (type->einfo type))
+                   (enum-typeof (type->einfo type) var)]
                   [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
                   [(tfield ,src ,ftype)
                    (let ([field-name
@@ -1248,25 +1302,43 @@
               q*
               xpelt*)))
 
-        (module (bind-args bind-args-with-context)
+        (module (bind-args bind-args-with-context encode-args)
+          ; type is #f for a name that is not a Compact value; a value holding an enum is
+          ; bound with let, since encode-args replaces it
           (define (bind-arg-helper with-context? args)
-            (lambda (q-name i q*)
-              (cons* 2 "const " q-name (format " = ~a[~d];" args (if with-context? (+ i 1) i)) q*)))
-          (define (bind-args args name* q*)
+            (lambda (q-name type i q*)
+              (cons* 2 (if (and type (has-enum? type)) "let " "const ") q-name
+                     (format " = ~a[~d];" args (if with-context? (+ i 1) i)) q*)))
+          (define (bind-args args name* type* q*)
             (fold-right
               (bind-arg-helper #f args)
               q*
               name*
+              type*
               (enumerate name*)))
 
-          (define (bind-args-with-context ctxt args name* q*)
+          (define (bind-args-with-context ctxt args name* type* q*)
             (cons*
               2 "const " ctxt (format " = ~a[~d];" args 0)
               (fold-right
                 (bind-arg-helper #t args)
               q*
               name*
-              (enumerate name*)))))
+              type*
+              (enumerate name*))))
+
+          ; replaces each argument holding an enum, once its type has been checked, by the
+          ; struct the generated code works on
+          (define (encode-args var-name* type* q*)
+            (fold-right
+              (lambda (var-name type q*)
+                (if (has-enum? type)
+                    (let ([name (format-id-reference var-name)])
+                      (cons* 2 (format "~a = ~a;" name (convert-string 'encode type name)) q*))
+                    q*))
+              q*
+              var-name*
+              type*)))
 
         (define (build-exported-pure-circuits xpelt* uname*)
           (apply (make-Qsep ",")
@@ -1293,11 +1365,15 @@
                                                 nargs
                                                 args)
                                       0 "}")
-                                  (bind-args args q-formal*
+                                  (bind-args args q-formal* (map arg->type arg*)
                                     (argument-type-checks src external-name 0 (map arg->id arg*) (map arg->type arg*)
-                                      (list
-                                        2 "return _dummyContract." uname "(" (apply (make-Qsep ",") q-formal*) ");"
-                                        0 "}"))))
+                                      (encode-args (map arg->id arg*) (map arg->type arg*)
+                                        (list
+                                          2 "return "
+                                            (convert-Q 'decode type
+                                              (make-Qconcat "_dummyContract." uname "(" (apply (make-Qsep ",") q-formal*) ")"))
+                                            ";"
+                                          0 "}")))))
                                 q*))))
                         external-name*)
                      q*)]
@@ -1334,9 +1410,10 @@
                                                   nargs
                                                   args)
                                         0 "}")
-                                    (bind-args-with-context contextOrig args q-formal*
+                                    (bind-args-with-context contextOrig args q-formal* (map arg->type arg*)
                                       (context-type-check src external-name contextOrig
                                         (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
+                                         (encode-args (map arg->id arg*) (map arg->type arg*)
                                           (list
                                             2 (format "const context = __compactRuntime.copyCircuitContext(~a);" contextOrig)
                                             2 "const partialProofData = {"
@@ -1402,11 +1479,11 @@
                                               " };"
                                             2 "__compactRuntime.finalizeCallProofData(context, partialProofData);"
                                             2 "return { "
-                                              "result: " result ", "
+                                              "result: " (convert-string 'decode type result) ", "
                                               "context: " "context" ", "
                                               "gasCost: " "context.callContext.currentGasCost"
                                               " };"
-                                            0 "}"))))))
+                                            0 "}")))))))
                                 external-name*)
                            q*)))
                      (with-local-unique-names
@@ -1495,7 +1572,7 @@
                                2 (format "if (~a.length !== ~d) {" args nargs)
                                4 (format "throw new __compactRuntime.CompactError(`Contract constructor: expected ~d argument~:*~p, received ${~a.length}`);" nargs args)
                                2 "}"
-                               (bind-args args (list witnesses)
+                               (bind-args args (list witnesses) (list #f)
                                  (witness-checks witnesses xpelt0*
                                    (list
                                      2 (format "this.witnesses = ~a;" witnesses)
@@ -1526,10 +1603,16 @@
                                4 (format "throw new __compactRuntime.CompactError(`~a: expected ~d argument~:*~p, received ${~a.length}`);" name nargs args)
                                2 "}"
                                (bind-args args formal*
+                                 ; an operation that runs in the runtime converts its own
+                                 ; arguments, with the descriptor it is given
+                                 (if (Ltypescript-ADT-Op? op) type* (map (lambda (type) #f) type*))
                                  (argument-type-checks src name 0 var-name* type*
-                                   (list
-                                     2 (adt-op-body-Q src op path-elt* formal* adt-arg*)
-                                     0 "}"))))))))
+                                   (let ([q* (list
+                                               2 (adt-op-body-Q src op path-elt* formal* adt-arg*)
+                                               0 "}")])
+                                     (if (Ltypescript-ADT-Op? op)
+                                         (encode-args var-name* type* q*)
+                                         q*)))))))))
                      (remp (lambda (op)
                              ; run-time ops like iterators that expect to be supplied a descriptor
                              ; for use in decoding values.  we don't have a decoder for adt values, and if we did,
@@ -1587,10 +1670,13 @@
                              (if descriptor-name?
                                  (make-Qconcat
                                    "return "
-                                   descriptor-name?
-                                   ".fromValue("
-                                   q
-                                   ".value);")
+                                   (convert-Q 'decode type
+                                     (make-Qconcat
+                                       descriptor-name?
+                                       ".fromValue("
+                                       q
+                                       ".value)"))
+                                   ";")
                                  ; at present, this shouldn't happen.  we don't include side-effecting
                                  ; operations in ledger(state) return value, so all operations should
                                  ; return a value that needs to be decoded
@@ -1614,7 +1700,7 @@
                                              [,nat (number->string nat)]
                                              [,type
                                               (assert (not (public-adt? type)))
-                                              (type->descriptor-name type)]))
+                                              (user-descriptor type (type->descriptor-name type))]))
                                          adt-arg*))))
                          ";"))])))
             (define (op-args adt-op)
@@ -1730,7 +1816,7 @@
                                2 (format "if (~a.length !== ~d) {" args nargs)
                                4 (format "throw new __compactRuntime.CompactError(`Contract state constructor: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);" nargs args)
                                2 "}"
-                               (bind-args args (cons constructorContext q-formal*)
+                               (bind-args args (cons constructorContext q-formal*) (cons #f (map arg->type arg*))
                                  (cons*
                                    2 (format "if (typeof(~a) !== 'object') {" constructorContext)
                                    4 "throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
@@ -1744,6 +1830,7 @@
                                        4 "throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript) to be an object`);"
                                        2 "}"
                                        (argument-type-checks src "Contract state constructor" 1 (map arg->id arg*) (map arg->type arg*)
+                                        (encode-args (map arg->id arg*) (map arg->type arg*)
                                          (cons*
                                            2 (format "const ~a = new __compactRuntime.ContractState();" state)
                                            (ledger-initializers src state pl-array
@@ -1765,7 +1852,7 @@
                                                      4 "currentPrivateState: context.callContext.currentPrivateState,"
                                                      4 "currentZswapLocalState: context.callContext.currentZswapLocalState"
                                                      2 "}"
-                                                     0 "}")))))))))))))))
+                                                     0 "}"))))))))))))))))
                   (newline)])]
               [else (loop (cdr xpelt*))])))
 
@@ -1875,15 +1962,25 @@
                       ")"
                       0 "{")
                     2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);" witnessContext)
-                    2 (format "const [~a, ~a] = " nextPrivateState result)
+                    2 (format "~a [~a, ~a] = " (if (has-enum? type) "let" "const") nextPrivateState result)
                     "this.witnesses."
                     (make-Qconcat/src (id-src internal-id) external-name)
                     "("
-                    (apply (make-Qsep ",") witnessContext q-formal*)
+                    (apply (make-Qsep ",")
+                      witnessContext
+                      (map (lambda (arg q-formal)
+                             (if (has-enum? (arg->type arg))
+                                 (convert-string 'decode (arg->type arg) (format-id-reference (arg->id arg)))
+                                 q-formal))
+                           arg* q-formal*))
                     ");"
                     2 (format "context.callContext.currentPrivateState = ~a;" nextPrivateState)
                     (result-type-check src external-name type result
-                      (list
+                      (append
+                        (if (has-enum? type)
+                            (list 2 (format "~a = ~a;" result (convert-string 'encode type result)))
+                            '())
+                        (list
                         2 "partialProofData.privateTranscriptOutputs.push({"
                         4 "value: " (if descriptor-name?
                                         (format "~a.toValue(~a)" descriptor-name? result)
@@ -1896,7 +1993,7 @@
                         2 "return "
                         result
                         ";"
-                        0 "}")))))
+                        0 "}"))))))
               (newline))))
 
         (define (print-contract-class src xpelt* uname*)
@@ -2101,14 +2198,16 @@
       (define (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)
         (parameterize ([current-output-port (get-target-port 'contract.js)])
           (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-            (print-contract-header)
-            (print-exported-types xpelt*)
-            (print-contract-descriptors src descriptor-id* type*)
-            (print-contract-class src xpelt* uname*)
-            (print-expected-vk)
-            (print-circuit-signatures xpelt*)
-            (print-declared-interfaces contract-type*)
-            (print-contract-footer)
+            (with-codecs
+              (print-contract-header)
+              (print-exported-types xpelt*)
+              (print-contract-descriptors src descriptor-id* type*)
+              (print-contract-class src xpelt* uname*)
+              (print-codecs)
+              (print-expected-vk)
+              (print-circuit-signatures xpelt*)
+              (print-declared-interfaces contract-type*)
+              (print-contract-footer))
             (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
             (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))
 
@@ -2314,9 +2413,236 @@
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
         [else #f]))
+
+    ;;; Generated code works on the struct an enum was lowered to (lower-enums), but host
+    ;;; code sees a union with one member per variant: { tag: 'V' } for a variant with no
+    ;;; field, { tag: 'V', value: x } for one field, and { tag: 'V', values: [x, ...] } for
+    ;;; more.  Values are converted where they cross: circuit and constructor arguments,
+    ;;; circuit results, witness arguments and results, ledger reads, and calls to other
+    ;;; contracts, whose circuits are entered as host code enters them.
+    (module (set-enum-layouts! type->einfo einfo-enum-name einfo-src einfo-variant*
+             evariant-name evariant-field-type* has-enum? convert-string convert-Q
+             user-descriptor with-codecs print-codecs)
+      (define-record-type einfo
+        (nongenerative)
+        (fields src enum-name tag-type slot-name* slot-type* variant*))
+      (define-record-type evariant
+        (nongenerative)
+        (fields name tag field-type* slot-name*))
+      ; maps the printed form of a struct to the layouts of the enums lowered to it; the
+      ; enum's source distinguishes them, and distinguishes them from a struct a program
+      ; declares with the same name and fields
+      (define einfo-ht (make-hashtable string-hash string=?))
+      (define key-ht (make-eq-hashtable))
+      (define has-enum-ht (make-eq-hashtable))
+      (define (type-key type)
+        (or (eq-hashtable-ref key-ht type #f)
+            (let ([key (format "~s" (unparse-Ltypescript type))])
+              (eq-hashtable-set! key-ht type key)
+              key)))
+      (define (set-enum-layouts! elayout*)
+        (hashtable-clear! einfo-ht)
+        (for-each
+          (lambda (elayout)
+            (nanopass-case (Ltypescript Enum-Layout) elayout
+              [(enum-layout ,src ,enum-name ,type ,vlayout* ...)
+               (nanopass-case (Ltypescript Type) type
+                 [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                  (let* ([tagged? (fx> (length vlayout*) 1)]
+                         [variant* (map (lambda (vlayout)
+                                          (nanopass-case (Ltypescript Variant-Layout) vlayout
+                                            [(,elt-name ,nat (,type* (,elt-name** ...)) ...)
+                                             ; a field occupies one slot
+                                             (make-evariant elt-name nat type* (map car elt-name**))]))
+                                        vlayout*)]
+                         [einfo (make-einfo src^ enum-name
+                                  (and tagged? (car type*))
+                                  (if tagged? (cdr elt-name*) elt-name*)
+                                  (if tagged? (cdr type*) type*)
+                                  variant*)])
+                    (hashtable-update! einfo-ht (type-key type) (lambda (einfo*) (cons einfo einfo*)) '()))]
+                 [else (assert cannot-happen)])]))
+          elayout*))
+      (define (type->einfo type)
+        (let ([type (de-alias type)])
+          (nanopass-case (Ltypescript Type) type
+            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+             (and (fx> (hashtable-size einfo-ht) 0)
+                  (find (lambda (einfo) (eq? (einfo-src einfo) src))
+                        (hashtable-ref einfo-ht (type-key type) '())))]
+            [else #f])))
+      (define (has-enum? type)
+        (let ([type (de-alias type)])
+          (let ([a (eq-hashtable-cell has-enum-ht type 'unknown)])
+            (when (eq? (cdr a) 'unknown)
+              (set-cdr! a
+                (or (and (type->einfo type) #t)
+                    (nanopass-case (Ltypescript Type) type
+                      [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap has-enum? type*)]
+                      [(ttuple ,src ,type* ...) (ormap has-enum? type*)]
+                      [(tvector ,src ,len ,type) (has-enum? type)]
+                      [else #f]))))
+            (cdr a))))
+      (define codec-ht #f)
+      (define enum-codec-ht #f)
+      (define codec-def* '())
+      (define-syntax with-codecs
+        (syntax-rules ()
+          [(_ b1 b2 ...)
+           (fluid-let ([codec-ht (make-hashtable string-hash string=?)]
+                       [enum-codec-ht (make-eq-hashtable)]
+                       [codec-def* '()])
+             b1 b2 ...)]))
+      (define (print-codecs)
+        (for-each display-string (reverse codec-def*)))
+      (define (define-codec! name body)
+        (set! codec-def* (cons (format "function ~a(v) {\n~a}\n\n" name body) codec-def*)))
+      (define (tag-literal einfo tag)
+        (nanopass-case (Ltypescript Type) (einfo-tag-type einfo)
+          [(tboolean ,src) (if (fx= tag 1) "true" "false")]
+          [else (format "~dn" tag)]))
+      (define (field-ref evariant i)
+        (if (fx= (length (evariant-field-type* evariant)) 1)
+            "v.value"
+            (format "v.values[~d]" i)))
+      (define (default-string type)
+        (let ([type (de-alias type)])
+          (nanopass-case (Ltypescript Type) type
+            [(tboolean ,src) "false"]
+            [(tfield ,src ,ftype) "0n"]
+            [(tunsigned ,src ,nat) "0n"]
+            [(tpoint ,src ,ctype)
+             (strict-nanopass-case (Ltypescript Curve-Type) ctype
+               [(curve-curve25519) "{ x: 0n, y: 1n }"]
+               [(curve-jubjub) "{ x: 0n, y: 1n }"]
+               [(curve-secp256k1) "{ x: 0n, y: 0n, identity: true }"]
+               [(curve-secp256r1) "{ x: 0n, y: 0n, identity: true }"])]
+            [(tbytes ,src ,len) (format "new Uint8Array(~d)" len)]
+            [(topaque ,src ,opaque-type)
+             (case opaque-type
+               [("string") "''"]
+               [("Uint8Array") "new Uint8Array(0)"]
+               [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
+            [(tvector ,src ,len ,type) (format "new Array(~a).fill(~a)" len (default-string type))]
+            [(ttuple ,src ,type* ...) (format "[~{~a~^, ~}]" (map default-string type*))]
+            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+             (format "{ ~{~a~^, ~} }"
+               (map (lambda (elt-name type) (format "~a: ~a" elt-name (default-string type)))
+                    elt-name* type*))]
+            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+             "{ bytes: new Uint8Array(32) }"]
+            [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0"]
+            [else (assert cannot-happen)])))
+      (define (enum-encoder einfo name)
+        (define (encode-variant evariant)
+          (let ([slot.expr*
+                 (map (lambda (field-type slot-name i)
+                        (cons slot-name (convert-string 'encode field-type (field-ref evariant i))))
+                      (evariant-field-type* evariant)
+                      (evariant-slot-name* evariant)
+                      (enumerate (evariant-field-type* evariant)))])
+            (format "{ ~{~a~^, ~} }"
+              (let ([slot* (map (lambda (slot-name slot-type)
+                                  (format "~a: ~a" slot-name
+                                    (cond
+                                      [(assq slot-name slot.expr*) => cdr]
+                                      [else (default-string slot-type)])))
+                                (einfo-slot-name* einfo)
+                                (einfo-slot-type* einfo))])
+                (if (einfo-tag-type einfo)
+                    (cons (format "tag: ~a" (tag-literal einfo (evariant-tag evariant))) slot*)
+                    slot*)))))
+        (define-codec! name
+          (if (einfo-tag-type einfo)
+              (format "  switch (v.tag) {\n~{~a~}    default: throw new __compactRuntime.CompactError(`${v.tag} is not a variant of enum ~a`);\n  }\n"
+                (map (lambda (evariant)
+                       (format "    case '~a': return ~a;\n" (evariant-name evariant) (encode-variant evariant)))
+                     (einfo-variant* einfo))
+                (einfo-enum-name einfo))
+              (format "  return ~a;\n" (encode-variant (car (einfo-variant* einfo)))))))
+      (define (enum-decoder einfo name)
+        (define (decode-variant evariant)
+          (let ([field* (map (lambda (field-type slot-name)
+                               (convert-string 'decode field-type (format "v.~a" slot-name)))
+                             (evariant-field-type* evariant)
+                             (evariant-slot-name* evariant))])
+            (case (length field*)
+              [(0) (format "{ tag: '~a' }" (evariant-name evariant))]
+              [(1) (format "{ tag: '~a', value: ~a }" (evariant-name evariant) (car field*))]
+              [else (format "{ tag: '~a', values: [~{~a~^, ~}] }" (evariant-name evariant) field*)])))
+        (define-codec! name
+          (if (einfo-tag-type einfo)
+              (format "  switch (v.tag) {\n~{~a~}    default: throw new __compactRuntime.CompactError(`${v.tag} is not the tag of a variant of enum ~a`);\n  }\n"
+                (map (lambda (evariant)
+                       (format "    case ~a: return ~a;\n"
+                         (tag-literal einfo (evariant-tag evariant))
+                         (decode-variant evariant)))
+                     (einfo-variant* einfo))
+                (einfo-enum-name einfo))
+              (format "  return ~a;\n" (decode-variant (car (einfo-variant* einfo)))))))
+      (define (codec-name dir type)
+        (define (new-name) (unique-global-name (if (eq? dir 'encode) "encode" "decode")))
+        (let ([type (de-alias type)])
+          (cond
+            [(type->einfo type) =>
+             (lambda (einfo)
+               (let ([a (eq-hashtable-cell enum-codec-ht einfo #f)])
+                 (unless (cdr a) (set-cdr! a (cons #f #f)))
+                 (let ([names (cdr a)])
+                   (if (eq? dir 'encode)
+                       (or (car names)
+                           (let ([name (new-name)])
+                             (set-car! names name)
+                             (enum-encoder einfo name)
+                             name))
+                       (or (cdr names)
+                           (let ([name (new-name)])
+                             (set-cdr! names name)
+                             (enum-decoder einfo name)
+                             name))))))]
+            [else
+             (let ([a (hashtable-cell codec-ht (format "~a ~a" dir (type-key type)) #f)])
+               (or (cdr a)
+                   (let ([name (new-name)])
+                     (set-cdr! a name)
+                     (define-codec! name
+                       (format "  return ~a;\n"
+                         (nanopass-case (Ltypescript Type) type
+                           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                            (format "{ ~{~a~^, ~} }"
+                              (map (lambda (elt-name type)
+                                     (format "~a: ~a" elt-name (convert-string dir type (format "v.~a" elt-name))))
+                                   elt-name* type*))]
+                           [(ttuple ,src ,type* ...)
+                            (format "[~{~a~^, ~}]"
+                              (map (lambda (type i) (convert-string dir type (format "v[~d]" i)))
+                                   type* (enumerate type*)))]
+                           [(tvector ,src ,len ,type)
+                            (format "v.map((t) => ~a)" (convert-string dir type "t"))]
+                           [else (assert cannot-happen)])))
+                     name)))])))
+      ; dir is encode (from the union host code sees to the lowered struct) or decode
+      (define (convert-string dir type expr)
+        (if (has-enum? type)
+            (format "~a(~a)" (codec-name dir type) expr)
+            expr))
+      (define (convert-Q dir type q)
+        (if (has-enum? type)
+            (make-Qconcat (format "~a(" (codec-name dir type)) q ")")
+            q))
+      ; a descriptor for the union host code sees, for the ledger operations that run in
+      ; the runtime and take a descriptor
+      (define (user-descriptor type descriptor-name)
+        (if (has-enum? type)
+            (format "({ alignment: () => ~a.alignment(), fromValue: (v) => ~a(~a.fromValue(v)), toValue: (v) => ~a.toValue(~a(v)) })"
+              descriptor-name
+              (codec-name 'decode type) descriptor-name
+              descriptor-name (codec-name 'encode type))
+            descriptor-name)))
     )
   (Program : Program (ir) -> Program ()
-    [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
+    [(program ,src (,contract-type* ...) (,elayout* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
+     (set-enum-layouts! elayout*)
      (let* ([xpelt* (maplr (lambda (x) (Program-Element x (map cons export-name* name*))) pelt*)]
             [uname* (maplr xpelt->uname xpelt*)])
        (print-contract.d.ts src xpelt* uname*)
@@ -3122,18 +3448,29 @@
                  (format "~a((" (compact-stdlib "decodeContractAddress"))
                  expr
                  ").bytes)")])
-          (parenthesize level (precedence not)
-            (make-Qconcat
-              (format "await ~a({" (compact-stdlib "crossContractCall"))
-              1 ((make-Qsep ",")
-                 "context"
-                 (format "interfaceName: ~a" interface-name)
-                 (format "declaration: declaredInterfaces[~a]" interface-name)
-                 (format "calleeCircuitId: ~a" (format-javascript-string (symbol->string elt-name)))
-                 (make-Qconcat "calleeAddress: " callee-address)
-                 "partialProofData"
-                 (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
-              0 "})")))]
+          ; the callee's circuit is entered as host code enters it, so enums cross as unions
+          (let-values ([(arg-type* result-type)
+                        (let f ([elt-name* elt-name*] [type** type**] [type* type*])
+                          (if (eq? (car elt-name*) elt-name)
+                              (values (car type**) (car type*))
+                              (f (cdr elt-name*) (cdr type**) (cdr type*))))])
+            (let ([q (make-Qconcat
+                       (format "await ~a({" (compact-stdlib "crossContractCall"))
+                       1 ((make-Qsep ",")
+                          "context"
+                          (format "interfaceName: ~a" interface-name)
+                          (format "declaration: declaredInterfaces[~a]" interface-name)
+                          (format "calleeCircuitId: ~a" (format-javascript-string (symbol->string elt-name)))
+                          (make-Qconcat "calleeAddress: " callee-address)
+                          "partialProofData"
+                          (make-Qconcat "args: ["
+                            (apply (make-Qsep ",")
+                              (map (lambda (arg-type expr) (convert-Q 'decode arg-type expr)) arg-type* expr*))
+                            "]"))
+                       0 "})")])
+              (if (has-enum? result-type)
+                  (parenthesize level (precedence call) (convert-Q 'encode result-type q))
+                  (parenthesize level (precedence not) q)))))]
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
@@ -3161,6 +3498,25 @@
     (definitions
       (define (same-type? type1 type2)
         (and (unify-type '() type1 type2) #t))
+      (define (exported-as tinfo* type)
+        (ormap (lambda (tinfo) (unify-type (tinfo-tvar* tinfo) (tinfo-type tinfo) type)) tinfo*))
+      ; true for an enum printed as a union and not by name, which needs parentheses
+      ; before []
+      (define (inline-union? type)
+        (let ([type (let de-alias ([type type])
+                      (nanopass-case (Ltypescript Type) type
+                        [(talias ,src ,nominal? ,type-name ,type)
+                         (and (not (exported-as (hashtable-ref exported-type-ht type-name '()) type))
+                              (de-alias type))]
+                        [else type]))])
+          (and type
+               (nanopass-case (Ltypescript Type) type
+                 [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                  (let ([einfo (type->einfo type)])
+                    (and einfo
+                         (fx> (length (einfo-variant* einfo)) 1)
+                         (not (exported-as (hashtable-ref exported-type-ht struct-name '()) type))))]
+                 [else #f]))))
       (define (curve-type=? ctype1 ctype2)
         (nanopass-case (Ltypescript Curve-Type) ctype1
           [(curve-jubjub)
@@ -3179,6 +3535,17 @@
         (let ([subst* (map (lambda (x) (cons x #f)) tvar-name*)])
           (and (let unify? ([type1 type1] [type2 type2])
                  (nanopass-case (Ltypescript Type) type1
+                   ; the struct of a generic enum varies with its arguments, so enums are
+                   ; compared by declaration and field types
+                   [(tstruct ,src ,struct-name1 (,elt-name1* ,type1*) ...)
+                    (guard (type->einfo type1))
+                    (let ([einfo1 (type->einfo type1)] [einfo2 (type->einfo type2)])
+                      (and einfo2
+                           (eq? (einfo-src einfo1) (einfo-src einfo2))
+                           (andmap (lambda (evariant1 evariant2)
+                                     (andmap unify? (evariant-field-type* evariant1) (evariant-field-type* evariant2)))
+                                   (einfo-variant* einfo1)
+                                   (einfo-variant* einfo2))))]
                    [,tvar-name1
                     (cond
                       [(assq tvar-name1 subst*) =>
@@ -3263,8 +3630,11 @@
        [("string" "Uint8Array") opaque-type]
        ;; FIXME: what should happen with other opaque types?
        [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
-    [(tvector ,src ,len ,[Type : type -> * type])
-     (make-Qconcat type "[]")]
+    [(tvector ,src ,len ,type)
+     (let ([q (Type type)])
+       (if (inline-union? type)
+           (make-Qconcat "(" q ")[]")
+           (make-Qconcat q "[]")))]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
      "{ bytes: Uint8Array }"]
     [(ttuple ,src ,type* ...)
@@ -3293,14 +3663,17 @@
                                ">"))))]
                     [else #f]))
                 (hashtable-ref exported-type-ht struct-name '()))
-         (make-Qconcat
-           "{ "
-           (apply (make-Qsep ",")
-                  (map (lambda (elt-name type)
-                         (make-Qconcat (format "~a" elt-name) ": " (Type type)))
-                       elt-name*
-                       type*))
-           0 "}"))]
+         (cond
+           [(type->einfo ir) (Enum-Union ir)]
+           [else
+            (make-Qconcat
+              "{ "
+              (apply (make-Qsep ",")
+                     (map (lambda (elt-name type)
+                            (make-Qconcat (format "~a" elt-name) ": " (Type type)))
+                          elt-name*
+                          type*))
+              0 "}")]))]
     [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
      (or (ormap (lambda (tinfo)
                   (and (null? (tinfo-tvar* tinfo))

@@ -65,8 +65,6 @@
   (define stdlib-struct-field-aliases
     '(
       #| delaying these replacements (in standard-library.compact and elsewhere) until we can coordinate the changes with the onchain runtime
-      ((Maybe . is_some) . isSome)
-      ((Either . is_left) . isLeft)
       ((MerkleTreePathEntry . goes_left) . goesLeft)
       ((LeafPreimage . domain_sep) . domainSep)
       ((QualifiedShieldedCoinInfo . mt_index) . mtIndex)

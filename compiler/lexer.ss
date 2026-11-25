@@ -138,7 +138,8 @@
           [#\& (seen-ampersand)]
           [#\| (seen-vertical-bar)]
           [#\. (seen-leading-dot)]
-          [(#\: #\; #\, #\( #\) #\{ #\} #\[ #\] #\?)
+          [#\: (seen-colon)]
+          [(#\; #\, #\( #\) #\{ #\} #\[ #\] #\?)
            (return-token 'punctuation c)]
           [else (unexpected c)])
         (module (identifier-initial? lex-identifier)
@@ -285,6 +286,9 @@
         (define-state-case seen-vertical-bar c
           [#\| (return-token 'binop "||")]
           [else (unexpected c)])
+        (define-state-case seen-colon c
+          [#\: (return-token 'punctuation "::")]
+          [else (ungetc c) (return-token 'punctuation #\:)])
         (define-state-case seen-leading-dot c
           [#\. (seen-two-leading-dots)]
           [else (ungetc c) (return-token 'punctuation #\.)])

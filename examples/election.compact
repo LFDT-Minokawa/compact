@@ -41,20 +41,21 @@ witness context$committed_votes$path_of(cm: Bytes<32>): Maybe<MerkleTreePath<10,
 
 // Should probably be replaced with a builtin...
 circuit ballot_repr(ballot: PermissibleVotes): Bytes<32> {
-  return ballot == PermissibleVotes.yes ? pad(32, "yes") : pad(32, "no");
+  return ballot == PermissibleVotes::yes ? pad(32, "yes") : pad(32, "no");
 }
 
 circuit vote$commit(ballot: PermissibleVotes): [] {
-  assert(state.read() == PublicState.commit && private$state() == PrivateState.initial, "In illegal state for committing");
+  assert(state.read() == PublicState::commit && private$state() == PrivateState::initial, "In illegal state for committing");
   private$vote$record(ballot);
   const sk = private$secret_key();
   const com_nul = commitment_nullifier(sk);
   assert(!committed.member(com_nul), "Unexpected attempt to double use of nullifier");
   const pk = public_key(sk);
   const path = disclose(context$eligible_voters$path_of(pk));
-  assert(path.is_some &&
-         eligible_voters.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(path.value))) &&
-         pk == path.value.leaf, "Attempted to vote without authorization - need to add-voter");
+  assert(match path {
+           Some(p) => eligible_voters.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(p))) && pk == p.leaf,
+           None => false,
+         }, "Attempted to vote without authorization - need to add-voter");
   const cm = commit_with_sk(ballot_repr(ballot), sk);
   committed_votes.insert(cm);
   committed.insert(com_nul);
@@ -62,17 +63,18 @@ circuit vote$commit(ballot: PermissibleVotes): [] {
 }
 
 circuit vote$reveal(): [] {
-  assert(state.read() == PublicState.reveal && private$state() == PrivateState.committed, "In illegal state for revealing");
+  assert(state.read() == PublicState::reveal && private$state() == PrivateState::committed, "In illegal state for revealing");
   const sk = private$secret_key();
   const rev_nul = reveal_nullifier(sk);
   assert(!revealed.member(rev_nul), "Attempted to double vote");
   const vote = private$vote();
   const cm = commit_with_sk(ballot_repr(vote), sk);
   const path = disclose(context$committed_votes$path_of(cm));
-  assert(path.is_some &&
-         committed_votes.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(path.value))) &&
-         cm == path.value.leaf, "Attempted to reveal incorrectly");
-  if(disclose(vote) == PermissibleVotes.yes) {
+  assert(match path {
+           Some(p) => committed_votes.checkRoot(disclose(merkleTreePathRoot<10, Bytes<32>>(p))) && cm == p.leaf,
+           None => false,
+         }, "Attempted to reveal incorrectly");
+  if(disclose(vote) == PermissibleVotes::yes) {
     tally_yes.increment(1);
   } else {
     tally_no.increment(1);
@@ -85,17 +87,17 @@ circuit advance(): [] {
   const sk = private$secret_key();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to advance state without authorization");
-  assert(topic.read().is_some, "Attempted to start election without a topic");
+  assert(isSome<Opaque<"string">>(topic.read()), "Attempted to start election without a topic");
   state.write(successor(state.read()));
 }
 
 circuit successor(state: PublicState): PublicState {
-  if(state == PublicState.setup) {
-    return PublicState.commit;
-  } else if(state == PublicState.commit) {
-    return PublicState.reveal;
+  if(state == PublicState::setup) {
+    return PublicState::commit;
+  } else if(state == PublicState::commit) {
+    return PublicState::reveal;
   } else {
-    return PublicState.final;
+    return PublicState::final;
   }
 }
 
@@ -103,16 +105,16 @@ circuit set_topic(t: Opaque<"string">): [] {
   const sk = private$secret_key();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to set topic without authorization");
-  assert(state.read() == PublicState.setup, "Attempted to set topic after setup phase");
-  topic.write(Maybe<Opaque<"string">>{ is_some: true, value: disclose(t) });
+  assert(state.read() == PublicState::setup, "Attempted to set topic after setup phase");
+  topic.write(some<Opaque<"string">>(disclose(t)));
 }
 
 circuit add_voter(pk: Bytes<32>): [] {
-  assert(!context$eligible_voters$path_of(pk).is_some, "Attempted to add a voter twice");
+  assert(isNone<MerkleTreePath<10, Bytes<32>>>(context$eligible_voters$path_of(pk)), "Attempted to add a voter twice");
   const sk = private$secret_key();
   const apk = public_key(sk);
   assert(apk == authority.read(), "Attempted to add a voter without authorization");
-  assert(state.read() == PublicState.setup, "Attempted to add a voter after setup phase");
+  assert(state.read() == PublicState::setup, "Attempted to add a voter after setup phase");
   eligible_voters.insert(disclose(pk));
 }
 

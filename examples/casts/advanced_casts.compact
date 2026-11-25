@@ -36,9 +36,9 @@ export ledger test1_var: Map<Field, Test4Enum>;
 
 // Test1: Enum to Uint casting
 export circuit test1(): Vector<3, Uint<8>> {
-    const uint_a = Test4Enum.A as Uint<8>;
-    const uint_b = Test4Enum.B as Uint<8>;
-    const uint_c = Test4Enum.C as Uint<8>;
+    const uint_a = Test4Enum::A as Uint<8>;
+    const uint_b = Test4Enum::B as Uint<8>;
+    const uint_c = Test4Enum::C as Uint<8>;
 
     const uint_d = (uint_a + uint_b + uint_c) as Test4Enum;
     test1_var.insert(1 as Field, uint_d);
@@ -52,9 +52,9 @@ export circuit test1(): Vector<3, Uint<8>> {
 
 // Test2: Enum to Field casting
 export circuit test2(): Vector<3, Field> {
-    const field_0 = Test4Enum.A as Field;
-    const field_1 = Test4Enum.B as Field;
-    const field_2 = Test4Enum.C as Field;
+    const field_0 = Test4Enum::A as Field;
+    const field_1 = Test4Enum::B as Field;
+    const field_2 = Test4Enum::C as Field;
 
     enum_to_field_results = [field_0, field_1, field_2] as Vector<3, Field>;
     return enum_to_field_results;
@@ -78,9 +78,9 @@ export circuit test3(): Boolean {
     const enum_4: Uint<8> = 4;
     const cast_4 = enum_4 as Test4Enum;
 
-    assert(cast_0 == Test4Enum.A, "Should be equal");
-    assert(cast_1 == Test4Enum.B, "Should be equal");
-    assert(cast_2 == Test4Enum.C, "Should be equal");
+    assert(cast_0 == Test4Enum::A, "Should be equal");
+    assert(cast_1 == Test4Enum::B, "Should be equal");
+    assert(cast_2 == Test4Enum::C, "Should be equal");
 
     uint_to_enum_casts = true;
     return uint_to_enum_casts;
@@ -104,9 +104,9 @@ export circuit test4(): Boolean {
     const enum_4: Field = 4 as Field;
     const cast_4 = enum_4 as Test4Enum;
 
-    assert(cast_0 == Test4Enum.A, "Should be equal");
-    assert(cast_1 == Test4Enum.B, "Should be equal");
-    assert(cast_2 == Test4Enum.C, "Should be equal");
+    assert(cast_0 == Test4Enum::A, "Should be equal");
+    assert(cast_1 == Test4Enum::B, "Should be equal");
+    assert(cast_2 == Test4Enum::C, "Should be equal");
 
     field_to_enum_casts = true;
     return field_to_enum_casts;

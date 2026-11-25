@@ -59,7 +59,7 @@ export ledger round: Counter;
 constructor(sk: Bytes<32>, v: Uint<64>) {
   authority = disclose(publicKey(round as Field, sk));
   value = disclose(v);
-  state = State.SET;
+  state = State::SET;
 }
 
 circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
@@ -84,7 +84,7 @@ follows:
 
 ```compact title=lock.compact
 export circuit get(): Uint<64> {
-  assert(state == State.SET, "Attempted to get uninitialized value");
+  assert(state == State::SET, "Attempted to get uninitialized value");
   return value;
 }
 ```
@@ -109,20 +109,20 @@ The code for this follows:
 witness secretKey(): Bytes<32>;
 
 export circuit set(v: Uint<64>): [] {
-  assert(state == State.UNSET, "Attempted to set initialized value");
+  assert(state == State::UNSET, "Attempted to set initialized value");
   const sk = secretKey();
   const pk = publicKey(round as Field, sk);
   authority = disclose(pk);
   value = disclose(v);
-  state = State.SET;
+  state = State::SET;
 }
 
 export circuit clear(): [] {
-  assert(state == State.SET, "Attempted to clear uninitialized value");
+  assert(state == State::SET, "Attempted to clear uninitialized value");
   const sk = secretKey();
   const pk = publicKey(round as Field, sk);
   assert(authority == pk, "Attempted to clear without authorization");
-  state = State.UNSET;
+  state = State::UNSET;
   round.increment(1);
 }
 ```
@@ -158,7 +158,7 @@ export ledger round: Counter;
 constructor(sk: Bytes<32>, v: Uint<64>) {
   authority = disclose(publicKey(round as Field, sk));
   value = disclose(v);
-  state = State.SET;
+  state = State::SET;
 }
 
 circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
@@ -167,27 +167,27 @@ circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
 }
 
 export circuit get(): Uint<64> {
-  assert(state == State.SET, "Attempted to get uninitialized value");
+  assert(state == State::SET, "Attempted to get uninitialized value");
   return value;
 }
 
 witness secretKey(): Bytes<32>;
 
 export circuit set(v: Uint<64>): [] {
-  assert(state == State.UNSET, "Attempted to set initialized value");
+  assert(state == State::UNSET, "Attempted to set initialized value");
   const sk = secretKey();
   const pk = publicKey(round as Field, sk);
   authority = disclose(pk);
   value = disclose(v);
-  state = State.SET;
+  state = State::SET;
 }
 
 export circuit clear(): [] {
-  assert(state == State.SET, "Attempted to clear uninitialized value");
+  assert(state == State::SET, "Attempted to clear uninitialized value");
   const sk = secretKey();
   const pk = publicKey(round as Field, sk);
   assert(authority == pk, "Attempted to clear without authorization");
-  state = State.UNSET;
+  state = State::UNSET;
   round.increment(1);
 }
 ```

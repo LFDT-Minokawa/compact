@@ -33,9 +33,9 @@ const sampleCoinInfo = (value: bigint) =>
   });
 
 const contractRecipient = (address: ocrt.ContractAddress) => ({
-  is_left: false,
-  left: { bytes: new Uint8Array(32) },
-  right: { bytes: ocrt.encodeContractAddress(address) },
+  tag: false,
+  User: { bytes: new Uint8Array(32) },
+  Contract: { bytes: ocrt.encodeContractAddress(address) },
 });
 
 const makeContext = (address: ocrt.ContractAddress) =>

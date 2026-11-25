@@ -33,7 +33,7 @@ export default defineRuntimeTest<typeof Contract>(
                 { id: 1n, scalar: MAX_JUBJUB_SCALAR },
                 { id: 0xbeefn, scalar: 5n },
             ],
-            optional: { is_some: true, value: MAX_JUBJUB_SCALAR - 1n },
+            optional: { tag: 'Some', value: MAX_JUBJUB_SCALAR - 1n },
             flag: true,
         };
         const bytes = concatBytes(

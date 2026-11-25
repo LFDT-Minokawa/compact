@@ -149,6 +149,10 @@ circuit is_red_turn(state: State): Boolean {
   return state == State.red_turn;
 }
 
+circuit guessed_position(guess: Maybe<Field>): Field {
+  return match guess { Some(position) => position, None => 0 as Field };
+}
+
 export circuit is_player_alive(local_board: Committable<Board>, guess: Field): Boolean {
   return !(local_board.contents.position == guess);
 }
@@ -184,16 +188,16 @@ export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinI
   const cb = Committable<Board>{n, b};
 
   if (state == State.no_game) {
-    pot.write_coin(wager, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
-    red_deposit.write_coin(deposit, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.write_coin(wager, ShieldedRecipient::Contract(kernel.self()));
+    red_deposit.write_coin(deposit, ShieldedRecipient::Contract(kernel.self()));
     red = red_pk(sk);
     red_board = commit<Board>(cb);
     state = State.red_started;
     local_set_board(cb);
     return Player.red;
   } else {
-    pot.write_coin(merge_coin_immediate(pot, wager), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
-    blue_deposit.write_coin(deposit, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot.write_coin(merge_coin_immediate(pot, wager), ShieldedRecipient::Contract(kernel.self()));
+    blue_deposit.write_coin(deposit, ShieldedRecipient::Contract(kernel.self()));
     blue = blue_pk(sk);
     blue_board = commit<Board>(cb);
     state = State.blue_started;
@@ -220,7 +224,7 @@ circuit red_guess(my_guess: Field): [] {
   assert(is_player_honest(lb, red_board), "Red player is not honest");
   assert(is_red_turn(state), "Not Red's turn");
 
-  assert(is_player_alive(lb, last_guess.value), "Red player is not alive");
+  assert(is_player_alive(lb, guessed_position(last_guess)), "Red player is not alive");
 
   // Technically this could also be a precondition
   assert(is_valid_pos(my_guess), "Red guess is not a valid position");
@@ -239,7 +243,7 @@ circuit blue_guess(my_guess: Field): [] {
   assert(is_blue(sk, blue), "Not player Blue");
   assert(is_player_honest(lb, blue_board), "Blue player is not honest");
   assert(is_blue_turn(state), "Not Blue's turn");
-  assert(is_player_alive(lb, last_guess.value), "Blue player is not alive");
+  assert(is_player_alive(lb, guessed_position(last_guess)), "Blue player is not alive");
   assert(is_valid_pos(my_guess), "Blue guess is not a valid position");
 
   // Record Blue's guess
@@ -266,14 +270,14 @@ circuit red_concede(): ShieldedCoinInfo {
   assert(is_red_turn(state), "Not Red's turn");
 
   // Player Red has been defeated
-  assert(!is_player_alive(lb, last_guess.value), "Red player is still alive");
+  assert(!is_player_alive(lb, guessed_position(last_guess)), "Red player is still alive");
 
   // Record that Blue has won
   state = State.blue_wins;
 
   return sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     red_deposit.value
   ).sent;
 }
@@ -288,14 +292,14 @@ circuit blue_concede(): ShieldedCoinInfo {
   assert(is_player_honest(lb, blue_board), "Blue player is not honest");
   assert(is_blue_turn(state), "Not Blue's turn");
 
-  assert(!is_player_alive(lb, last_guess.value), "Blue player is still alive");
+  assert(!is_player_alive(lb, guessed_position(last_guess)), "Blue player is still alive");
 
   // Record that Red has won
   state = State.red_wins;
 
   return sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     blue_deposit.value
   ).sent;
 }
@@ -321,12 +325,12 @@ circuit red_withdraw(): WithdrawnCoins {
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     pot.value
   ).sent;
   const deposit = sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     red_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};
@@ -340,12 +344,12 @@ circuit blue_withdraw(): WithdrawnCoins {
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     pot.value
   ).sent;
   const deposit = sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
+    ShieldedRecipient::User(own_public_key()),
     blue_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};

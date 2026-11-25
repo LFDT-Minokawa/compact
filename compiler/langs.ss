@@ -33,12 +33,15 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
+          Lnomatch unparse-Lnomatch Lnomatch-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
+          Lguarded unparse-Lguarded Lguarded-pretty-formats
+          Lnosum unparse-Lnosum Lnosum-pretty-formats
           Lnoserialize unparse-Lnoserialize Lnoserialize-pretty-formats
           Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
@@ -196,8 +199,11 @@
         (struct exported? struct-name (type-param* ...) #f arg* ...)
       )
     (Enum-Definition (enumdef)
-      (enum src exported? enum-name elt-name elt-name* ...) =>
-        (enum exported? enum-name #f elt-name #f elt-name* ...)
+      (enum src exported? enum-name (type-param* ...) variant variant* ...) =>
+        (enum exported? enum-name (type-param* ...) #f variant #f variant* ...)
+      )
+    (Variant (variant)
+      (src elt-name type* ...) => (elt-name type* ...)
       )
     (Type-Definition (tdefn)
       (typedef src exported? nominal? type-name (type-param* ...) type) =>
@@ -224,7 +230,16 @@
       (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
       (for src var-name tsize0 tsize1 stmt) => (for var-name tsize0 tsize1 #f stmt)
       (for src var-name expr stmt)       => (for var-name expr #f stmt)
+      (match src expr (mpattern* blck*) ...) => (match expr #f (mpattern* 0 blck*) ...)
       blck
+      )
+    ; a name in a match pattern is a variant or a binding, which only its type decides
+    (Match-Pattern (mpattern)
+      (mwild src)                            => _
+      (mvar src var-name)                    => var-name
+      (mapply src elt-name mpattern* ...)    => (elt-name mpattern* ...)
+      (mtuple src mpattern* ...)             => (tuple mpattern* ...)
+      (mstruct src (elt-name* mpattern*) ...) => (struct (elt-name* mpattern*) ...)
       )
     (Pattern (pattern)
       var-name
@@ -262,6 +277,9 @@
       (fold src fun expr0 expr expr* ...)                 => (fold fun #f expr0 #f expr #f expr* ...)
       (call src fun expr* ...)                            => (call fun #f expr* ...)
       (new src tref new-field* ...)                       => (new tref #f new-field* ...)
+      (match src expr (mpattern* expr*) ...)              => (match expr #f (mpattern* 0 expr*) ...)
+      (variant-ref src tref elt-name)                     => (variant-ref tref elt-name)
+      (variant-call src tref elt-name expr* ...)          => (variant-call tref elt-name #f expr* ...)
       (seq src expr* ... expr)                            => (seq #f expr* ... #f expr)
       (cast src type expr)                                => (cast type #f expr)
       (disclose src expr)                                 => (disclose expr)
@@ -381,6 +399,7 @@
          (if src expr stmt1 stmt2)
          (for src var-name tsize0 tsize1 stmt)
          (for src var-name expr stmt)
+         (match src expr (mpattern* blck*) ...)
          (seq src stmt* ...)
          blck))
     (Expression (expr index)
@@ -429,6 +448,10 @@
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
+    ; an enum the ledger defines the layout of; it is exported and has no type parameters
+    (Enum-Definition (enumdef)
+      (+ (ledger-enum src enum-name variant variant* ...) =>
+           (ledger-enum enum-name #f variant #f variant* ...)))
     (ADT-Definition (adt-defn)
       (+ (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
            (define-adt exported? adt-name #f (type-param* 0 ...) #f (adt-op* 0 ...) #f (adt-rt-op* 0 ...))))
@@ -511,7 +534,7 @@
          (boolean (exported sealed pure-dcl nominal constructor-ok))
          (string (prefix mesg opaque-type file discloses)))
       (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
-         (boolean (pure-dcl nominal constructor-ok))
+         (boolean (pure-dcl nominal ledger-layout constructor-ok))
          (id (name var-name function-name ledger-field-name))
          (string (mesg opaque-type file discloses))))
     (Program (p)
@@ -574,7 +597,10 @@
     (Structure-Definition (structdef)
       (- (struct src exported? struct-name (type-param* ...) arg* ...)))
     (Enum-Definition (enumdef)
-      (- (enum src exported? enum-name elt-name elt-name* ...)))
+      (- (enum src exported? enum-name (type-param* ...) variant variant* ...)
+         (ledger-enum src enum-name variant variant* ...)))
+    (Variant (variant)
+      (- (src elt-name type* ...)))
     (Type-Definition (tdefn)
       (- (typedef src exported? nominal? type-name (type-param* ...) type)))
     (Export-Type-Definition (export-tdefn)
@@ -599,6 +625,8 @@
     (Expression (expr index)
       (- (block src (var-name* ...) expr)
          (new src tref new-field* ...)
+         (variant-ref src tref elt-name)
+         (variant-call src tref elt-name expr* ...)
          (tuple-slice src expr index tsize)
          (for src var-name tsize0 tsize1 expr2)
          (serialize src tsize type expr)
@@ -606,6 +634,7 @@
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
+         (variant-new src type elt-name expr* ...) => (variant-new type elt-name #f expr* ...)
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
          (deserialize src len type expr)    => (deserialize len type expr)))
@@ -635,6 +664,8 @@
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
            (tenum enum-name #f elt-name #f elt-name* ...)
+         (tsum src enum-name ledger-layout? (elt-name* type** ...) ...) =>
+           (tsum enum-name ledger-layout? #f (elt-name* type** ...) ...)
          (talias src nominal? type-name type) => (talias nominal? type-name #f type)
          (tadt src adt-name ([adt-formal* generic-value*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
            (adt-name #f generic-value* ...)))
@@ -654,7 +685,7 @@
       (bits (bits))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
-      (boolean (pure-dcl nominal constructor-ok))
+      (boolean (pure-dcl nominal ledger-layout constructor-ok))
       (id (name var-name function-name ledger-field-name))
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
@@ -715,6 +746,9 @@
       (serialize src len type expr)           => (serialize len type expr)
       (deserialize src len type expr)         => (deserialize len type expr)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
+      (variant-new src type elt-name expr* ...) => (variant-new type elt-name #f expr* ...)
+      ; type is expr's type
+      (match src type expr (mpattern* expr*) ...) => (match expr #f (mpattern* 0 expr*) ...)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
       ; for vector, the elements must all have the same type
@@ -778,6 +812,16 @@
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
       )
+    ; each pattern records the type of the value it is matched against, and each name
+    ; has been resolved to a variant (mvariant, menum) or a binding (mbind)
+    (Match-Pattern (mpattern)
+      (mwild src)                               => _
+      (mbind src var-name type)                 => var-name
+      (mvariant src type elt-name mpattern* ...) => (elt-name mpattern* ...)
+      (menum src type elt-name)                 => (enum-ref type elt-name)
+      (mtuple src type mpattern* ...)           => (tuple mpattern* ...)
+      (mstruct src type (elt-name* nat* mpattern*) ...) => (struct (elt-name* mpattern*) ...)
+      )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
       (expr type type^)                  => expr
@@ -804,6 +848,8 @@
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
         (tenum enum-name #f elt-name #f elt-name* ...)
+      (tsum src enum-name ledger-layout? (elt-name* type** ...) ...) =>
+        (tsum enum-name ledger-layout? #f (elt-name* type** ...) ...)
       (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
         (adt-name #f adt-arg* ...)
       (talias src nominal? type-name type) =>
@@ -824,7 +870,23 @@
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...))
     )
 
-  (define-language/pretty Lnotundeclared (extends Ltypes)
+  (define-language/pretty Lnomatch (extends Ltypes)
+    (Expression (expr index)
+      (- (match src type expr (mpattern* expr*) ...))
+      ; type is expr's type, an enum with fields that has a variant named elt-name.
+      ; variant-test is true when expr's value is that variant; variant-field is field
+      ; nat of that variant and is evaluated only where the test holds
+      (+ (variant-test src type expr elt-name)       => (variant-test expr elt-name)
+         (variant-field src type expr elt-name nat)  => (variant-field expr elt-name nat)))
+    (Match-Pattern (mpattern)
+      (- (mwild src)
+         (mbind src var-name type)
+         (mvariant src type elt-name mpattern* ...)
+         (menum src type elt-name)
+         (mtuple src type mpattern* ...)
+         (mstruct src type (elt-name* nat* mpattern*) ...))))
+
+  (define-language/pretty Lnotundeclared (extends Lnomatch)
     (Type (type)
       (- (tundeclared))))
 
@@ -862,8 +924,8 @@
 
   (define-language/pretty Lwithpaths0 (extends Lnodca)
     (terminals
-      (- (boolean (pure-dcl nominal constructor-ok)))
-      (+ (boolean (pure-dcl nominal))
+      (- (boolean (pure-dcl nominal ledger-layout constructor-ok)))
+      (+ (boolean (pure-dcl nominal ledger-layout))
          (path-index (path-index))))
     (ADT-Op (adt-op)
       (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code constructor-ok?))
@@ -909,7 +971,33 @@
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Lnoserialize (extends Lnodisclose)
+  (define-language/pretty Lguarded (extends Lnodisclose)
+    (Expression (expr index)
+      ; asserts, with message mesg, that every enum value within expr's value is valid; type is expr's type
+      (+ (variant-valid src type expr mesg) => (variant-valid type #f expr mesg))))
+
+  (define-language/pretty Lnosum (extends Lguarded)
+    (Program (p)
+      (- (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...))
+      (+ (program src (contract-type* ...) ((struct-name* type*) ...) (elayout* ...) ((export-name* name*) ...) pelt* ...) =>
+           (program #f pelt* ...)))
+    ; type is the struct an enum was lowered to; each variant has its tag (nat) and, for each
+    ; of its fields, the field's type and the names of the struct fields (slots) holding its parts
+    (Enum-Layout (elayout)
+      (+ (enum-layout src enum-name type vlayout* ...) =>
+           (enum-layout enum-name type #f vlayout* ...)))
+    (Variant-Layout (vlayout)
+      (+ (elt-name nat (type* (elt-name** ...)) ...) =>
+           (elt-name nat (type* (elt-name** ...)) ...)))
+    (Expression (expr index)
+      (- (variant-new src type elt-name expr* ...)
+         (variant-test src type expr elt-name)
+         (variant-field src type expr elt-name nat)
+         (variant-valid src type expr mesg)))
+    (Type (type)
+      (- (tsum src enum-name ledger-layout? (elt-name* type** ...) ...))))
+
+  (define-language/pretty Lnoserialize (extends Lnosum)
     (Expression (expr index)
       (- (serialize src len type expr)
          (deserialize src len type expr)
@@ -922,8 +1010,8 @@
       (- (field (nat kindex)))
       (+ (field (nat kindex event-version event-tag))))
     (Program (p)
-      (- (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...))
-      (+ (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
+      (- (program src (contract-type* ...) ((struct-name* type*) ...) (elayout* ...) ((export-name* name*) ...) pelt* ...))
+      (+ (program src (contract-type* ...) (elayout* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Expression (expr index)
       (- (emit src type len expr))
       (+ (emit src event-version event-tag len expr vm-code) =>
@@ -935,8 +1023,8 @@
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
          (hashtable (descriptor-table))))
     (Program (p)
-      (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
-      (+ (program src (contract-type* ...) ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
+      (- (program src (contract-type* ...) (elayout* ...) ((export-name* name*) ...) pelt* ...))
+      (+ (program src (contract-type* ...) (elayout* ...) ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
     (Type-Descriptors (tdescs)
       (+ (type-descriptors descriptor-table (descriptor-id* type*) ...) =>
            (type-descriptors #f (descriptor-id* type*) ...)))
@@ -969,12 +1057,16 @@
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
-      (- (boolean (pure-dcl nominal)))
+      (- (boolean (pure-dcl nominal ledger-layout)))
       (+ (boolean (pure-dcl)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
-      (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
+      (- (program src (contract-type* ...) (elayout* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
+    (Enum-Layout (elayout)
+      (- (enum-layout src enum-name type vlayout* ...)))
+    (Variant-Layout (vlayout)
+      (- (elt-name nat (type* (elt-name** ...)) ...)))
     (Program-Element (pelt)
       (- export-tdefn))
     (Export-Type-Definition (export-tdefn)

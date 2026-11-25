@@ -167,8 +167,8 @@ export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {
   const a = default<vector_of_sci>;
   t11_set.insert(a);
 
-  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);
-  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  t11_set_coin.insertCoin(disclose(vara), default<ShieldedRecipient>);
+  t11_set_coin_fake.insertCoin(disclose(varb), default<ShieldedRecipient>);
 }
 
 // Test 12: vector of custom types and structs
@@ -213,7 +213,7 @@ enum T14a { t14_a, t14_b, t14_c };
 new type T14b<#N> = T14a;
 
 export circuit test14(vara: T14): [T14, T14] {
-  const a = T14.t14_a;
+  const a = T14::t14_a;
   // const b = vara.t14_a;
   const c = default<T14b<4>>;
   // const d = c[1].t14_a;

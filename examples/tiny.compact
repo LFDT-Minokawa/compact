@@ -56,7 +56,7 @@ constructor(v: Field) {
   const sk = private$secret_key();
   authority = public_key(sk);
   value = disclose(v);
-  state = STATE.set;
+  state = STATE::set;
 }
 
 /*
@@ -80,12 +80,12 @@ circuit in_state(s: STATE): Boolean {
 }
 
 circuit set(v: Field): [] {
-  assert(in_state(STATE.unset), "set: attempted to overwrite recorded value");
+  assert(in_state(STATE::unset), "set: attempted to overwrite recorded value");
   const sk = private$secret_key();
   const apk = public_key(sk);
   authority = apk;
   value = disclose(v);
-  state = STATE.set;
+  state = STATE::set;
 }
 
 /*
@@ -98,7 +98,7 @@ follows:
 */
 
 circuit get(): Maybe<Field> {
-  return in_state(STATE.set) ? some<Field>(value) : none<Field>();
+  return in_state(STATE::set) ? some<Field>(value) : none<Field>();
 }
 
 /*
@@ -109,13 +109,13 @@ the state to 'unset'.
 */
 
 circuit clear(): [] {
-  assert(in_state(STATE.set), "clear: no value is currently recorded");
+  assert(in_state(STATE::set), "clear: no value is currently recorded");
   const sk = private$secret_key();
   const apk = public_key(sk);
   assert(apk == authority, "clear: attempted clear without proper authorization");
   authority = default<Bytes<32>>;
   value = default<Field>;
-  state = STATE.unset;
+  state = STATE::unset;
 }
 
 /*

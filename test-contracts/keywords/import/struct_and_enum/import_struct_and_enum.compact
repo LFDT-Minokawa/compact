@@ -29,7 +29,7 @@ module M {
   }
 
   export circuit flip(d: Direction): Direction {
-    return d == Direction.North ? Direction.South : Direction.North;
+    return d == Direction::North ? Direction::South : Direction::North;
   }
 }
 
@@ -39,5 +39,5 @@ import { Point as Pt, Direction as Dir, make_point as mp, flip } from M;
 export circuit import_struct_and_enum(): [Pt, Dir] {
   const p = mp(5 as Field, 10 as Field);
   assert(p == Pt { x: 5 as Field, y: 10 as Field }, "same Point type");
-  return [p, flip(Dir.North)];
+  return [p, flip(Dir::North)];
 }

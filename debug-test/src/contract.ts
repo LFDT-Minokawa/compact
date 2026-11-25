@@ -19,7 +19,7 @@ import {
   WitnessContext,
   dummyContractAddress,
 } from '@midnight-ntwrk/compact-runtime';
-import { Contract, Witnesses, Maybe, Ledger } from '../gen/contract/index.js';
+import { Contract, Witnesses, Ledger } from '../gen/contract/index.js';
 
 // handle private state
 
@@ -58,6 +58,9 @@ export const execCtx = (circuitId: string) =>
   });
 
 // helper types
+
+// how a `Maybe<T>` crosses to TypeScript
+type Maybe<T> = { tag: 'None' } | { tag: 'Some'; value: T };
 
 type AllResults = {
   nested: Maybe<bigint>;

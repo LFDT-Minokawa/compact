@@ -25,8 +25,8 @@ export enum Names {
 export ledger c: Set<Names>;
 
 export circuit test(): [] {
-  const one = Names.bill;
-  const two = Names.sally;
+  const one = Names::bill;
+  const two = Names::sally;
 
   c.remove(one); // this should not do anything
 

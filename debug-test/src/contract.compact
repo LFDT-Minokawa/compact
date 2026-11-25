@@ -15,8 +15,6 @@
 
 import CompactStandardLibrary;
 
-export { Maybe } // export type definitions to TS
-
 export ledger attempts: Counter;
 
 export ledger maxAttempts: Uint<12>;

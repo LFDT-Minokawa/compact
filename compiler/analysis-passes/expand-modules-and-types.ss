@@ -106,6 +106,8 @@
            (+ 15 (combine (map symbol-hash (cons struct-name elt-name*))))]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            (+ 16 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
+          [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+           (+ 23 (combine (map symbol-hash (cons enum-name elt-name*))))]
           [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (+ 17 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
           [(talias ,src ,nominal? ,type-name ,type)
@@ -164,7 +166,7 @@
       (Info-module type-param* pelt* p seqno dirname instance-table)
       (Info-functions name info-fun+)
       (Info-contract src contract-name ecdecl-circuit* p)
-      (Info-enum src enum-name elt-name elt-name*)
+      (Info-enum src enum-name ledger-layout? type-param* elt-name* type** p)
       (Info-struct src struct-name type-param* elt-name* type* p)
       (Info-type-alias src nominal? type-name type-param* type p)
       (Info-native-type src type-name type p)
@@ -400,6 +402,17 @@
                       (eq? elt-name1 elt-name2)
                       (fx= (length elt-name1*) (length elt-name2*))
                       (andmap eq? elt-name1* elt-name2*))])]
+            [(tsum ,src1 ,enum-name1 ,ledger-layout1? (,elt-name1* ,type1** ...) ...)
+             (T type2
+                [(tsum ,src2 ,enum-name2 ,ledger-layout2? (,elt-name2* ,type2** ...) ...)
+                 (and (eq? enum-name1 enum-name2)
+                      (eq? ledger-layout1? ledger-layout2?)
+                      (fx= (length elt-name1*) (length elt-name2*))
+                      (andmap eq? elt-name1* elt-name2*)
+                      (andmap (lambda (type1* type2*)
+                                (and (fx= (length type1*) (length type2*))
+                                     (andmap sametype? type1* type2*)))
+                              type1** type2**))])]
             [(talias ,src1 ,nominal1? ,type-name1 ,type1)
              (assert nominal1?)
              (T type2
@@ -614,7 +627,7 @@
         [(Info-size src size) "size"]
         [(Info-functions name info-fun+) "function"]
         [(Info-contract src contract-name ecdecl-circuit* p) "contract type"]
-        [(Info-enum src enum-name elt-name elt-name*) "enum"]
+        [(Info-enum src enum-name ledger-layout? type-param* elt-name* type** p) "enum"]
         [(Info-struct src struct-name type-param* elt-name type* p) "struct"]
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
         [(Info-native-type src type-name type p) "type"]
@@ -642,9 +655,8 @@
                        (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
                        ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
                       ...))]
-                [(Info-enum src^ enum-name elt-name elt-name*)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
+                [(Info-enum src^ enum-name ledger-layout? type-param* elt-name* type** p)
+                 (apply-enum src src^ enum-name ledger-layout? type-param* elt-name* type** p info*)]
                 [(Info-struct src^ struct-name type-param* elt-name* type* p)
                  (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
                 [(Info-type-alias src^ nominal? type-name type-param* type p)
@@ -875,12 +887,16 @@
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src struct-name info) export*) export*)
                            unresolved-export*))]
-                  [(enum ,src ,exported? ,enum-name ,elt-name ,elt-name* ...)
-                   (let ([info (Info-enum src enum-name elt-name elt-name*)])
+                  [(enum ,src ,exported? ,enum-name (,type-param* ...) (,src* ,elt-name* ,type** ...) (,src^* ,elt-name^* ,type^** ...) ...)
+                   (let ([info (Info-enum src enum-name #f type-param* (cons elt-name* elt-name^*) (cons type** type^**) p)])
                      (env-insert! p src enum-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src enum-name info) export*) export*)
                            unresolved-export*))]
+                  [(ledger-enum ,src ,enum-name (,src* ,elt-name* ,type** ...) (,src^* ,elt-name^* ,type^** ...) ...)
+                   (let ([info (Info-enum src enum-name #t '() (cons elt-name* elt-name^*) (cons type** type^**) p)])
+                     (env-insert! p src enum-name info)
+                     (loop pelt* seqno* (cons (make-exportit src enum-name info) export*) unresolved-export*))]
                   [(typedef ,src ,exported? ,nominal? ,type-name (,type-param* ...) ,type)
                    (let ([info (Info-type-alias src nominal? type-name type-param* type p)])
                      (env-insert! p src type-name info)
@@ -933,6 +949,45 @@
         (let ([type* (map (lambda (type) (Type type p^)) type*)])
           (with-output-language (Lexpanded Type)
             `(tstruct ,struct-src ,struct-name (,elt-name* ,type*) ...)))))
+    (define (apply-enum src enum-src enum-name ledger-layout? type-param* elt-name* type** p^ info*)
+      (let ([nactual (length info*)] [ndeclared (length type-param*)])
+        (unless (fx= nactual ndeclared) (generic-argument-count-oops src enum-name nactual ndeclared)))
+      (with-output-language (Lexpanded Type)
+        (if (andmap null? type**)
+            `(tenum ,src ,enum-name ,(car elt-name*) ,(cdr elt-name*) ...)
+            (let ([p^ (add-tvar-rib src p^ type-param* info*)])
+              (let ([type** (map (lambda (type*) (map (lambda (type) (Type type p^)) type*)) type**)])
+                `(tsum ,enum-src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...))))))
+    (define (record-dotted-enum-ref! src enum-name elt-name)
+      (cond
+        [(renaming-table) => (lambda (ht) (hashtable-set! ht src '(|.| . ::)))]
+        [else (dotted-variant-oops src enum-name elt-name)]))
+    (define (dotted-variant-oops src enum-name elt-name)
+      (source-errorf src "enum variant selection requires \"::\" rather than \".\": use ~a::~a" enum-name elt-name))
+    (define (variant-reference src tref type elt-name maybe-expr*)
+      (define tref-name
+        (nanopass-case (Lpreexpand Type-Ref) tref
+          [(type-ref ,src ,tvar-name ,targ* ...) tvar-name]))
+      (with-output-language (Lexpanded Expression)
+        (nanopass-case (Lexpanded Type) (de-alias type #t)
+          [(tenum ,src^ ,enum-name ,elt-name^ ,elt-name* ...)
+           (when maybe-expr*
+             (source-errorf src "~a::~a cannot be applied to arguments because enum ~a has no variants with fields"
+                            tref-name elt-name enum-name))
+           `(enum-ref ,src ,type ,elt-name)]
+          [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+           (cond
+             [(assq elt-name (map cons elt-name* type**)) =>
+              (lambda (a)
+                (if (null? (cdr a))
+                    (when maybe-expr*
+                      (source-errorf src "~a::~a cannot be applied to arguments because variant ~a of enum ~a has no fields"
+                                     tref-name elt-name elt-name enum-name))
+                    (unless maybe-expr*
+                      (source-errorf src "~a::~a must be applied to arguments because variant ~a of enum ~a has fields"
+                                     tref-name elt-name elt-name enum-name))))])
+           `(variant-new ,src ,type ,elt-name ,(or maybe-expr* '()) ...)]
+          [else (source-errorf src "~a is not an enum type, so ~:*~a::~a does not name a variant" tref-name elt-name)])))
     (define (apply-type-alias src alias-src nominal? type-name type-param* type p^ info*)
       (let ([nactual (length info*)] [ndeclared (length type-param*)])
         (unless (fx= nactual ndeclared) (generic-argument-count-oops src type-name nactual ndeclared)))
@@ -1077,12 +1132,21 @@
                               (with-output-language (Lexpanded Export-Type-Definition)
                                 `(export-typedef ,src^ ,export-name (,tvar-name* ...) ,type)))
                             exported-type*)))]
-                     [(Info-enum src^ enum-name elt-name elt-name*)
+                     [(Info-enum src^ enum-name ledger-layout? type-param* elt-name* type** p^)
                       (unless (already-exported? src export-name info)
                         (set! exported-type*
                           (cons
-                            (with-output-language (Lexpanded Export-Type-Definition)
-                              `(export-typedef ,src^ ,export-name () (tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)))
+                            (let ([type (apply-enum src^ src^ enum-name ledger-layout? type-param* elt-name* type** p^
+                                                    (map Info-free-tvar (map type-param->tvar-name type-param*)))]
+                                  [tvar-name* (fold-right
+                                                (lambda (type-param tvar-name*)
+                                                  (nanopass-case (Lpreexpand Type-Param) type-param
+                                                    [(nat-valued ,src ,tvar-name) tvar-name*]
+                                                    [(type-valued ,src ,tvar-name) (cons tvar-name tvar-name*)]))
+                                                '()
+                                                type-param*)])
+                              (with-output-language (Lexpanded Export-Type-Definition)
+                                `(export-typedef ,src^ ,export-name (,tvar-name* ...) ,type)))
                             exported-type*)))]
                      [(Info-type-alias src^ nominal? type-name type-param* type p^)
                       (unless (already-exported? src export-name info)
@@ -1246,31 +1310,64 @@
      (check-length! src "slice" nat)
      `(tuple-slice ,src ,expr ,index ,nat)]
     [(elt-ref ,src ,expr ,elt-name^)
+     (define (dotted-enum-ref type var-name)
+       (nanopass-case (Lexpanded Type) (de-alias type #t)
+         [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+          (record-dotted-enum-ref! src var-name elt-name^)
+          `(enum-ref ,src ,type ,elt-name^)]
+         [(tsum ,src^ ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+          (dotted-variant-oops src var-name elt-name^)]
+         [else #f]))
      (or (nanopass-case (Lpreexpand Expression) expr
            [(var-ref ,src^ ,var-name)
             (Info-case (lookup p src^ var-name)
-              [(Info-enum src^ enum-name elt-name elt-name*)
-               `(enum-ref ,src (tenum ,src ,enum-name ,elt-name ,elt-name* ...) ,elt-name^)]
-              [(Info-type src type)
-               (nanopass-case (Lexpanded Type) (de-alias type #t)
-                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                  `(enum-ref ,src ,type ,elt-name^)]
-                 [else #f])]
+              [(Info-enum src^ enum-name ledger-layout? type-param* elt-name* type** p)
+               (dotted-enum-ref (apply-enum src src^ enum-name ledger-layout? type-param* elt-name* type** p '()) var-name)]
+              [(Info-type src type) (dotted-enum-ref type var-name)]
               [(Info-type-alias src nominal? type-name type-param* type p)
-               (let ([type (apply-type-alias src src^ nominal? type-name type-param* type p '())])
-                 (nanopass-case (Lexpanded Type) (de-alias type #t)
-                   [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                    `(enum-ref ,src ,type ,elt-name^)]
-                   [else #f]))]
+               (dotted-enum-ref (apply-type-alias src src^ nominal? type-name type-param* type p '()) var-name)]
               [else #f])]
            [else #f])
          `(elt-ref ,src ,(Expression expr p) ,elt-name^))]
+    [(match ,src ,[expr] (,mpattern* ,expr*) ...)
+     (let-values ([(mpattern* expr*)
+                   (maplr2 (lambda (mpattern expr)
+                             (let* ([p (add-rib p)] [mpattern (Match-Pattern mpattern p)])
+                               (values mpattern (Expression expr p))))
+                           mpattern* expr*)])
+       `(match ,src ,expr (,mpattern* ,expr*) ...))]
+    [(variant-ref ,src ,tref ,elt-name)
+     (variant-reference src tref (Type-Ref->Type tref p) elt-name #f)]
+    [(variant-call ,src ,tref ,elt-name ,expr* ...)
+     (variant-reference src tref (Type-Ref->Type tref p) elt-name
+       (map (lambda (e) (Expression e p)) expr*))]
     [(call ,src ,[fun] ,expr* ...) ; force fun to be processed before expr* to get better error messages
      `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)]
     [(serialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])
      `(serialize ,src ,nat ,type ,expr)]
     [(deserialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])
      `(deserialize ,src ,nat ,type ,expr)])
+  (Match-Pattern : Match-Pattern (ir p) -> Match-Pattern ()
+    ; whether a name is a variant is not known before types are, so every name gets an id,
+    ; and a name that occurs twice, as two variants of one enum can, gets one id
+    [(mvar ,src ,var-name)
+     `(mvar ,src
+        ,(cond
+           [(hashtable-ref (env-rib p) var-name #f) =>
+            (lambda (src.info)
+              (Info-case (cdr src.info)
+                [(Info-var id) id]
+                [else (assert cannot-happen)]))]
+           [else
+            (let ([id (make-source-id src var-name)])
+              (env-insert! p src var-name (Info-var id))
+              id)]))]
+    [(mapply ,src ,elt-name ,mpattern* ...)
+     `(mapply ,src ,elt-name ,(maplr (lambda (mpattern) (Match-Pattern mpattern p)) mpattern*) ...)]
+    [(mtuple ,src ,mpattern* ...)
+     `(mtuple ,src ,(maplr (lambda (mpattern) (Match-Pattern mpattern p)) mpattern*) ...)]
+    [(mstruct ,src (,elt-name* ,mpattern*) ...)
+     `(mstruct ,src (,elt-name* ,(maplr (lambda (mpattern) (Match-Pattern mpattern p)) mpattern*)) ...)])
   (Function : Function (ir p) -> Function ()
     [(fref ,src ,function-name)
      (lookup-fun p src function-name '())]

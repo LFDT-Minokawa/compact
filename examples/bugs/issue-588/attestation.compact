@@ -26,7 +26,7 @@ export ledger digest: Bytes<32>;
 export ledger value: Attestation;
 
 export circuit attest(amount: Uint<64>): Attestation {
-  const attestation = Attestation { kind: Kind.mint, amount: amount };
+  const attestation = Attestation { kind: Kind::mint, amount: amount };
   value = disclose(attestation);
   digest = disclose(persistentHash<Attestation>(attestation));
   return value;

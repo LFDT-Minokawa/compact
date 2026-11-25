@@ -883,24 +883,25 @@
                        (if (null? sep*)
                            q*
                            (add-punctuation (car sep*) (f (cdr arg*) (cdr sep*))))))))))]
-      [(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,elt-name ,elt-name* ...) (,comma* ...) ,rbrace ,semicolon?)
+      [(enum ,src ,kwd-export? ,kwd ,enum-name ,generic-param-list? ,lbrace (,variant ,variant* ...) (,comma* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat #f
              (apply make-Qconcat #f
                (add-modifier kwd-export?
-                 (list
+                 (cons*
                    (make-Qtoken kwd)
                    nbsp (make-Qtoken enum-name)
-                   nbsp (make-Qtoken lbrace))))
+                   (maybe-add Generic-Param-List generic-param-list?
+                     (list nbsp (make-Qtoken lbrace))))))
              (let ([q* (cons nl (add-closer 2 nl rbrace (add-punctuation semicolon? '())))])
-               (let f ([elt-name* (cons elt-name elt-name*)] [comma* comma*])
-                 (if (null? elt-name*)
+               (let f ([variant* (cons variant variant*)] [comma* comma*])
+                 (if (null? variant*)
                      q*
                      (cons*
-                       nl 2 (make-Qtoken (car elt-name*))
+                       nl 2 (Variant (car variant*))
                        (if (null? comma*)
                            q*
-                           (add-punctuation (car comma*) (f (cdr elt-name*) (cdr comma*))))))))))]
+                           (add-punctuation (car comma*) (f (cdr variant*) (cdr comma*))))))))))]
       [(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)
        (// src
            (apply make-Qconcat #f
@@ -915,6 +916,16 @@
                        nbsp (Type type)
                        (add-punctuation semicolon '()))))))))]
       )
+    (Variant : Variant (ir) -> * (q)
+      [(,src ,elt-name)
+       (// src
+           (make-Qtoken elt-name))]
+      [(,src ,elt-name ,lparen (,type* ...) (,comma* ...) ,rparen)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken elt-name)
+             (make-Qtoken lparen)
+             (make-Qsep/closer #f comma* (map Type type*) #f rparen)))])
     (Version-Expression : Version-Expression (ir) -> * (q)
       [,version-atom (Version-Atom version-atom)]
       [(not ,bang ,version-atom)
@@ -1048,7 +1059,57 @@
                  (cons* 2 (Statement stmt) nl q*))
                (add-closer 2 nl rbrace '())
                stmt*)))])
+    (Match-Block-Arm : Match-Block-Arm (ir) -> * (q)
+      [(,src ,mpattern ,arrow ,blck)
+       (// src
+           (make-Qblock
+             (make-Qconcat #f (Match-Pattern mpattern) nbsp (make-Qtoken arrow))
+             blck))])
+    (Match-Arm : Match-Arm (ir) -> * (q)
+      [(,src ,mpattern ,arrow ,expr)
+       (// src
+           (make-Qconcat #f
+             (Match-Pattern mpattern)
+             nbsp (make-Qtoken arrow)
+             0 (Expression expr)))])
+    (Match-Pattern : Match-Pattern (ir) -> * (q)
+      [(mvar ,src ,var-name)
+       (// src
+           (make-Qtoken var-name))]
+      [(mapply ,src ,elt-name ,lparen (,mpattern* ...) (,comma* ...) ,rparen)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken elt-name)
+             (make-Qtoken lparen)
+             (make-Qsep/closer #f comma* (map Match-Pattern mpattern*) #f rparen)))]
+      [(mtuple ,src ,lbracket (,mpattern* ...) (,comma* ...) ,rbracket)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken lbracket)
+             (make-Qsep/closer #f comma* (map Match-Pattern mpattern*) #f rbracket)))]
+      [(mstruct ,src ,lbrace (,mpattern-struct-elt* ...) (,comma* ...) ,rbrace)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken lbrace)
+             (make-Qsep/closer #f comma* (map Match-Pattern-Struct-Elt mpattern-struct-elt*) #f rbrace)))])
+    (Match-Pattern-Struct-Elt : Match-Pattern-Struct-Elt (ir) -> * (q)
+      [,elt-name (make-Qtoken elt-name)]
+      [(,elt-name ,colon ,mpattern)
+       (apply make-Qconcat #f
+         (make-Qtoken elt-name)
+         (add-punctuation colon
+           (cons* nbsp (Match-Pattern mpattern) '())))])
     (Statement : Statement (ir) -> * (q)
+      [(match ,src ,kwd ,expr ,lbrace (,match-block-arm* ...) ,rbrace)
+       (// src
+           (apply make-Qconcat #f
+             (make-Qconcat #f (make-Qtoken kwd) nbsp (Expression expr) nbsp (make-Qtoken lbrace))
+             nl
+             (fold-right
+               (lambda (match-block-arm q*)
+                 (cons* 2 (Match-Block-Arm match-block-arm) nl q*))
+               (add-closer 2 nl rbrace '())
+               match-block-arm*)))]
       [(statement-expression ,src ,expr ,semicolon)
        (// src
            (apply make-Qconcat #f
@@ -1279,6 +1340,26 @@
              (Type-Ref tref)
              nbsp (make-Qtoken lbrace)
              nbsp (make-Qsep/closer #f comma* (map New-Field new-field*) nbsp rbrace)))]
+      [(match ,src ,kwd ,expr ,lbrace (,match-arm* ...) (,comma* ...) ,rbrace)
+       (// src
+           (apply make-Qconcat #f
+             (make-Qconcat #f (make-Qtoken kwd) nbsp (Expression expr) nbsp (make-Qtoken lbrace))
+             (let ([q* (cons nl (add-closer 2 nl rbrace '()))])
+               (let f ([match-arm* match-arm*] [comma* comma*])
+                 (if (null? match-arm*)
+                     q*
+                     (cons*
+                       nl 2 (Match-Arm (car match-arm*))
+                       (if (null? comma*)
+                           q*
+                           (add-punctuation (car comma*) (f (cdr match-arm*) (cdr comma*))))))))))]
+      [(variant-ref ,src ,tref ,coloncolon ,elt-name)
+       (// src
+           (make-Qconcat #f (Type-Ref tref) (make-Qtoken coloncolon) (make-Qtoken elt-name)))]
+      [(variant-call ,src ,tref ,coloncolon ,elt-name ,lparen (,expr* ...) (,comma* ...) ,rparen)
+       (// src
+           (let ([qfun (make-Qconcat #f (Type-Ref tref) (make-Qtoken coloncolon) (make-Qtoken elt-name))])
+             (make-Qcall qfun lparen (map Expression expr*) comma* rparen)))]
       [(seq ,src (,expr* ...) (,comma* ...) ,expr)
        (// src
            (make-Qsep #f comma* (map Expression (append expr* (list expr)))))]

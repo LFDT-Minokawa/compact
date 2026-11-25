@@ -104,6 +104,14 @@
        (let ([name* (map (lambda (name) (maybe-rename (token-src name) name)) name*)])
          `(export ,src ,kwd ,lbrace (,name* ...) (,sep* ...) ,rbrace ,semicolon))])
     (Expression : Expression (ir) -> Expression ()
+      ; expand-modules-and-types marks each "." that selects an enum element
+      [(elt-ref ,src (var-ref ,src^ ,var-name) ,dot ,elt-name)
+       (guard (equal? (hashtable-ref (renaming-table) (token-src dot) #f) '(|.| . ::)))
+       (hashtable-delete! (renaming-table) (token-src dot))
+       `(variant-ref ,src
+          ,(with-output-language (Lparser Type-Ref) `(type-ref ,src^ ,var-name #f))
+          ,(make-token (token-src dot) 'punctuation "::" "::")
+          ,elt-name)]
       [(elt-ref ,src ,[expr] ,dot ,elt-name)
        (let ([elt-name (maybe-rename (token-src dot) elt-name)])
          `(elt-ref ,src ,expr ,dot ,elt-name))]

@@ -208,7 +208,7 @@
         (let ([ldescriptor* (reverse rdescriptor*)])
           (values (map car ldescriptor*) (map cdr ldescriptor*))))))
   (Program : Program (ir) -> Program ()
-    [(program ,src (,[contract-type*] ...) ((,export-name* ,name*) ...) ,pelt* ...)
+    [(program ,src (,[contract-type*] ...) (,[elayout*] ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (fluid-let ([program-src src])
        (let ([pelt* (map Program-Element pelt*)])
          ; FIXME: assuming we get only (align <value> 1) or (align <value> 8).
@@ -229,7 +229,7 @@
            (with-output-language (Ltypescript Type)
              `(tunsigned ,src ,(- (expt 2 128) 1))))
          (let-values ([(descriptor-id* type*) (get-descriptors)])
-           `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...)
+           `(program ,src (,contract-type* ...) (,elayout* ...) ((,export-name* ,name*) ...)
               (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
               ,pelt* ...))))])
   (Program-Element : Program-Element (ir) -> Program-Element ()

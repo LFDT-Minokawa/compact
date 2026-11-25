@@ -29,6 +29,20 @@
         [,pl-array (flatten-pl-array pl-array)]
         [,public-binding (list public-binding)]))
 
+    ; true for the layout of an exported generic enum, which is no enum of this contract
+    ; until its parameters are given
+    (define (open-layout? elayout)
+      (define (open? type)
+        (nanopass-case (Lloweredemit Type) type
+          [,tvar-name #t]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap open? type*)]
+          [(ttuple ,src ,type* ...) (ormap open? type*)]
+          [(tvector ,src ,len ,type) (open? type)]
+          [(talias ,src ,nominal? ,type-name ,type) (open? type)]
+          [else #f]))
+      (nanopass-case (Lloweredemit Enum-Layout) elayout
+        [(enum-layout ,src ,enum-name ,type ,vlayout* ...) (open? type)]))
+
     ;; Strip the __compact_ prefix from an ADT name if present and return the
     ;; clean name as a symbol.  In the IR, the Cell ADT is renamed to
     ;; __compact_Cell by analysis-passes.ss; other ADTs keep their names.
@@ -86,8 +100,8 @@
                      (cons "result-type" (Type type))))
                  elt-name* type** type*))))))
   (Program : Program (ir) -> * (json)
-    [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
-     (list
+    [(program ,src (,contract-type* ...) (,elayout* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+     (cons*
        (cons
          "compiler-version"
          compiler-version-string)
@@ -121,7 +135,31 @@
                 contract-type*)))
        (cons
          "ledger"
-         (list->vector (fold-right LedgerField '() pelt*))))])
+         (list->vector (fold-right LedgerField '() pelt*)))
+       ; present only for a contract that uses an enum with fields
+       (let ([elayout* (remp open-layout? elayout*)])
+         (if (null? elayout*)
+             '()
+             (list (cons "enums" (list->vector (map Enum-Layout elayout*)))))))])
+  (Enum-Layout : Enum-Layout (ir) -> * (json)
+    [(enum-layout ,src ,enum-name ,type ,vlayout* ...)
+     (list
+       (cons "name" (symbol->string enum-name))
+       (cons "layout" (Type type))
+       (cons "variants" (list->vector (map Variant-Layout vlayout*))))])
+  (Variant-Layout : Variant-Layout (ir) -> * (json)
+    [(,elt-name ,nat (,type* (,elt-name** ...)) ...)
+     (list
+       (cons "name" (symbol->string elt-name))
+       (cons "tag" nat)
+       (cons
+         "fields"
+         (list->vector
+           (map (lambda (type elt-name*)
+                  (list
+                    (cons "type" (Type type))
+                    (cons "slots" (list->vector (map symbol->string elt-name*)))))
+                type* elt-name**))))])
   (Witness : Program-Element (ir witness*) -> * (json)
     [(witness ,src ,function-name (,arg* ...) ,type)
      (cons

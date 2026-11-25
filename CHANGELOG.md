@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.113, language 0.28.102, runtime 0.21.104]
+
+### Added
+
+- An `enum` variant can carry fields, and an `enum` can take generic
+  parameters, e.g., `enum Option<T> { None, Some(T) }`.  A variant is named
+  through its enum with the new `::` token, e.g., `Option<Field>::Some(x)` and
+  `Option<Field>::None`.  Values of such an enum support `==`, `!=`, and
+  `default`, can be stored in the ledger, and can be passed to and from
+  circuits and witnesses.
+- `match` takes a value apart by pattern, as a statement whose arms are blocks
+  or an expression whose arms are expressions, e.g., where `r` is a
+  `Maybe<PublicAddress>`,
+  `match r { Some(Contract(addr)) => addr.bytes, Some(User(addr)) => addr.bytes, None => default<Bytes<32>> }`.
+  A pattern is a variant with a pattern for each of its fields, an element of
+  an enum without fields, a tuple or struct pattern, a variable, or `_`, and
+  patterns nest.  The compiler rejects a `match` that leaves a value
+  unmatched, an arm that can never be reached, and a pattern variable that its
+  arm does not use.  Every arm is part of the circuit, as with `if`.  When the
+  last arm tests the variant of an enum with three or more variants, or an
+  element of an enum without fields, the test is asserted, so that a value
+  read from the ledger whose tag names no variant fails with "match on an
+  invalid enum value" rather than taking the last arm.
+- A value of an enum with fields is represented by a struct of a tag, a
+  `Boolean` for two variants and a `Uint` for more (none for one), followed by
+  slots that its variants share: each field takes the first slot of its type
+  that its variant has not used.
+- The compiler asserts that the slots a value's variant does not use hold
+  default values wherever the value comes from the prover or raw bytes:
+  arguments of exported circuits and the constructor, results of witnesses
+  (including witnesses given to `map` and `fold`) and of calls to other
+  contracts, and results of `deserialize`.
+- `contract-info.json` has an `enums` entry recording, for each enum with
+  fields, its struct and each variant's name, tag, field types, and slots.
+
+### Changed
+
+- **Breaking:** `match` is a reserved word.
+- **Breaking:** an element of an enum without fields is selected with `::`
+  too, e.g., `Arrow::up`.  `Arrow.up` is an error, which `compact fixup`
+  rewrites.
+- **Breaking:** `Maybe` and `Either` are the enums
+  `enum Maybe<T> { None, Some(T) }` and `enum Either<L, R> { Right(R), Left(L) }`
+  rather than structs, so their fields `is_some`, `value`, `is_left`, `left`,
+  and `right` and their struct literals are gone.  `some`, `none`, `left`, and
+  `right` still build values, and the new standard-library circuits `isSome`,
+  `isNone`, `isLeft`, and `isRight` test their variant.
+- **Breaking:** `PublicAddress`, `ShieldedRecipient`, and `TokenType` are the
+  enums `enum PublicAddress { User(UserAddress), Contract(ContractAddress) }`,
+  `enum ShieldedRecipient { Contract(ContractAddress), User(ZswapCoinPublicKey) }`,
+  and `enum TokenType { Shielded(Bytes<32>), Unshielded(Bytes<32>), Dust }`.
+  The compiler lays them out as the ledger encodes them, with a slot for each
+  variant that has a field, in reverse order, so their encodings are
+  unchanged, and so is the Impact code of the operations that use them.  The
+  kernel's and the standard library's token and coin operations,
+  `kernel.caller()`, and the events `UnshieldedSpend`, `UnshieldedReceive`,
+  and `UnshieldedBurn` use them where they used an `Either`, and
+  `TokenType::Dust` can now be written.  A value built with `left` or `right`
+  is now a variant: `left` becomes `ShieldedRecipient::User`,
+  `PublicAddress::Contract`, or `TokenType::Unshielded`, and `right` becomes
+  `ShieldedRecipient::Contract`, `PublicAddress::User`, or
+  `TokenType::Shielded`.  Type-error messages call the three "ledger enum".
+- **Breaking:** the encoding of `Either` has changed: `Left` and `Right` now
+  share one slot when `L` and `R` are the same type, and otherwise the slot of
+  `R` comes first.  A value encoded one way can decode the other way as a
+  different value, so an `Either` stored in the ledger may be misread, without
+  an error, once its contract is recompiled and upgraded in place, and a hash
+  or commitment of an `Either` can change.  The encoding of `Maybe` is
+  unchanged.
+- **Breaking:** compact-runtime refuses a call that passes a `Maybe`, an
+  `Either`, or a ledger enum between contracts compiled by this compiler and by
+  an earlier one, because the structs that represent these types have new
+  field names.
+- **Breaking:** the checks above now apply to `Maybe`, `Either`, and the ledger
+  enums, so, e.g., a `None` that carries a value is rejected, and circuits that
+  take these types have more constraints and new keys.
+- **Breaking:** in TypeScript, a value of an enum with fields is a union with a
+  member for each variant, `{ tag: 'V' }`, `{ tag: 'V', value: x }`, or
+  `{ tag: 'V', values: [x, y] }` as the variant has no field, one, or more.  A
+  `Maybe<T>` is `{ tag: 'None' } | { tag: 'Some', value: T }` where it was
+  `{ is_some, value }`, and an `Either<L, R>` is
+  `{ tag: 'Right', value: R } | { tag: 'Left', value: L }` where it was
+  `{ is_left, left, right }`.  This holds wherever a value passes between
+  generated code and TypeScript, including witnesses, ledger reads, and the
+  arguments of ledger queries.  An exported enum is exported as its union,
+  with its type parameters.  Anything else, including the struct the compiler
+  uses, is a type error.
+- **Breaking:** compact-runtime's `Recipient` is the union for
+  `ShieldedRecipient` where it was `{ is_left, left, right }`, and
+  `EncodedRecipient` has the fields `tag`, `User`, and `Contract` in place of
+  `is_left`, `left`, and `right`.
+- **Breaking:** `contract-info.json` describes a `Maybe`, an `Either`, or a
+  ledger enum in a signature as the struct that now represents it, e.g., a
+  `Maybe<Field>` as one with the fields `tag` and `s0`.
+- Some parse-error messages name `"::"` or "an enum variant" among the things
+  the parser was looking for.
+
 ## [Toolchain 0.36.112, language 0.28.101, runtime 0.21.104]
 
 ### Changed

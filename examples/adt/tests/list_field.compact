@@ -20,23 +20,23 @@ export ledger c: List<Field>;
 export circuit test(): [] {
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.length() == 0, "Size should be 0");
-  assert(c.head().is_some == false, "Head should not exist");
+  assert(isNone<Field>(c.head()), "Head should not exist");
 
   c.pushFront(0 as Field);
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == 0 as Field, "Head should have value 0");
+  assert(isSome<Field>(c.head()), "Head should exist");
+  assert(c.head() == some<Field>(0 as Field), "Head should have value 0");
 
   c.pushFront(1 as Field);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().value == 1 as Field, "Head should have value 1");
+  assert(c.head() == some<Field>(1 as Field), "Head should have value 1");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == 0 as Field, "Head should have value 0");
+  assert(c.head() == some<Field>(0 as Field), "Head should have value 0");
 
   c.popFront();
-  assert(c.head().is_some == false, "Head should not exist");
+  assert(isNone<Field>(c.head()), "Head should not exist");
 
   c.resetToDefault();
   assert(c.length() == 0, "Size should be 0");

@@ -25,27 +25,27 @@ export enum Names {
 export ledger c: List<Names>;
 
 export circuit test(): [] {
-  const one = Names.bill;
-  const two = Names.sally;
+  const one = Names::bill;
+  const two = Names::sally;
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.length() == 0, "Size should be 0");
-  assert(c.head().is_some == false, "Head should not exist");
+  assert(isNone<Names>(c.head()), "Head should not exist");
 
   c.pushFront(one);
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == one, "Head should have value 0");
+  assert(isSome<Names>(c.head()), "Head should exist");
+  assert(c.head() == some<Names>(one), "Head should have value 0");
 
   c.pushFront(two);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == two, "Head should have value 1");
+  assert(isSome<Names>(c.head()), "Head should exist");
+  assert(c.head() == some<Names>(two), "Head should have value 1");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 2");
-  assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == one, "Head should have value 0");
+  assert(isSome<Names>(c.head()), "Head should exist");
+  assert(c.head() == some<Names>(one), "Head should have value 0");
 
   c.resetToDefault();
 }

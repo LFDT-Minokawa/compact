@@ -36,14 +36,14 @@
 
 (declare-event-type UnshieldedSpend 4 145
   "Public token sent from a sender."
-  ([sender (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (hint "indexed")]
+  ([sender (TypeRef ShieldedRecipient) (hint "indexed")]
    [domainSep (Bytes 32) (hint "indexed")]
    [tokenType (Bytes 32) (hint "indexed")]
    [amount (Uint 128)]))
 
 (declare-event-type UnshieldedReceive 5 145
   "Public token sent to a recipient."
-  ([recipient (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (hint "indexed")]
+  ([recipient (TypeRef ShieldedRecipient) (hint "indexed")]
    [domainSep (Bytes 32) (hint "indexed")]
    [tokenType (Bytes 32) (hint "indexed")]
    [amount (Uint 128)]))
@@ -56,7 +56,7 @@
 
 (declare-event-type UnshieldedBurn 7 113
   "Unshielded coin sent to the burn address."
-  ([sender (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (hint "indexed")]
+  ([sender (TypeRef ShieldedRecipient) (hint "indexed")]
    [tokenType (Bytes 32) (hint "indexed")]
    [amount (Uint 128)]))
 

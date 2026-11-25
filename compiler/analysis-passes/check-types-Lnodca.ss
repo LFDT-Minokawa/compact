@@ -108,6 +108,11 @@
                 elt-name* type*))]
         [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
          (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
+        [(tsum ,src ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+         (format "~:[~;ledger ~]enum ~a<~{~a~^, ~}>" ledger-layout? enum-name
+           (map (lambda (elt-name type*)
+                  (format "~a~@[(~{~a~^, ~})~]" elt-name (and (not (null? type*)) (map format-type type*))))
+                elt-name* type**))]
         [(talias ,src ,nominal? ,type-name ,type)
          (let ([s (format-type type)])
            (if nominal?
@@ -153,6 +158,16 @@
          (nanopass-case (Lnodca Field-Type) ftype2
            [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
            [else #f])]))
+    (define (variant-field-types src type elt-name)
+      (nanopass-case (Lnodca Type) (de-alias type)
+        [(tsum ,src1 ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+         (cond
+           [(assq elt-name (map cons elt-name* type**)) => cdr]
+           [else (source-errorf src "enum ~s has no variant named ~s"
+                                enum-name
+                                elt-name)])]
+        [else (source-errorf src "expected enum type, received ~a"
+                             (format-type type))]))
     (define (same-type? type1 type2)
       (define (same-adt-arg? adt-arg1 adt-arg2)
         (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg1
@@ -227,6 +242,17 @@
                     (eq? elt-name1 elt-name2)
                     (= (length elt-name1*) (length elt-name2*))
                     (andmap eq? elt-name1* elt-name2*))])]
+          [(tsum ,src1 ,enum-name1 ,ledger-layout1? (,elt-name1* ,type1** ...) ...)
+           (T type2
+              [(tsum ,src2 ,enum-name2 ,ledger-layout2? (,elt-name2* ,type2** ...) ...)
+               (and (eq? enum-name1 enum-name2)
+                    (eq? ledger-layout1? ledger-layout2?)
+                    (= (length elt-name1*) (length elt-name2*))
+                    (andmap eq? elt-name1* elt-name2*)
+                    (andmap (lambda (type1* type2*)
+                              (and (= (length type1*) (length type2*))
+                                   (andmap same-type? type1* type2*)))
+                            type1** type2**))])]
           [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
            (T type2
               [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
@@ -654,6 +680,53 @@
               (with-output-language (Lnodca Function)
                 `(fref ,src ,function-name))
               (maplr Care expr*))]
+    [(variant-new ,src ,type ,elt-name ,expr* ...)
+     (let ([actual-type* (maplr Care expr*)])
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tsum ,src1 ,enum-name ,ledger-layout? (,elt-name* ,type** ...) ...)
+          (let ([declared-type* (cond
+                                  [(assq elt-name (map cons elt-name* type**)) => cdr]
+                                  [else (source-errorf src "enum ~s has no variant named ~s"
+                                                       enum-name
+                                                       elt-name)])])
+            (let ([nactual (length actual-type*)] [ndeclared (length declared-type*)])
+              (unless (fx= nactual ndeclared)
+                (source-errorf src "mismatch between actual number ~s and declared number ~s of fields for variant ~s of ~s"
+                               nactual
+                               ndeclared
+                               elt-name
+                               enum-name)))
+            (for-each
+              (lambda (declared-type actual-type i)
+                (unless (same-type? actual-type declared-type)
+                  (source-errorf src "mismatch between actual type ~a and declared type ~a for field ~d of variant ~s of ~s"
+                    (format-type actual-type)
+                    (format-type declared-type)
+                    (fx+ i 1)
+                    elt-name
+                    enum-name)))
+              declared-type*
+              actual-type*
+              (enumerate declared-type*)))]
+         [else (source-errorf src "expected enum type, received ~a"
+                              (format-type type))])
+       type)]
+    [(variant-test ,src ,type ,[Care : expr -> * actual-type] ,elt-name)
+     (unless (same-type? actual-type type)
+       (source-errorf src "mismatch between actual type ~a and expected type ~a of variant test"
+                      (format-type actual-type)
+                      (format-type type)))
+     (variant-field-types src type elt-name)
+     (with-output-language (Lnodca Type) `(tboolean ,src))]
+    [(variant-field ,src ,type ,[Care : expr -> * actual-type] ,elt-name ,nat)
+     (unless (same-type? actual-type type)
+       (source-errorf src "mismatch between actual type ~a and expected type ~a of variant field reference"
+                      (format-type actual-type)
+                      (format-type type)))
+     (let ([type* (variant-field-types src type elt-name)])
+       (unless (< nat (length type*))
+         (source-errorf src "variant ~s has no field ~s" elt-name nat))
+       (list-ref type* nat))]
     [(new ,src ,type ,expr* ...)
      (let ([actual-type* (maplr Care expr*)])
        (nanopass-case (Lnodca Type) (de-alias type)
