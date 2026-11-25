@@ -41,6 +41,11 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      ATTIC_CACHE_TOKEN:
+        required: true
+      MIDNIGHTCI_PACKAGES_WRITE:
+        required: true
 
 permissions: {}
 

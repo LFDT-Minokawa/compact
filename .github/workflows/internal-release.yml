@@ -196,7 +196,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/check-docs.yml
-    secrets: inherit
     with:
       branch: ${{ needs.setup.outputs.sha }}
 
@@ -206,7 +205,9 @@ jobs:
     needs: [ setup, check-release-notes-exist ]
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -224,7 +225,9 @@ jobs:
     needs: [ setup, check-release-notes-exist ]
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -242,7 +245,9 @@ jobs:
     needs: [ setup, check-release-notes-exist ]
     permissions:
       contents: read
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -261,7 +266,9 @@ jobs:
     permissions:
       contents: read
     if: ${{ inputs.include_macos_intel && github.event_name != 'schedule' }}
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -279,7 +286,6 @@ jobs:
     needs: [ setup, build-release-arm-linux ]
     permissions:
       contents: read
-    secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -293,7 +299,6 @@ jobs:
     needs: [ setup, build-release-intel-linux ]
     permissions:
       contents: read
-    secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -307,7 +312,6 @@ jobs:
     needs: [ setup, build-release-arm-macos ]
     permissions:
       contents: read
-    secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -321,7 +325,6 @@ jobs:
     needs: [ setup, build-release-intel-macos ]
     permissions:
       contents: read
-    secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.sha }}
@@ -511,7 +514,10 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/generate-docs.yml
-    secrets: inherit
+    secrets:
+      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      MIDNIGHTCI_PACKAGES_WRITE: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+      MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}
     with:
       branch: ${{ needs.setup.outputs.sha }}
       docs_branch: ${{ inputs.docs_branch }}
