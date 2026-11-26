@@ -1,4 +1,5 @@
-# Release publish of @midnight-ntwrk/compact-runtime.
+# Release publish of @midnight-ntwrk/compact-runtime, and of the same package
+# as @midnightntwrk/compact-runtime to public npmjs.org (see publish-npmjs).
 #
 # Purpose
 #   Publish a RELEASE-versioned compact-runtime npm package to GitHub Packages,
@@ -131,3 +132,77 @@ jobs:
           echo "Next step -- promote to public npmjs.org from midnight-ntwrk/artifacts:"
           echo "  gh workflow run push-npm-package.yml --repo midnight-ntwrk/artifacts \\"
           echo "    -f library=compact-runtime -f version=${VERSION} -f use_legacy_behavior=false"
+
+  # Publishes the same build as @midnightntwrk/compact-runtime straight to npmjs.org
+  # with npm Trusted Publishing (OIDC), so no npm token is involved. It does not
+  # depend on publish-runtime, so a GitHub Packages failure does not block it.
+  # npmjs.org must list this repo, this file and the `npm-publish-stable`
+  # environment as a Trusted Publisher of @midnightntwrk/compact-runtime.
+  publish-npmjs:
+    name: Publish @midnightntwrk/compact-runtime to npmjs.org
+    runs-on: ubuntu-latest
+    environment: npm-publish-stable
+    permissions:
+      contents: read
+      id-token: write # npm Trusted Publishing (OIDC) and provenance
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Nix with cache
+        uses: ./.github/actions/setup-nix-cache
+        with:
+          attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install npm with Trusted Publishing support
+        # OIDC publishing needs npm >= 11.5.1; Node 22 ships npm 10.
+        run: npm install -g npm@11.6.2
+
+      - name: Build publishable runtime
+        run: nix build .#runtime.forPublish -L
+
+      - name: Publish release version to npmjs.org
+        run: |
+          set -euo pipefail
+          PKG_DIR="result/lib/node_modules/@midnight-ntwrk/compact-runtime"
+          if [ ! -d "$PKG_DIR" ]; then
+            echo "::error::runtime package not found at $PKG_DIR; tree was:"
+            find result/lib -maxdepth 4 -name package.json -print || true
+            exit 1
+          fi
+          rm -rf stage && cp -rL "$PKG_DIR" stage && chmod -R u+w stage
+          cd stage
+
+          VERSION="$(node -p "require('./package.json').version")"
+          case "$VERSION" in
+            "" )
+              echo "::error::runtime/package.json has no version"; exit 1 ;;
+            *-dev.* | *+* )
+              echo "::error::refusing to release a dev/build-metadata version '${VERSION}'"; exit 1 ;;
+          esac
+          case "$VERSION" in
+            *-rc.*)    TAG=rc ;;
+            *-beta.*)  TAG=beta ;;
+            *-alpha.*) TAG=alpha ;;
+            *-*)       TAG=prerelease ;;
+            *)         TAG=latest ;;
+          esac
+
+          npm pkg delete scripts.prepare scripts.prepack scripts.prepublishOnly scripts.build scripts.clean
+          npm pkg set name=@midnightntwrk/compact-runtime
+
+          PKG="@midnightntwrk/compact-runtime"
+          REGISTRY="https://registry.npmjs.org/"
+          if npm view "${PKG}@${VERSION}" version --registry "$REGISTRY" >/dev/null 2>&1; then
+            echo "::notice::${PKG}@${VERSION} already on npmjs.org; skipping."
+          else
+            npm publish --ignore-scripts --access public --provenance --tag "$TAG" --registry "$REGISTRY"
+            echo "Published ${PKG}@${VERSION} (dist-tag ${TAG}) to npmjs.org"
+          fi
