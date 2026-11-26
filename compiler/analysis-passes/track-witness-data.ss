@@ -662,6 +662,29 @@
          (record-leak! src "emit operation" witness*)))
      abs]
 
+    ;; a skipped prepareVerification exposes the trivial Accumulator, so one under
+    ;; witness-dependent control flow discloses the condition; the Accumulator is a
+    ;; deterministic function of the public inputs and the proof, so both are disclosed.
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[* abs])
+     (unless (null? control-witness*)
+       (record-leak! src "performing this prepareVerification" control-witness*))
+     (let ([witness* (abs->witnesses
+                       (add-path-point src "the proof given to prepareVerification" "" abs))])
+       (unless (null? witness*)
+         (record-leak! src "prepareVerification" witness*)))
+     (for-each
+       (lambda (pubin)
+         (let ([expr (nanopass-case (Lwithpaths Public-Input) pubin
+                       [(pi-fields ,expr ,type) expr]
+                       [(pi-accumulator ,expr) expr])])
+           (let ([witness* (abs->witnesses
+                             (add-path-point src "the public inputs of prepareVerification" ""
+                               (Expression expr p control-witness* disclosing-function-name?)))])
+             (unless (null? witness*)
+               (record-leak! src "prepareVerification" witness*)))))
+       pubin*)
+     (Abs-atomic '())]
+
     [(serialize ,src ,len ,type ,[* abs])
      (Abs-atomic (abs->witnesses abs))]
 

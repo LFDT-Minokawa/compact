@@ -21,7 +21,9 @@
   ; operations are:
   ;   - ledger ADT functions declared (allowed-in-constructor #f)
   ;   - natives declared (allowed-in-constructor #f)
-  ;   - emit.
+  ;   - emit
+  ;   - prepareVerification, since the constructor is not proved on chain, so the
+  ;     verification would never take effect.
   (definitions
     ; a forbidden-condition records one forbidden operation found within a circuit:
     ;   what: a string describing the forbidden operation, e.g., "call kernel.self"
@@ -181,12 +183,16 @@
         (let ([what (format "emit event ~a" struct-name)])
           (raise (make-forbidden-condition what what src '())))]
        [else (assert cannot-happen)])]
+    [(prepare-verification ,src ,vk (,[pubin*] ...) ,[expr])
+     (let ([what (format "verify a proof against ~s" (verifying-key-pathname vk))])
+       (raise (make-forbidden-condition what 'prepareVerification src '())))]
     [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
      (let ([what (format "call circuit ~a from external contract ~a" elt-name (name-of-contract type))])
        (raise (make-forbidden-condition what elt-name src '())))])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
   (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
   (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
+  (Public-Input : Public-Input (ir function-name) -> Public-Input ())
   (Function : Function (ir function-name) -> Function ()
     [(fref ,src ,function-name)
      (process-function-name! function-name src)

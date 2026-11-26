@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 const testFiles = ["**/*.test.ts", "test.ts"];
@@ -25,7 +26,19 @@ const nonTestFiles = [
 ];
 
 export default defineConfig({
+  resolve: {
+    // One zkir-v3 for test-center and compact-runtime alike, so stub-inner-proof-check.ts
+    // mocks the copy compact-runtime uses too.
+    alias: {
+      '@midnightntwrk/zkir-v3': fileURLToPath(
+        new URL('./node_modules/@midnightntwrk/zkir-v3/midnight_zkir_wasm_fs.js', import.meta.url),
+      ),
+    },
+  },
   test: {
+    setupFiles: ['./stub-inner-proof-check.ts'],
+    // Load compact-runtime through Vite, so its import of zkir-v3 is aliased and mocked.
+    server: { deps: { inline: ['@midnight-ntwrk/compact-runtime'] } },
     include: testFiles,
     exclude: nonTestFiles,
     typecheck: {

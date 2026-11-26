@@ -21,7 +21,7 @@
 
 import { describe, expect, test } from 'vitest';
 import * as compactRuntime from '../src/index.js';
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 
 const COIN_PUBLIC_KEY = '0'.repeat(64);
 
@@ -106,6 +106,7 @@ describe('per-contract Zswap local state', () => {
       output: { value: [], alignment: [] },
       publicTranscript: [],
       privateTranscriptOutputs: [],
+      innerProofs: [],
     });
 
     expect(context.callProofDataTrace.length).toBe(1);

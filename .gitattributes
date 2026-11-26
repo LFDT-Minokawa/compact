@@ -3,3 +3,4 @@ docs/**/* linguist-generated=true
 /test-center/sha256-test/multiline-lf text eol=lf
 /test-center/sha256-test/multiline-crlf -text
 /test-center/sha256-test/random-binary binary
+/test-center/fixtures/inner-verifying-keys/*.verifier binary

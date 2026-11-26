@@ -118,6 +118,7 @@
              [(curve-jubjub) 20]
              [(curve-secp256k1) 21]
              [(curve-secp256r1) 22])]
+          [(taccumulator ,src) 23]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
@@ -168,6 +169,9 @@
       (Info-struct src struct-name type-param* elt-name* type* p)
       (Info-type-alias src nominal? type-name type-param* type p)
       (Info-native-type src type-name type p)
+      ; p is the environment of the keyword's definition, for its handler to resolve
+      ; helpers the standard library does not export
+      (Info-native-keyword handler p)
       (Info-ledger ledger-field-name)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
@@ -357,6 +361,7 @@
             [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
             [(tpoint ,src1 ,ctype1)
              (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+            [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
             [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
             [(topaque ,src1 ,opaque-type1)
              (T type2
@@ -618,6 +623,7 @@
         [(Info-struct src struct-name type-param* elt-name type* p) "struct"]
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
         [(Info-native-type src type-name type p) "type"]
+        [(Info-native-keyword handler p) "keyword"]
         [(Info-ledger ledger-field-name) "ledger field"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
@@ -674,6 +680,98 @@
       (source-errorf src "cannot export ~a (~s) from the top level"
                      (describe-info info)
                      name))
+    ;; expands a call of a native keyword such as accumulate, or returns #f for any
+    ;; other function
+    (define (native-keyword-call src src^ function-name targ* expr* p)
+      (Info-case (lookup p src^ function-name)
+        [(Info-native-keyword handler p^)
+         (handler src p p^ (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
+        [else #f]))
+    ;; keys are a few kilobytes
+    (define max-verifying-key-size (expt 2 20))
+    ;; prepareVerification's key is a string literal naming a regular .verifier file,
+    ;; resolved from the file holding the call, then along the compact path; its bytes
+    ;; are embedded in the circuit.  The elements of a tuple-literal publicInputs are
+    ;; kept apart so that one may be a carried Accumulator.  p^ is unused, but every
+    ;; native-keyword handler takes it.
+    (define (expand-prepare-verification src p p^ info* expr*)
+      (unless (null? info*)
+        (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
+      (let ([n (length expr*)])
+        (unless (fx= n 3)
+          (source-errorf src "prepareVerification expects three arguments, received ~d" n)))
+      (let* ([vk-expr (car expr*)]
+             [pi-expr (cadr expr*)]
+             [proof-expr (caddr expr*)]
+             [pathname (or (nanopass-case (Lpreexpand Expression) vk-expr
+                             ; the parser has already turned a string literal into its UTF-8 bytes
+                             [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
+                             [else #f])
+                           (source-errorf src "prepareVerification expects its first argument to be a string literal naming a verifying key file"))]
+             [resolved-pathname
+              (begin
+                (unless (string=? (path-extension pathname) "verifier")
+                  (source-errorf src "expected the verifying key file name ~s to end in .verifier" pathname))
+                ;; relative to the file holding the call, not the one being compiled
+                (parameterize ([relative-path (path-parent (source-file-descriptor-path (source-object-sfd src)))])
+                  (find-source-pathname "" pathname
+                    (lambda (pathname)
+                      (source-errorf src "failed to locate verifying key file ~s" pathname)))))]
+             [content (begin
+                        (unless (file-regular? resolved-pathname #f)
+                          (source-errorf src "verifying key file ~s must be a regular file, not a directory or symbolic link" pathname))
+                        (guard (c [else (error-accessing-file c "reading verifying key file")])
+                          (let ([x (call-with-port (open-file-input-port resolved-pathname)
+                                     (lambda (ip) (get-bytevector-n ip (fx+ max-verifying-key-size 1))))])
+                            (if (eof-object? x) (bytevector) x))))])
+        (when (fx= (bytevector-length content) 0)
+          (source-errorf src "verifying key file ~s is empty" pathname))
+        (when (fx> (bytevector-length content) max-verifying-key-size)
+          (source-errorf src "verifying key file ~s is larger than ~d bytes" pathname max-verifying-key-size))
+        (let ([pi-expr* (nanopass-case (Lpreexpand Expression) pi-expr
+                          [(tuple ,src^ ,tuple-arg* ...)
+                           (map (lambda (tuple-arg)
+                                  (nanopass-case (Lpreexpand Tuple-Argument) tuple-arg
+                                    [(single ,src^ ,expr) expr]
+                                    ;; [...e] on its own, so it is converted and checked as in any tuple
+                                    [(spread ,src^ ,expr)
+                                     (with-output-language (Lpreexpand Expression)
+                                       `(tuple ,src^ (spread ,src^ ,expr)))]))
+                                tuple-arg*)]
+                          [else (list pi-expr)])])
+          (with-output-language (Lexpanded Expression)
+            `(prepare-verification ,src
+               ,(make-verifying-key pathname content)
+               (,(maplr (lambda (expr) (Expression expr p)) pi-expr*) ...)
+               ,(Expression proof-expr p))))))
+    ;; accumulate(a, b, c, ...) expands to nested calls of the private binary native
+    ;; __compact_accumulate, resolved in p^, which the ZKIR backend flattens again.
+    (define (expand-accumulate src p p^ info* expr*)
+      (unless (null? info*)
+        (source-errorf src "accumulate expects no generic arguments, received ~d" (length info*)))
+      (let ([n (length expr*)])
+        (when (fx< n 2)
+          (source-errorf src "accumulate expects at least two arguments, received ~d" n)))
+      (let ([fun (let ([native (Function (with-output-language (Lpreexpand Function) `(fref ,src __compact_accumulate))
+                                         p^)])
+                   (nanopass-case (Lexpanded Function) native
+                     [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...) (,generic-value* ...) ((,src* ,generic-kind** ...) ...))
+                      (with-output-language (Lexpanded Function)
+                        `(fref ,src^ accumulate ((,function-name** ...) ...) (,generic-value* ...) ((,src* ,generic-kind** ...) ...)))]
+                     [else (internal-errorf 'expand-accumulate "unexpected function ~s" native)]))])
+        (let loop ([acc (Expression (car expr*) p)] [expr* (cdr expr*)])
+          (if (null? expr*)
+              acc
+              (loop (with-output-language (Lexpanded Expression)
+                      `(call ,src ,fun ,acc ,(Expression (car expr*) p)))
+                    (cdr expr*))))))
+    (define (keyword-declarations)
+      (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)])
+        (list
+          (with-output-language (Lpreexpand Program-Element)
+            `(native-keyword ,src #t prepareVerification ,expand-prepare-verification))
+          (with-output-language (Lpreexpand Program-Element)
+            `(native-keyword ,src #t accumulate ,expand-accumulate)))))
     (define (do-import src import-name info* prefix maybe-ielt* p)
       (define (import-insert! src name info)
         (define (add-prefix x) (string->symbol (format "~a~a" prefix (symbol->string x))))
@@ -698,6 +796,7 @@
                                                         (native-declarations)
                                                         (event-declarations)
                                                         (inline-declarations)
+                                                        (keyword-declarations)
                                                         (map (lambda (adt-defn)
                                                                 (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -720,7 +819,7 @@
                                     (set! outer-module-next-seqno (cons (fx1+ (car outer-module-next-seqno)) (cdr outer-module-next-seqno)))
                                     (set-cdr! a info)
                                     info))))
-                       (let* ([pathname (find-source-pathname src
+                       (let* ([pathname (find-source-pathname ".compact"
                                           (if (symbol? import-name) (symbol->string import-name) import-name)
                                           (lambda (pathname) (source-errorf src "failed to locate file ~s" pathname)))]
                               [import-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
@@ -892,6 +991,12 @@
                      (env-insert! p src type-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src type-name info) export*) export*)
+                           unresolved-export*))]
+                  [(native-keyword ,src ,exported? ,function-name ,handler)
+                   (let ([info (Info-native-keyword handler p)])
+                     (env-insert! p src function-name info)
+                     (loop pelt* seqno*
+                           (if exported? (cons (make-exportit src function-name info) export*) export*)
                            unresolved-export*))]
                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                    (let ([info (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)])
@@ -1265,8 +1370,14 @@
               [else #f])]
            [else #f])
          `(elt-ref ,src ,(Expression expr p) ,elt-name^))]
-    [(call ,src ,[fun] ,expr* ...) ; force fun to be processed before expr* to get better error messages
-     `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)]
+    [(call ,src ,fun ,expr* ...)
+     (or (nanopass-case (Lpreexpand Function) fun
+           [(fref ,src^ ,function-name) (native-keyword-call src src^ function-name '() expr* p)]
+           [(fref ,src^ ,function-name (,targ* ...)) (native-keyword-call src src^ function-name targ* expr* p)]
+           [else #f])
+         ; force fun to be processed before expr* to get better error messages
+         (let ([fun (Function fun p)])
+           `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)))]
     [(serialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])
      `(serialize ,src ,nat ,type ,expr)]
     [(deserialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])

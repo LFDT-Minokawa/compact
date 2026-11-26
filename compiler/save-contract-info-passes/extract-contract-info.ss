@@ -230,6 +230,9 @@
      (list
        (cons "type-name" "Uint")
        (cons "maxval" nat))]
+    ;; a witness may return an Accumulator
+    [(taccumulator ,src)
+     (list (cons "type-name" "Accumulator"))]
     [(tpoint ,src ,ctype)
      (list (cons "type-name"
              (strict-nanopass-case (Lloweredemit Curve-Type) ctype

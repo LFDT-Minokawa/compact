@@ -86,6 +86,7 @@
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -173,6 +174,7 @@
           [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
           [(tpoint ,src1 ,ctype1)
            (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+          [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
           [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
           [(topaque ,src1 ,opaque-type1)
            (T type2
@@ -709,6 +711,43 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type)))
      (with-output-language (Lnodca Type) `(ttuple ,src))]
+    [(prepare-verification ,src ,vk (,pubin* ...) ,[Care : expr2 -> * type2])
+     ;; keep in step with field-representable? in infer-types.ss and check-types-Linlined.ss
+     (define (field-representable? type)
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tfield ,src1 (field-native)) #t]
+         [(tunsigned ,src1 ,nat) #t]
+         [(tboolean ,src1) #t]
+         [(tvector ,src1 ,len ,type) (field-representable? type)]
+         [(ttuple ,src1 ,type* ...) (andmap field-representable? type*)]
+         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...) (andmap field-representable? type*)]
+         [else #f]))
+     (for-each
+       (lambda (pubin)
+         (nanopass-case (Lnodca Public-Input) pubin
+           [(pi-fields ,expr ,type^)
+            (let ([type (Care expr)])
+              (unless (field-representable? type)
+                (source-errorf src "expected a public input of prepareVerification to hold only Field, Uint, and Boolean values, received ~a"
+                               (format-type type)))
+              ;; type^ is what the TypeScript encodes the instance with
+              (unless (same-type? type type^)
+                (source-errorf src "expected a public input of prepareVerification to have type ~a, received ~a"
+                               (format-type type^) (format-type type))))]
+           [(pi-accumulator ,expr)
+            (let ([type (Care expr)])
+              (unless (nanopass-case (Lnodca Type) (de-alias type)
+                        [(taccumulator ,src1) #t]
+                        [else #f])
+                (source-errorf src "expected the public input of prepareVerification to have type Accumulator, received ~a"
+                               (format-type type))))]))
+       pubin*)
+     (unless (nanopass-case (Lnodca Type) (de-alias type2)
+               [(topaque ,src1 ,opaque-type) (string=? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
+                      (format-type type2)))
+     (with-output-language (Lnodca Type) `(taccumulator ,src))]
     [(disclose ,src ,[Care : expr -> * type]) type]
     [(tuple ,src ,tuple-arg* ...)
      (with-output-language (Lnodca Type)

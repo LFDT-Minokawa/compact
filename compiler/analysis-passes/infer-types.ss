@@ -93,6 +93,7 @@
                          (format "Uint<~d>" bits))))
              (format "Uint<0..~d>" (+ nat 1)))]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tundeclared) "Undeclared"]
@@ -195,6 +196,7 @@
                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                 [(tpoint ,src1 ,ctype1)
                  (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+                [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
                 [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                 [(topaque ,src1 ,opaque-type1)
                  (T type2
@@ -264,6 +266,7 @@
                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
                 [(tpoint ,src1 ,ctype1)
                  (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+                [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
                 [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                 [(topaque ,src1 ,opaque-type1)
                  (T type2
@@ -340,6 +343,24 @@
          (let ([type (Type ?type)])
            (verify-non-adt-type! ?src type ?fmt ?arg ...)
            type)]))
+    ;; An Accumulator lives only in a circuit's registers: it has no ledger or ABI
+    ;; representation, a witness may return one but not take one, and it cannot sit
+    ;; inside an aggregate.
+    (define (contains-accumulator? type)
+      (type-contains? type
+        (lambda (type)
+          (T type [(taccumulator ,src) #t]))))
+    (define (verify-no-accumulator! src type fmt . arg*)
+      (when (contains-accumulator? type)
+        (source-errorf src "~a cannot be or contain an Accumulator, but has type ~a"
+                       (apply format fmt arg*)
+                       (format-type type))))
+    (define (verify-no-accumulator-args! what arg*)
+      (for-each
+        (lambda (arg)
+          (verify-no-accumulator! (id-src (arg->name arg)) (arg->type arg)
+            "argument '~a' of ~a" (id-sym (arg->name arg)) what))
+        arg*))
     (define (type-contains? type base-predicate)
       (let recur ([type type])
         (nanopass-case (Ltypes Type) type
@@ -977,8 +998,8 @@
                   (let ([ht (make-hashtable symbol-hash eq?)])
                     (for-each (lambda (n t) (hashtable-set! ht n t)) struct-name* type*)
                     ht)])
-       (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
-         (maplr Program-Element unused-pelt*))
+       (let ([unused-pelt* (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
+                             (maplr Program-Element unused-pelt*))])
        (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
          (let* ([pelt* (maplr Program-Element pelt*)]
                 [contract-type*
@@ -989,7 +1010,8 @@
                        (symbol->string (contract-name ct2))))
                    (vector->list (hashtable-keys contract-type-ht)))])
            (for-each (contract-implements! pelt* export-name* name*) cidecl*)
-           `(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...))))])
+           (check-accumulator-usage! (append unused-pelt* pelt*))
+           `(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)))))])
   (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
     (definitions
       (define (build-function kind is-native name arg* type)
@@ -1005,6 +1027,7 @@
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
+     (verify-no-accumulator! src type "ledger field ~a" (id-sym ledger-field-name))
      (set-idtype! ledger-field-name (Idtype-Base type))]
     [else (void)])
   (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -1012,14 +1035,22 @@
      (for-each External-Contract-Circuit! ecdecl-circuit*)])
   (External-Contract-Circuit! : External-Contract-Circuit (ir) -> * (void)
     [(,src ,pure-dcl ,elt-name (,[arg*] ...) ,type)
-     (Non-ADT-Type type src "circuit ~a return" elt-name)])
+     (let ([what (format "contract circuit ~a" elt-name)])
+       (verify-no-accumulator-args! what arg*)
+       (verify-no-accumulator! src (Non-ADT-Type type src "circuit ~a return" elt-name)
+         "return value of ~a" what))])
   (Program-Element : Program-Element (ir) -> Program-Element ())
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,expr)
+     (verify-no-accumulator-args! "the ledger constructor" arg*)
      (let-values ([(expr return-type) (do-circuit-body src "ledger constructor" arg* (with-output-language (Ltypes Type) `(ttuple ,src)) expr)])
        `(constructor ,src (,arg* ...) ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
+     (when (id-exported? function-name)
+       (let ([what (format "exported circuit ~a" (id-sym function-name))])
+         (verify-no-accumulator-args! what arg*)
+         (verify-no-accumulator! src type "return value of ~a" what)))
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
        `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
@@ -1027,12 +1058,17 @@
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
   (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
+     ;; a witness may return an Accumulator, which prepareVerification binds to
+     ;; an inner proof and accumulates, but cannot take one
+     (verify-no-accumulator-args! (format "witness ~a" (id-sym function-name)) arg*)
      `(witness ,src ,function-name (,arg* ...) ,type)])
   (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
     [(export-typedef ,src ,type-name (,tvar-name* ...) ,[type])
      (if (public-adt? type)
          (source-errorf src "cannot export alias for ADT types from the top level")
-         `(export-typedef ,src ,type-name (,tvar-name* ...) ,type))])
+         (begin
+           (verify-no-accumulator! src type "exported type ~a" type-name)
+           `(export-typedef ,src ,type-name (,tvar-name* ...) ,type)))])
   (ADT-Op : ADT-Op (ir) -> ADT-Op ())
   (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
   (Argument : Argument (ir) -> Argument ()
@@ -1047,34 +1083,45 @@
     [(tfield ,src ,[ftype]) `(tfield ,src ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,src ,nat)]
     [(tpoint ,src ,[ctype]) `(tpoint ,src ,ctype)]
+    [(taccumulator ,src) `(taccumulator ,src)]
     [(topaque ,src ,opaque-type) `(topaque ,src ,opaque-type)]
     [(tundeclared) `(tundeclared)]
     [(tvector ,src ,len ,type)
      (let ([type (Non-ADT-Type type src "vector element")])
+       (verify-no-accumulator! src type "vector element")
        `(tvector ,src ,len ,type))]
     [(tbytes ,src ,len)
      `(tbytes ,src ,len)]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
      (let ([type** (map (lambda (type* elt-name)
                           (map (lambda (type i)
-                                 (Non-ADT-Type type src "circuit '~a' argument ~d" elt-name (fx+ i 1)))
+                                 (let ([type (Non-ADT-Type type src "circuit '~a' argument ~d" elt-name (fx+ i 1))])
+                                   (verify-no-accumulator! src type "circuit '~a' argument ~d" elt-name (fx+ i 1))
+                                   type))
                                type*
                                (enumerate type*)))
                         type**
                         elt-name*)]
-           [type* (map (lambda (type elt-name) (Non-ADT-Type type src "circuit '~a' return" elt-name))
+           [type* (map (lambda (type elt-name)
+                         (let ([type (Non-ADT-Type type src "circuit '~a' return" elt-name)])
+                           (verify-no-accumulator! src type "circuit '~a' return" elt-name)
+                           type))
                        type*
                        elt-name*)])
        `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...))]
     [(ttuple ,src ,type* ...)
      (let ([type* (map (lambda (type i)
-                         (Non-ADT-Type type src "tuple element ~d" (fx+ i 1)))
+                         (let ([type (Non-ADT-Type type src "tuple element ~d" (fx+ i 1))])
+                           (verify-no-accumulator! src type "tuple element ~d" (fx+ i 1))
+                           type))
                        type*
                        (enumerate type*))])
        `(ttuple ,src ,type* ...))]
     [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
      (let ([type* (map (lambda (type elt-name)
-                         (Non-ADT-Type type src "struct field '~a'" elt-name))
+                         (let ([type (Non-ADT-Type type src "struct field '~a'" elt-name)])
+                           (verify-no-accumulator! src type "struct field '~a'" elt-name)
+                           type))
                        type*
                        elt-name*)])
        `(tstruct ,src ,struct-name (,elt-name* ,type*) ...))]
@@ -1235,7 +1282,10 @@
        [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
         (guard (eq? adt-name 'Kernel))
         (source-errorf src "default is not defined for ADT type Kernel")]
-       [else (values `(default ,src ,type) type)])]
+       [else
+        (when (contains-accumulator? type)
+          (source-errorf src "default is not defined for type ~a" (format-type type)))
+        (values `(default ,src ,type) type)])]
     [(if ,src ,[Care : expr0 type0] ,expr1 ,expr2)
      (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)
                [(tboolean ,src1) #t]
@@ -1790,6 +1840,46 @@
                             ...)
                   ,expr)
                 body-type)))))]
+    [(prepare-verification ,src ,vk (,expr1* ...) ,expr2)
+     ;; each element of the public inputs is either an Accumulator the inner proof
+     ;; carries or a value whose type flattens to native fields, one for each
+     ;; Field, Uint, or Boolean it holds
+     ;; keep in step with field-representable? in check-types-Lnodca.ss and check-types-Linlined.ss
+     (define (field-representable? type)
+       (nanopass-case (Ltypes Type) (de-alias type #t)
+         [(tfield ,src^ ,ftype)
+          (nanopass-case (Ltypes Field-Type) ftype
+            [(field-native) #t]
+            [else #f])]
+         [(tunsigned ,src^ ,nat) #t]
+         [(tboolean ,src^) #t]
+         [(tvector ,src^ ,len ,type) (field-representable? type)]
+         [(ttuple ,src^ ,type* ...) (andmap field-representable? type*)]
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...) (andmap field-representable? type*)]
+         [else #f]))
+     (let ([pubin* (maplr
+                     (lambda (expr1)
+                       (let-values ([(expr1 type1) (Care expr1)])
+                         (cond
+                           [(nanopass-case (Ltypes Type) (de-alias type1 #t)
+                              [(taccumulator ,src^) #t]
+                              [else #f])
+                            (with-output-language (Ltypes Public-Input) `(pi-accumulator ,expr1))]
+                           [(field-representable? type1)
+                            (with-output-language (Ltypes Public-Input) `(pi-fields ,expr1 ,type1))]
+                           [else
+                            (source-errorf src "expected each public input of prepareVerification to be an Accumulator or to hold only Field, Uint, and Boolean values, received ~a"
+                                           (format-type type1))])))
+                     expr1*)])
+       (let-values ([(expr2 type2) (Care expr2)])
+         (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
+                   [(topaque ,src^ ,opaque-type) (string=? opaque-type "Uint8Array")]
+                   [else #f])
+           (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
+                          (format-type type2)))
+         (values
+           `(prepare-verification ,src ,vk (,pubin* ...) ,expr2)
+           (with-output-language (Ltypes Type) `(taccumulator ,src)))))]
     [(assert ,src ,[Care : expr type0] ,mesg)
      (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)
                [(tboolean ,src1) #t]

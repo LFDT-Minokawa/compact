@@ -44,6 +44,7 @@
            (let ([f (lambda (expr) (rename-expr expr p))])
              `(let* ,src ([(,var-name* ,type*) ,(map f expr*)] ...) ,(f expr))))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
+      (Public-Input : Public-Input (ir p) -> Public-Input ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
     (define-record-type circuit
       (nongenerative)

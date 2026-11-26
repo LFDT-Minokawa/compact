@@ -30,6 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param* native-entry-constructor-ok?
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
+          make-verifying-key verifying-key? verifying-key-pathname verifying-key-content
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
@@ -406,6 +407,15 @@
     (nongenerative)
     (fields function class disclosure* maybe-type-param* constructor-ok?))
 
+  ;; an inner verifying key: pathname as written, and its bytes
+  (module (make-verifying-key verifying-key? verifying-key-pathname verifying-key-content)
+    (define-record-type verifying-key
+      (nongenerative)
+      (fields pathname content))
+    (record-writer (record-type-descriptor verifying-key)
+      (lambda (x p wr)
+        (fprintf p "#<verifying-key ~a>" (verifying-key-pathname x)))))
+
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (boolean (exported sealed pure-dcl nominal))
@@ -414,15 +424,21 @@
       (+ (boolean (exported sealed pure-dcl nominal constructor-ok))
          (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (string (prefix mesg opaque-type file discloses))
-         (procedure (result-type runtime-code))
+         (procedure (result-type runtime-code handler))
          (vm-expr (vm-expr))
          (vm-code (vm-code))
          (native-entry (native-entry))))
     (Program-Element (pelt)
       (+ ntdecl
          ndecl
+         nkdecl
          adt-defn
          fixup-alias-defn))
+    ;; A native keyword is a standard-library name whose calls expand-modules-and-types
+    ;; rewrites by calling handler, for forms that are not ordinary circuit calls.
+    (Native-Keyword-Declaration (nkdecl)
+      (+ (native-keyword src exported? function-name handler) =>
+           (native-keyword function-name)))
     (Native-Type-Declaration (ntdecl)
       (+ (native-type src exported? type-name type) =>
            (native-type type-name type)))
@@ -452,7 +468,8 @@
       (+ (serialize src tsize type expr)      => (serialize tsize type expr)
          (deserialize src tsize type expr)    => (deserialize tsize type expr)))
     (Type (type)
-      (+ (tpoint src ctype)                   => (tpoint ctype)))
+      (+ (tpoint src ctype)                   => (tpoint ctype)
+         (taccumulator src)                   => (taccumulator)))
     (Field-Type (ftype)
       (+ (field-base ctype))
       (+ (field-scalar ctype)))
@@ -507,6 +524,7 @@
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
       (+ (len (len)))
+      (+ (verifying-key (vk)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (boolean (exported sealed pure-dcl nominal constructor-ok))
          (string (prefix mesg opaque-type file discloses)))
@@ -528,11 +546,14 @@
          enumdef
          tdefn
          ntdecl
+         nkdecl
          adt-defn
          fixup-alias-defn)
       (+ export-tdefn))
     (Native-Type-Declaration (ntdecl)
       (- (native-type src exported? type-name type)))
+    (Native-Keyword-Declaration (nkdecl)
+      (- (native-keyword src exported? function-name handler)))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Fixup-Alias-Definition (fixup-alias-defn)
@@ -608,7 +629,9 @@
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
-         (deserialize src len type expr)    => (deserialize len type expr)))
+         (deserialize src len type expr)    => (deserialize len type expr)
+         ;; expr1* are the public inputs (a tuple literal's elements, or the one argument), expr2 the proof
+         (prepare-verification src vk (expr1* ...) expr2) => (prepare-verification vk (expr1* ...) expr2)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -663,6 +686,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -777,6 +801,14 @@
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
+      ;; pubin* are the inner proof's public inputs, in order, and expr the proof itself
+      (prepare-verification src vk (pubin* ...) expr) => (prepare-verification vk (pubin* ...) expr)
+      )
+    (Public-Input (pubin)
+      ;; a value of native fields, flattened in order; type is what the TypeScript encodes it with
+      (pi-fields expr type)                   => (pi-fields expr type)
+      ;; an Accumulator, encoded in place and accumulated into the result
+      (pi-accumulator expr)                   => (pi-accumulator expr)
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
@@ -795,6 +827,7 @@
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tpoint src ctype)                     => (tpoint ctype)
+      (taccumulator src)                     => (taccumulator)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -933,12 +966,13 @@
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
-         (hashtable (descriptor-table))))
+         (hashtable (descriptor-table vk-table))))
     (Program (p)
       (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src (contract-type* ...) ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
+    ;; vk-table maps the bytes of each verifying key the circuits name to its id
     (Type-Descriptors (tdescs)
-      (+ (type-descriptors descriptor-table (descriptor-id* type*) ...) =>
+      (+ (type-descriptors descriptor-table vk-table (descriptor-id* type*) ...) =>
            (type-descriptors #f (descriptor-id* type*) ...)))
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type expr))
@@ -1062,6 +1096,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -1127,6 +1162,12 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      ;; pubin* are the inner proof's public inputs, triv the proof; the guard is the test
+      (prepare-verification src vk (pubin* ...) triv) => (prepare-verification vk (pubin* ...) triv)
+      )
+    (Public-Input (pubin)
+      (pi-fields triv)                       => (pi-fields triv)
+      (pi-accumulator triv)                  => (pi-accumulator triv)
       )
     (Triv (triv test)
       var-name
@@ -1144,6 +1185,7 @@
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tpoint src ctype)                     => (tpoint ctype)
+      (taccumulator src)                     => (taccumulator)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -1176,6 +1218,10 @@
          (boolean (pure-dcl safe))
          (field-bytes (nb))
          (string (mesg opaque-type file sugar zkir-type))))
+    (Public-Input (pubin)
+      ;; the value's fields, one triv each
+      (- (pi-fields triv))
+      (+ (pi-fields triv* ...)                => (pi-fields triv* ...)))
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type stmt* ... triv))
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
@@ -1223,7 +1269,8 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len ftype triv)
          (bytes->field src ftype len triv)
-         (downcast-unsigned src nat2 nat1 triv)))
+         (downcast-unsigned src nat2 nat1 triv)
+         (prepare-verification src vk (pubin* ...) triv)))
     (Single (single)
       (+ triv
          (+ primitive-type triv1 triv2)
@@ -1238,6 +1285,8 @@
          (cast-to-field ftype primitive-type triv)
          (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
          (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
+         ;; triv is the proof and pubin* the inner proof's public inputs, in order
+         (prepare-verification src vk triv pubin* ...) => (prepare-verification vk triv #f pubin* ...)
          ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
@@ -1274,6 +1323,7 @@
          (tfield src ftype)
          (tunsigned src nat)
          (tpoint src ctype)
+         (taccumulator src)
          (tbytes src len)
          (topaque src opaque-type)
          (tvector src len type)
@@ -1286,6 +1336,7 @@
       (+ (tfield ftype)
          (tunsigned nat)
          (tpoint ctype)
+         (taccumulator)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -1300,6 +1351,7 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      (verifying-key (vk))
       ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
       ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
@@ -1309,6 +1361,7 @@
       (circuit src (name* ...) ((var-name* zkir-type*) ...) (zkir-type0* ...) instr* ...) =>
         (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f (zkir-type0* 0 ...) #f instr* ...))
     (Instruction (instr)
+      (accumulate outp inp* ...)
       (add outp inp0 inp1)
       (assert inp)
       (bytes_from_natives outp imm inp* ...)
@@ -1326,6 +1379,8 @@
       (from_coordinates outp inp0 inp1)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
+      ;; inp is the guard
+      (inner_proof outp inp)
       (into_coordinates outp0 outp1 inp)
       (inv outp inp)
       (jubjub_scalar_from_native outp inp)
@@ -1336,6 +1391,8 @@
       (not outp inp)
       (output inp* ...)
       (persistent_hash outp (alignment* ...) inp* ...)
+      ;; inp0 is the guard, inp1 the proof bound by inner_proof, inp* the instance
+      (prepare_verification outp vk inp0 inp1 inp* ...)
       (private_input zkir-type outp inp)
       (private_input zkir-type outp)
       (public_input zkir-type outp inp)
@@ -1347,6 +1404,7 @@
       (test_eq outp inp0 inp1)
       (to_bytes outp inp)
       (transient_hash outp inp* ...)
+      (verify_accumulator inp)
       )
     (Input (inp)
       fr

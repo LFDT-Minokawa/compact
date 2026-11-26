@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 
 /**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
@@ -31,6 +31,11 @@ export interface PartialProofData {
    * The transcript of the witness call outputs
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The inner proofs from the `prepareVerification` calls the circuit executes, in order;
+   * pass them as the last argument of `proofDataIntoSerializedPreimage`
+   */
+  innerProofs: Uint8Array[];
 }
 
 /**

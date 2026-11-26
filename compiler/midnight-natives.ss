@@ -28,6 +28,22 @@
 (declare-native-type Secp256r1Scalar tfield (field-scalar (curve-secp256r1)))
 (declare-native-type Secp256r1Point tpoint (curve-secp256r1))
 
+;; ==== In-circuit proof verification
+(declare-native-type Accumulator taccumulator)
+;; accumulate(a, b, ...) is a keyword (see expand-modules-and-types) that expands to
+;; nested calls of this binary native, which is private to the standard library
+(declare-native-entry private-circuit __compact_accumulate
+  "__compactRuntime.accumulate"
+  (allowed-in-constructor #t)
+  ([a (TypeRef Accumulator) (discloses nothing)]
+   [b (TypeRef Accumulator) (discloses nothing)])
+  (TypeRef Accumulator))
+(declare-native-entry circuit verifyAccumulator
+  "__compactRuntime.verifyAccumulator"
+  (allowed-in-constructor #t)
+  ([acc (TypeRef Accumulator) (discloses "an Accumulator derived from")])
+  Void)
+
 ;; ==== Transient (Poseidon) hashing
 (declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"

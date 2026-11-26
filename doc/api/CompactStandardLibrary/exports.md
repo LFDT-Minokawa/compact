@@ -1039,6 +1039,172 @@ To actually enforce that a signature is valid in a Compact circuit, use an
 circuit ed25519Verify<#n>(msg: Bytes<n>, sig: Ed25519Signature, pk: Curve25519Point): Boolean;
 ```
 
+### `Accumulator`
+
+This is a native type.
+
+An accumulator holds the deferred final check of one or more proofs verified
+inside a circuit by [`prepareVerification`](#prepareverification).  Nothing is
+verified until the accumulator reaches
+[`verifyAccumulator`](#verifyaccumulator), which exposes it so that the check
+happens when the transaction's own proof is verified.
+
+Each accumulator must be used exactly once.  An accumulator is used by:
+* binding it with `const`,
+* passing it to a circuit, to [`accumulate`](#accumulate), or to
+  [`verifyAccumulator`](#verifyaccumulator),
+* returning it from a circuit that is not exported, or
+* yielding it from a branch of an `if` or a conditional expression (`? :`).
+
+A circuit computes both branches of an `if`, so a branch cannot use an
+accumulator bound outside the `if`; it can only use, or yield, accumulators it
+produces itself.  The code after a `return` inside an `if` counts as the other
+branch, so it cannot use them either: use such an accumulator before the `if`.
+When both branches of an `if` return, every accumulator bound before it must
+already be used.
+
+A witness may return an accumulator: the accumulator an inner proof carries
+(see [`prepareVerification`](#prepareverification)).  Such an accumulator can
+only be used as `prepareVerification`'s public inputs, either as an element of a
+tuple literal written there or as the whole argument, which binds it to the
+inner proof.  It can get there directly, through `const` bindings and anonymous
+circuits called on the spot, or by being yielded from a branch of an `if`.  It
+cannot be passed to
+`accumulate`, `verifyAccumulator`, or another circuit, nor returned: on its own
+it proves nothing, since a prover can always supply one that passes.
+Otherwise an accumulator cannot be stored in a ledger field, passed to a
+witness, passed to or returned from an exported circuit, or placed in a tuple,
+vector, or structure.  It cannot
+be compared, serialized, or deserialized, and it has no default value.
+`disclose` passes an accumulator through unchanged.  An accumulator bound
+outside a `for` loop, `map`, or `fold` cannot be used inside it.
+
+### `prepareVerification`
+
+This is a native circuit.
+
+Partially verifies an inner proof in-circuit and returns an
+[`Accumulator`](#accumulator) holding its deferred final check.  The proof is
+verified only once that accumulator reaches
+[`verifyAccumulator`](#verifyaccumulator), possibly combined with others by
+[`accumulate`](#accumulate).
+
+It is called as `prepareVerification(vk, publicInputs, proof)` and returns an
+`Accumulator`:
+
+* `vk` must be a string literal naming the inner proof's verifying key file,
+  whose name ends in `.verifier`.  The compiler looks for a relative name first
+  in the directory of the file containing the call, then along the compact path,
+  reads the file at compile time, and embeds the key in the circuit.  The file
+  must be a non-empty regular file, not a symbolic link, of at most 1 MiB.
+* `publicInputs` are the inner proof's public inputs: any value made only of
+  `Field`, `Uint`, and `Boolean` values, such as a tuple `[x, y]`, a
+  `Vector<n, Field>`, or a structure.  Each `Field`, `Uint`, and `Boolean` is
+  one field of the inner proof's instance, in order, with a structure's fields
+  in the order it declares them.  `prepareVerification` takes no generic
+  arguments.
+* `proof` is the inner proof, an `Opaque<"Uint8Array">`, typically returned
+  by a witness and so wrapped in `disclose` (see below).
+
+```compact
+const acc = prepareVerification("inner.verifier", [x, y], disclose(innerProof()));
+```
+
+An inner proof that verified proofs of its own, such as a step of an IVC
+chain, carries an [`Accumulator`](#accumulator) in its instance.  That
+accumulator may be an element of a tuple literal written as `publicInputs`, or
+the whole of `publicInputs` when the instance holds nothing else, and is
+typically returned by a witness that builds it in TypeScript with
+`Accumulator.fromPublicInputs`.  Its encoding takes its place in the instance,
+binding it to the inner proof, and it is accumulated into the result, so that
+its check happens too:
+
+```compact
+const acc = prepareVerification("ivc.verifier", [steps, disclose(carried())], disclose(ivcProof()));
+```
+
+The accumulator's position in `publicInputs` must match the inner circuit's
+instance.  A proof of a Compact circuit that calls `verifyAccumulator` carries it
+first, ahead of the circuit's other public inputs; the example above assumes an
+inner circuit that carries it last.
+
+Pass a carried accumulator as an `Accumulator`, never as its fields.  The
+same values passed as `Field`s still match the inner proof's instance, so the
+proof verifies, but the accumulator is never accumulated and its check never
+happens.  The compiler cannot catch this, since a verifying key does not
+record whether its proof carries an accumulator.
+
+A circuit that calls `prepareVerification`, directly or through another
+circuit, is impure.  In a branch that is not taken, `prepareVerification`
+consumes no proof and its accumulator is trivially valid.  A constructor cannot
+call it, directly or through another circuit: a constructor is not proved on
+chain, so the verification would never take effect.
+
+When the circuit runs, `prepareVerification` checks the proof against the key
+and the public inputs, final check included, and fails if the proof is
+malformed, was made for another key, or does not hold for those public inputs.
+So a bad inner proof is refused when the circuit is called, before anything is
+sent to a proof server.  The check is skipped when an accumulator among the
+public inputs was computed by the circuit rather than returned by a witness, as
+its value is not known until the circuit is proved; such a proof is still
+refused when the circuit is proved.  Likewise, a carried accumulator's own final
+check happens only when the circuit is proved: the check here confirms that the
+inner proof carries it, not that it holds.
+
+Whether a `prepareVerification` runs can be observed, so calling it in a branch
+whose condition depends on witness data discloses that condition.  The
+accumulator `verifyAccumulator` exposes is a deterministic function of the
+public inputs and the proof: verifying the same inner proof on its own in two
+transactions exposes the same accumulator and makes them linkable, and combined
+with other accumulators it may still be linkable.  So the public inputs,
+including any accumulator among them, and the proof are treated as disclosed,
+and ones derived from witness data must be wrapped in `disclose`.
+
+For example, this circuit verifies two proofs of the same value against
+different keys:
+
+```compact
+import CompactStandardLibrary;
+
+witness proofA(): Opaque<"Uint8Array">;
+witness proofB(): Opaque<"Uint8Array">;
+
+export ledger attested: Field;
+
+export circuit attest(x: Field): [] {
+  attested = disclose(x);
+  const a = prepareVerification("a.verifier", [attested], disclose(proofA()));
+  const b = prepareVerification("b.verifier", [attested], disclose(proofB()));
+  verifyAccumulator(accumulate(a, b));
+}
+```
+
+### `accumulate`
+
+This is a native circuit.
+
+Combines two or more [`Accumulator`](#accumulator)s into one, which is valid
+if and only if all of them are.  It is called as `accumulate(a, b, ...)` with
+any number of accumulators, at least two, and returns an `Accumulator`:
+
+```compact
+verifyAccumulator(accumulate(a, b, c));
+```
+
+### `verifyAccumulator`
+
+This is a native circuit.
+
+Exposes an [`Accumulator`](#accumulator) so that the final check of every proof
+it holds happens when the transaction's own proof is verified.  Each
+`verifyAccumulator` exposes a separate accumulator, so combining accumulators
+with [`accumulate`](#accumulate) and verifying the result once is cheaper than
+verifying each separately.
+
+```compact
+circuit verifyAccumulator(acc: Accumulator): [];
+```
+
 ### `merkleTreePathRoot`
 
 Derives the Merkle tree root of a [`MerkleTreePath`](#merkletreepath), which
@@ -1336,7 +1502,8 @@ The encoding is canonical: for each type `T` and length `N` that `serialize` acc
 every value has exactly one encoding, and `serialize` always produces it.
 Two values of such a type are equal if and only if their same-length encodings are equal.
 
-`T` can be any type other than those containing contract types, `Opaque` types, or curve point types.
+`T` can be any type other than those containing contract types, `Opaque` types, curve point types,
+or [`Accumulator`](#accumulator).
 `N` must be at least the serialized size of `T`, which is determined by `T` alone;
 otherwise the program is rejected at compile time.
 If `N` is larger than the serialized size of `T`, the remaining bytes are zero.
