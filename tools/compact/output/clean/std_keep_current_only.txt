@@ -1,0 +1,3 @@
+compact: removing versions
+compact: kept 0.36.0
+compact: removed 0.36.0-rc.0

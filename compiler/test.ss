@@ -31956,7 +31956,7 @@ groups than for single tests.
     ))
 )
 
-(run-tests reject-constructor-emit
+(run-tests reject-constructor-forbidden-ops
   (test
     '(
       "import CompactStandardLibrary;"
@@ -31966,14 +31966,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but ~a at ~a" ("emits event ShieldedSpend" "line 3 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("emit event ShieldedSpend" "line 3 char 3")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  foo ();"
+      "  foo();"
       "  return;"
       "}"
       "export circuit foo (): ShieldedSpend {"
@@ -31984,20 +31984,39 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "emits event ShieldedSpend" "line 8 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 8 char 3" (constructor foo "emit event ShieldedSpend"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  bar ();"
+      "  bar();"
+      "  return;"
+      "}"
+      "circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  emit(x);"
+      "  return x;"
+      "}"
+      "export circuit bar (): ShieldedSpend { return foo(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 8 char 3" (constructor bar foo "emit event ShieldedSpend"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar();"
       "  return;"
       "}"
       "export circuit bar (): ShieldedSpend { foo (); }"
       "circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  emit (x);"
+      "  emit(x);"
       "  return x;"
       "}"
       )
@@ -32015,7 +32034,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 2 char 22")))
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 2 char 22" (constructor e "emit event ShieldedSpend"))))
     )
 
   (test
@@ -32027,7 +32046,428 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (ev "emits event ShieldedSpend" "line 2 char 34")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 2 char 34" (constructor ev "emit event ShieldedSpend"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimContractCall" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimContractCall" "line 6 char 9" (constructor foo kernel.claimContractCall))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  bar();"
+      "}"
+      "circuit bar (): [] {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimContractCall" "line 9 char 9" (constructor foo bar kernel.claimContractCall))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.checkpoint" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.checkpoint" "line 6 char 9" (constructor foo kernel.checkpoint))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinSpend" "<standard library>" (constructor mintShieldedToken kernel.claimZswapCoinSpend))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinSpend" "<standard library>" (constructor foo mintShieldedToken kernel.claimZswapCoinSpend))))
+    )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = receiveShielded(default<ShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinReceive" "<standard library>" (constructor receiveShielded kernel.claimZswapCoinReceive))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call createZswapOutput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call createZswapOutput" "line 6 char 3" (constructor foo createZswapOutput))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call createZswapInput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call createZswapInput" "line 6 char 3" (constructor foo createZswapInput))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedInputs" "<standard library>" (constructor receiveUnshielded kernel.incUnshieldedInputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedInputs" "<standard library>" (constructor foo receiveUnshielded kernel.incUnshieldedInputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.mintUnshielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.mintUnshielded" "line 6 char 9" (constructor foo kernel.mintUnshielded))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.mintShielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.mintShielded" "line 6 char 9" (constructor foo kernel.mintShielded))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.incUnshieldedOutputs" "line 4 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.incUnshieldedOutputs" "line 7 char 9" (constructor foo kernel.incUnshieldedOutputs))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimZswapCoinReceive" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapCoinReceive" "line 6 char 9" (constructor foo kernel.claimZswapCoinReceive))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.claimZswapNullifier" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimZswapNullifier" "line 6 char 9" (constructor foo kernel.claimZswapNullifier))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.incUnshieldedOutputs" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), left<ContractAddress, UserAddress>(default<ContractAddress>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.claimUnshieldedCoinSpend" "line 6 char 9" (constructor foo kernel.claimUnshieldedCoinSpend))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.self" "line 3 char 19")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.self" "line 6 char 19" (constructor foo kernel.self))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar();"
+      "}"
+      "export circuit bar (): [] { foo(); }"
+      "circuit foo (): [] {"
+      "  const a = kernel.self();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call kernel.self" "line 7 char 19" (constructor bar foo kernel.self))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "constructor() { b = kernel.blockTimeLessThan(4102444800); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.blockTimeLessThan" "line 3 char 27")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "constructor() { b = kernel.blockTimeGreaterThan(0); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call kernel.blockTimeGreaterThan" "line 3 char 27")))
     )
 
   ;; the public inputs of prepareVerification are checked too
@@ -32041,11 +32481,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (e "emits event ShieldedSpend" "line 3 char 22")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("emit event ShieldedSpend" "line 3 char 22" (constructor e "emit event ShieldedSpend"))))
     ))
-  )
 
-(run-tests reject-constructor-verify
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
@@ -32055,7 +32493,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot verify a proof but ~a at ~a" ("verifies a proof against \"testfile.verifier\"" "line 3 char 35")))
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("verify a proof against \"testfile.verifier\"" "line 3 char 35")))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -32068,7 +32506,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot verify a proof but calls (directly or indirectly) ~a, which ~a at ~a" (check "verifies a proof against \"testfile.verifier\"" "line 3 char 41")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("verify a proof against \"testfile.verifier\"" "line 3 char 41" (constructor check prepareVerification))))
     ))
   )
 
@@ -38213,7 +38651,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 7 char 21")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 7 char 21"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 7 char 21" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -38234,7 +38674,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 6 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 6 char 43")))
+       irritants: '("testfile.compact line 6 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 6 char 43"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 43" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 6 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   ;; calls inside tuple literals and map arguments are checked too
@@ -38246,7 +38688,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 3 char 43")))
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot ~a but does so at ~a" ("call circuit get from external contract C" "line 3 char 43")))
     )
 
   (test
@@ -38258,7 +38700,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit getv from external contract C" "line 4 char 50")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a" ("call circuit getv from external contract C" "line 4 char 50")))
     )
 
   ;; the public inputs of prepareVerification are checked too
@@ -38268,11 +38710,11 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness p(): Opaque<'Uint8Array'>;"
       "contract C { circuit get(): Field; }"
-      "constructor(c: C) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(c).get()], p())); }"
+      "constructor(c: C) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(c).get()], disclose(p()))); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit get from external contract C" "line 4 char 92")))
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a" ("call circuit get from external contract C" "line 4 char 92")))
     ))
 
   (test-group
@@ -38307,7 +38749,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit fooo from external contract C2" "line 11 char 32")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit fooo from external contract C2" "line 11 char 32"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -39320,7 +39764,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C" "line 7 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C" "line 7 char 47"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 7 char 47" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -39506,7 +39952,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit fooo from external contract C2" "line 11 char 59")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit fooo from external contract C2" "line 11 char 59"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 59" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -39539,7 +39987,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit foo from external contract C1" "line 11 char 67")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit foo from external contract C1" "line 11 char 67")))
      ))
 
   (test-group
@@ -39572,7 +40020,9 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but ~a at ~a" ("calls circuit bar from external contract C1" "line 11 char 89")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a" ("call circuit bar from external contract C1" "line 11 char 89"))
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 11 char 69" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c2 of the constructor at line 11 char 21" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
      ))
 
   (test-group
@@ -39605,7 +40055,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (foofoo "calls circuit foo from external contract C1" "line 12 char 50")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo foo))))
      ))
 
   (test-group
@@ -39640,7 +40090,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo blah fab foo))))
      ))
 
   (test-group
@@ -39674,7 +40124,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab foo))))
      ))
 
   (test-group
@@ -39708,7 +40158,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (fab "calls circuit foo from external contract C1" "line 12 char 40")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 40" (constructor foofoo fab foo))))
      ))
 
   (test-group
@@ -39732,7 +40182,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor baz bar))))
      ))
 
   (test-group
@@ -39758,7 +40208,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor blah id baz bar))))
      ))
 
   (test-group
@@ -39783,7 +40233,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
+       irritants: '("testfile.compact line 7 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit bar from external contract C1" "line 9 char 47" (constructor id baz bar))))
       ))
 
   (test-group
@@ -39816,8 +40266,32 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (foofoo "calls circuit foo from external contract C1" "line 12 char 50")))
+       irritants: '("testfile.compact line 11 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C1" "line 12 char 50" (constructor foofoo foo))))
      ))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(): []; }"
+      "circuit bar(c: C): [] { c.foo(); }"
+      "constructor(c: C) { bar(disclose(c)); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 26" (constructor bar foo))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(): []; }"
+      "circuit bar(c: C): [] { (true ? c : c).foo(); }"
+      "constructor(c: C) { bar(disclose(c)); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot ~a but does so at ~a (called via ~{~a~^ -> ~})" ("call circuit foo from external contract C" "line 3 char 39" (constructor bar foo))))
+    )
 
   (test-group
     ((create-file "C.compact"
@@ -79629,6 +80103,154 @@ groups than for single tests.
         ))
     )
 
+  ;; GitHub issue #938
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "struct Nested { a: Uint<8>, b: JubjubScalar, c: Boolean }"
+      "ledger bytes32: Bytes<32>;"
+      "ledger scalar: JubjubScalar;"
+      "ledger bytes34: Bytes<34>;"
+      "ledger nested: Nested;"
+      "export circuit testJtoB(s: JubjubScalar): Bytes<32> {"
+      "  const b = s as Bytes<32>;"
+      "  bytes32 = disclose(b);"
+      "  return bytes32;"
+      "}"
+      "export circuit testBtoJ(b: Bytes<32>): JubjubScalar {"
+      "  const s = b as JubjubScalar;"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      "export circuit testSerialize(s: JubjubScalar): Bytes<32> {"
+      "  const b = serialize<JubjubScalar, 32>(s);"
+      "  bytes32 = disclose(b);"
+      "  return bytes32;"
+      "}"
+      "export circuit testDeserialize(b: Bytes<32>): JubjubScalar {"
+      "  const s = deserialize<JubjubScalar, 32>(b);"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      "export circuit testSerializeNested(n: Nested): Bytes<34> {"
+      "  const b = serialize<Nested, 34>(n);"
+      "  bytes34 = disclose(b);"
+      "  return bytes34;"
+      "}"
+      "export circuit testDeserializeNested(b: Bytes<34>): Nested {"
+      "  const n = deserialize<Nested, 34>(b);"
+      "  nested = disclose(n);"
+      "  return nested;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('JubjubScalar casts to and from Bytes<32>, serialize, and deserialize', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ,(format "  const R = ~dn;" (1+ (max-jubjub-scalar)))
+        ,(format "  const P = ~dn;" (1+ (max-field)))
+        "  const le = (n: bigint, len: number = 32): Uint8Array => {"
+        "    const a = new Uint8Array(len);"
+        "    for (let i = 0; i < len; i++) { a[i] = Number(n & 0xffn); n >>= 8n; }"
+        "    return a;"
+        "  };"
+        "  // Scalar to bytes: 32-byte little-endian encoding, for both the cast and serialize."
+        "  for (const s of [0n, 1n, 1000n, R - 1n]) {"
+        "    expect((await C.circuits.testJtoB(Ctxt, s)).result).toEqual(le(s));"
+        "    expect((await C.circuits.testSerialize(Ctxt, s)).result).toEqual(le(s));"
+        "  }"
+        "  // Bytes to scalar: little-endian integer reduced modulo R, never failing."
+        "  // P and 2^256 - 1 distinguish a single reduction modulo R from reducing modulo P first."
+        "  for (const n of [0n, 1n, R - 1n, R, R + 5n, P - 1n, P, (1n << 256n) - 1n]) {"
+        "    const expected = n % R;"
+        "    expect((await C.circuits.testBtoJ(Ctxt, le(n))).result).toEqual(expected);"
+        "    expect((await C.circuits.testDeserialize(Ctxt, le(n))).result).toEqual(expected);"
+        "  }"
+        "  // Round trip."
+        "  for (const s of [0n, 12345n, R - 1n]) {"
+        "    const b = (await C.circuits.testSerialize(Ctxt, s)).result;"
+        "    expect((await C.circuits.testDeserialize(Ctxt, b)).result).toEqual(s);"
+        "  }"
+        "  // JubjubScalar inside a structure: 1 + 32 + 1 bytes, fields in declaration order."
+        "  const n = { a: 7n, b: R - 2n, c: true };"
+        "  const b = new Uint8Array([7, ...le(R - 2n), 1]);"
+        "  expect((await C.circuits.testSerializeNested(Ctxt, n)).result).toEqual(b);"
+        "  expect((await C.circuits.testDeserializeNested(Ctxt, b)).result).toEqual(n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "struct Nested { a: Uint<8>, b: JubjubScalar, c: Boolean }"
+      "export ledger scalar: JubjubScalar;"
+      "export ledger bytes32: Bytes<32>;"
+      "export ledger u8: Uint<8>;"
+      "export circuit selectBtoJ(b: Boolean, x: JubjubScalar, y: Bytes<32>): JubjubScalar {"
+      "  scalar = disclose(b ? x : y as JubjubScalar);"
+      "  return scalar;"
+      "}"
+      "export circuit selectJtoB(b: Boolean, x: JubjubScalar, y: Bytes<32>): Bytes<32> {"
+      "  bytes32 = disclose(b ? y : x as Bytes<32>);"
+      "  return bytes32;"
+      "}"
+      "export circuit ifBtoJ(b: Boolean, x: JubjubScalar, y: Bytes<32>): JubjubScalar {"
+      "  if (disclose(b)) {"
+      "    scalar = disclose(y as JubjubScalar);"
+      "  } else {"
+      "    scalar = disclose(x);"
+      "  }"
+      "  return scalar;"
+      "}"
+      "export circuit ifJtoB(b: Boolean, x: JubjubScalar, y: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    bytes32 = disclose(x as Bytes<32>);"
+      "  } else {"
+      "    bytes32 = disclose(y);"
+      "  }"
+      "  return bytes32;"
+      "}"
+      "export circuit deserializeA(b: Bytes<34>): Uint<8> {"
+      "  u8 = disclose(deserialize<Nested, 34>(b).a);"
+      "  return u8;"
+      "}"
+      "export circuit unusedCast(y: Bytes<32>): Uint<8> {"
+      "  const s = y as JubjubScalar;"
+      "  u8 = 3;"
+      "  return u8;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('JubjubScalar casts under a condition and unused JubjubScalar casts', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ,(format "  const R = ~dn;" (1+ (max-jubjub-scalar)))
+        "  const le = (n: bigint, len: number = 32): Uint8Array => {"
+        "    const a = new Uint8Array(len);"
+        "    for (let i = 0; i < len; i++) { a[i] = Number(n & 0xffn); n >>= 8n; }"
+        "    return a;"
+        "  };"
+        "  const x = R - 3n;"
+        "  const y = le(R + 5n);"
+        "  // Bytes to scalar, selected by a condition."
+        "  expect((await C.circuits.selectBtoJ(Ctxt, true, x, y)).result).toEqual(x);"
+        "  expect((await C.circuits.selectBtoJ(Ctxt, false, x, y)).result).toEqual(5n);"
+        "  expect((await C.circuits.ifBtoJ(Ctxt, true, x, y)).result).toEqual(5n);"
+        "  expect((await C.circuits.ifBtoJ(Ctxt, false, x, y)).result).toEqual(x);"
+        "  // Scalar to bytes, selected by a condition."
+        "  expect((await C.circuits.selectJtoB(Ctxt, true, x, y)).result).toEqual(y);"
+        "  expect((await C.circuits.selectJtoB(Ctxt, false, x, y)).result).toEqual(le(x));"
+        "  expect((await C.circuits.ifJtoB(Ctxt, true, x, y)).result).toEqual(le(x));"
+        "  expect((await C.circuits.ifJtoB(Ctxt, false, x, y)).result).toEqual(y);"
+        "  // The JubjubScalar casts below are dead after flattening."
+        "  const b = new Uint8Array([7, ...le((1n << 256n) - 1n), 1]);"
+        "  expect((await C.circuits.deserializeA(Ctxt, b)).result).toEqual(7n);"
+        "  expect((await C.circuits.unusedCast(Ctxt, y)).result).toEqual(3n);"
+        "});"
+        ))
+    )
+
   (test ; Arithmetic and comparisons involving JubjubScalar
     '(
       "import CompactStandardLibrary;"
@@ -82954,6 +83576,18 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (keccak256 "Opaque<\"string\">"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(s: Opaque<'string'>): [] {"
+      "  hash = disclose(sha512<Opaque<'string'>>(s));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (sha512 "Opaque<\"string\">"))))
 
   (test
     '(
@@ -86770,6 +87404,143 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger callerIsSome: Boolean;"
+      "export ledger nativeBalance: Uint<128>;"
+      "constructor() {"
+      "  callerIsSome = kernel.caller().is_some;"
+      "  nativeBalance = kernel.balance(left<Bytes<32>, Bytes<32>>(nativeToken()));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('caller and balance in a constructor', async () => {"
+        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const L = contractCode.ledger(ctxt.callContext.currentQueryContext.state);"
+        "  expect(L.callerIsSome).toEqual(false);"
+        "  expect(L.nativeBalance).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Set insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.insertCoin(1 as Field, disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Map insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.pushFrontCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('List pushFrontCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coins: Map<Field, Set<QualifiedShieldedCoinInfo>>;"
+      "constructor(c: ShieldedCoinInfo) {"
+      "  coins.lookup(1 as Field).insertCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('nested Map-to-Set insertCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger coin: QualifiedShieldedCoinInfo;"
+      "circuit store(c: ShieldedCoinInfo): [] {"
+      "  coin.writeCoin(disclose(c), left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      "constructor(c: ShieldedCoinInfo, write: Boolean) {"
+      "  if (disclose(write)) { store(c); }"
+      "}"
+      "export circuit storeFromCircuit(c: ShieldedCoinInfo): [] {"
+      "  store(c);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('writeCoin in a constructor', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  await expect(startContract(contractCode, {}, undefined, c, true)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        "test('writeCoin in a circuit', async () => {"
+        "  const c = { nonce: new Uint8Array(32), color: new Uint8Array(32), value: 5n };"
+        "  const [C, ctxt] = await startContract(contractCode, {}, undefined, c, false);"
+        "  await expect(C.circuits.storeFromCircuit(ctxt, c)).rejects.toThrow('Coin commitment not found');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger ctorKey: Bytes<32>;"
+      "constructor() {"
+      "  ctorKey = ownPublicKey().bytes;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('ownPublicKey in a constructor', async () => {"
+        "  const key = 'ab'.repeat(32);"
+        "  const contract = new contractCode.Contract({});"
+        "  const result = await contract.initialState(runtime.createConstructorContext(undefined, key));"
+        "  const L = contractCode.ledger(result.currentContractState.data);"
+        "  expect(L.ctorKey).toEqual(Uint8Array.from(Buffer.from(key, 'hex')));"
+        "});"
+        ))
     )
 )
 

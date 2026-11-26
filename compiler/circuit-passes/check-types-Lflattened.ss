@@ -390,7 +390,7 @@
        (define (valid-length? ctype)
          (strict-nanopass-case (Lflattened Curve-Type) ctype
            [(curve-curve25519) (eqv? len 32)]
-           [(curve-jubjub) #f]
+           [(curve-jubjub) (eqv? len 32)]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
        (verify-test src test)

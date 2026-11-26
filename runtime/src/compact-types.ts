@@ -17,6 +17,7 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import { CompactError } from './error.js';
 import {
   ACCUMULATOR_PUBLIC_INPUTS,
+  MAX_JUBJUB_SCALAR,
   MAX_SECP256K1_BASE,
   MAX_SECP256K1_SCALAR,
   MAX_SECP256R1_BASE,
@@ -330,9 +331,26 @@ export const CompactTypeField: CompactType<bigint> = {
 };
 
 /**
- * Runtime type of the builtin `JubjubScalar` type
+ * Runtime type of the builtin `JubjubScalar` type.
  */
-export const CompactTypeJubjubScalar: CompactType<bigint> = CompactTypeField;
+export const CompactTypeJubjubScalar: CompactType<bigint> = {
+  alignment(): ocrt.Alignment {
+    return [{ tag: 'atom', value: { tag: 'field' } }];
+  },
+  fromValue(value: ocrt.Value): bigint {
+    const val = CompactTypeField.fromValue(value);
+    if (val > MAX_JUBJUB_SCALAR) {
+      throw new CompactError('expected JubjubScalar');
+    }
+    return val;
+  },
+  toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > MAX_JUBJUB_SCALAR) {
+      throw new CompactError('expected JubjubScalar');
+    }
+    return CompactTypeField.toValue(value);
+  },
+};
 
 /**
  * The Compact builtin `Accumulator` type: the deferred final check of one or more
@@ -543,15 +561,17 @@ export class CompactTypeEnum implements CompactType<number> {
 
   fromValue(value: ocrt.Value): number {
     const val = value.shift();
-    if (val == undefined) {
+    if (val == undefined || val.length > this.length) {
       throw new CompactError(`expected Enum[<=${this.maxValue}]`);
     } else {
       let res = 0;
-      for (let i = 0; i < val.length; i++) {
-        res += (1 << (8 * i)) * val[i];
-      }
-      if (res > this.maxValue) {
-        throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+      for (let i = val.length - 1; i >= 0; --i) {
+        res = res * 256 + val[i];
+        // Check inside the loop so `res` never exceeds 2^53, where `number`
+        // arithmetic loses precision.
+        if (res > this.maxValue) {
+          throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+        }
       }
       return res;
     }

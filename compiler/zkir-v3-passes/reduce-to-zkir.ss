@@ -44,8 +44,6 @@
             (let ([atom (car alignment*)])
               (nanopass-case (Lflattened Alignment) atom
                 [(anative ,zkir-type) (guard (string=? zkir-type "JubjubScalar"))
-                 ;; This doesn't have its own descriptor in `runtime/src/compact-types.ts.  It's
-                 ;; just a native field but it needs a ZKIR conversion instruction.
                  (let ([fld (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -954,7 +952,7 @@
          [(field-scalar ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
             [(curve-curve25519) (handle-bytes32-field)]
-            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-jubjub) (handle-bytes32-field)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
@@ -1119,7 +1117,7 @@
                     `(bytes_from_natives ,tmp 64 ,(reverse triv*) ...)
                     instr*))]
                [else (assert cannot-happen)])]
-            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-jubjub) (handle-bytes32-field)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(vector->bytes ,triv ,triv* ...)

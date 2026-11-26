@@ -1,0 +1,5 @@
+error: the argument '--installed' cannot be used with '--pre'
+
+Usage: compact list --installed
+
+For more information, try '--help'.

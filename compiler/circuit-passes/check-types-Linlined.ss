@@ -243,7 +243,7 @@
     (define (valid-byte-length? ctype len)
       (strict-nanopass-case (Linlined Curve-Type) ctype
         [(curve-curve25519) (eqv? len 32)]
-        [(curve-jubjub) #f]
+        [(curve-jubjub) (eqv? len 32)]
         [(curve-secp256k1) (eqv? len 32)]
         [(curve-secp256r1) (eqv? len 32)]))
     )

@@ -1354,7 +1354,7 @@ witness ownPublicKey(): ZswapCoinPublicKey;
 
 ### `createZswapInput`
 
-This is a native witness.
+This is a native witness. It cannot be called in a contract's constructor.
 
 Notifies the context to create a new Zswap input originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
@@ -1369,7 +1369,7 @@ witness createZswapInput(coin: QualifiedShieldedCoinInfo): [];
 
 ### `createZswapOutput`
 
-This is a native witness.
+This is a native witness. It cannot be called in a contract's constructor.
 
 Notifies the context to create a new Zswap output originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and

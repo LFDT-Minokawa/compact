@@ -79,7 +79,7 @@
           # hack to get npmlock2nix working, by pretending we're using an old
           # node version
           nodejs-16_x = final.nodejs;
-          nodejs = final.nodejs_latest;
+          nodejs = final.nodejs_24;
         });
         isDarwin = pkgs.lib.hasSuffix "-darwin" system;
         libcrypto = if isDarwin then null else "${pkgs.openssl.out}/lib/libcrypto.so";
@@ -217,7 +217,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.36.109"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.36.113"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

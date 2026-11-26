@@ -110,9 +110,8 @@ async function addDependency(dependency: Dependency, dependantTree: Arborist.Nod
   dependantTree.children.set(dependencyLoaded.name, dependencyLoaded);
   dependencyLoaded.parent = dependantTree;
   dependencyLoaded.root = dependantTree;
-  // @ts-ignore Typings provided are for older version, there are some differences
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   dependencyLoaded.addEdgeIn(
+    // @ts-expect-error accept is optional at runtime
     new Edge({
       from: dependantTree,
       name: dependencyLoaded.package.name!,
@@ -198,8 +197,6 @@ async function fixInvalidEdges(
     const { type, name } = invalidEdge;
     const from = invalidEdge.from!;
     const to = invalidEdge.to!;
-    // @ts-ignore Typings provided are for older version, there are some differences
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     invalidEdge.detach();
     from.parent?.children.delete(name);
     to.parent = null;
@@ -216,9 +213,8 @@ async function fixInvalidEdges(
         : 'dependencies';
     from.package[targetDeps]![newTo.package.name!] = newTo.resolved!;
 
-    // @ts-ignore Typings provided are for older version, there are some differences
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     newTo.addEdgeIn(
+      // @ts-expect-error accept is optional at runtime
       new Edge({
         from,
         name,

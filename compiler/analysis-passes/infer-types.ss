@@ -427,7 +427,7 @@
              (id-src (blob-name blob2))))
          (define (opaque-hashing-error? symbolic-name blob)
            (and (blob-is-native blob)
-                (memq symbolic-name '(persistentHash persistentCommit keccak256))
+                (memq symbolic-name '(persistentHash persistentCommit keccak256 sha512))
                 (> (length (blob-arg-type* blob)) 0)
                 (contains-js-opaque? (car (blob-arg-type* blob)))))
          (let outer ([function-name** function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
@@ -831,7 +831,7 @@
           (if (null? adt-op*)
               (fail)
               (nanopass-case (Ltypes ADT-Op) (car adt-op*)
-                [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code)
+                [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code ,constructor-ok?)
                  (if (eq? ledger-op elt-name)
                      (let ([ndeclared (length type^*)] [nactual (length type*)])
                        (unless (fx= nactual ndeclared)
@@ -1918,7 +1918,7 @@
        (define (valid-length? ctype len)
          (strict-nanopass-case (Ltypes Curve-Type) ctype
            [(curve-curve25519) (eqv? len 32)]
-           [(curve-jubjub) #f]
+           [(curve-jubjub) (eqv? len 32)]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
        (or (and (subtype? source-type target-type)

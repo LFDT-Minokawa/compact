@@ -46,6 +46,7 @@
         (define (check-identifier x) (unless (identifier? x) (syntax-error x "not an identifier")))
         (define (non-negative-fixnum? x) (and (fixnum? x) (fx>= x 0)))
         (define (check-string x) (unless (string? (syntax->datum x)) (syntax-error x "not a string")))
+        (define (check-boolean x) (unless (boolean? (syntax->datum x)) (syntax-error x "not a boolean")))
         (define (check-class x)
           (syntax-case x ()
             [class-name
@@ -154,7 +155,7 @@
                   (list (reverse radt-op*) (reverse radt-rt-op*))
                   (let ([clause (car clause*)] [clause* (cdr clause*)])
                     (let add-cond ([clause clause] [adt-op-cond* '()])
-                      (syntax-case clause (when function js-only =)
+                      (syntax-case clause (when function js-only = allowed-in-constructor)
                         [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                          (begin
                            (check-identifier #'op-name)
@@ -171,10 +172,11 @@
                                          ,result-type
                                          ,runtime-code))
                                    radt-rt-op*)))]
-                        [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-op ...))
+                        [(function class op-name (allowed-in-constructor constructor-ok?) ([input-name input-type . disclosure] ...) result-type doc-string (vm-op ...))
                          (begin
                            (check-class #'class)
                            (check-identifier #'op-name)
+                           (check-boolean #'constructor-ok?)
                            (check-vm-code (syntax->datum #`(input-name ... #,@adt-formal*)) #'(vm-op ...))
                            (for-each check-identifier #'(input-name ...))
                            (loop clause*
@@ -182,10 +184,12 @@
                                    (with-syntax ([(input-type ...) (map expand-type #'(input-type ...))]
                                                  [result-type (expand-type #'result-type)]
                                                  [(adt-op-cond ...) adt-op-cond*]
-                                                 [(discloses? ...) (map parse-disclosure #'(disclosure ...))])
+                                                 [(discloses? ...) (map parse-disclosure #'(disclosure ...))]
+                                                 [constructor-ok? #'constructor-ok?])
                                      #'(op-name class ((input-name input-type discloses?) ...)
                                          result-type
                                          ,(make-vm-code #'(vm-op ...))
+                                         ,constructor-ok?
                                          adt-op-cond ...))
                                    radt-op*)
                                  radt-rt-op*))]
@@ -295,10 +299,10 @@
              (define (read-ops clause*)
                (let ([op* (fold-left
                             (lambda (op* clause)
-                              (syntax-case clause (function js-only)
+                              (syntax-case clause (function js-only allowed-in-constructor)
                                 [(when (expr ...) (function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...)))
                                  op*]
-                                [(when (expr ...) (function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...)))
+                                [(when (expr ...) (function class op-name (allowed-in-constructor constructor-ok?) ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...)))
                                  (if (eq? (datum class) 'read)
                                      (cons (datum op-name) op*)
                                      op*)]
@@ -395,7 +399,7 @@
                          input-type*)
                        (expand-formatting (syntax->datum result-type-string))))
                    (paragraph (expand-formatting (syntax->datum doc-string)))))
-               (define (emit-function op-name input-name* input-type* result-type doc-string cond-str)
+               (define (emit-function op-name input-name* input-type* result-type doc-string constructor-ok? cond-str)
                  (paragraph "### ~a" op-name)
                  (code-block "compact"
                    (printf "~a(~{~a~^, ~}): ~a" op-name
@@ -406,7 +410,9 @@
                        input-name*
                        input-type*)
                      (format-compact-type result-type)))
-                 (paragraph (expand-formatting (syntax->datum doc-string)))
+                 (paragraph "~a~:[ It cannot be called in a contract's constructor.~;~]"
+                   (expand-formatting (syntax->datum doc-string))
+                   constructor-ok?)
                  (when cond-str
                    (paragraph "**~a**" cond-str))
                  (when (memq op-name read-op*)
@@ -427,11 +433,11 @@
                         (and (fx>= (string-length str) 0)
                              (char=? (string-ref str (fx1- (string-length str))) #\?)))))
                (define (function-clause clause cond-str)
-                 (syntax-case clause (function js-only)
+                 (syntax-case clause (function js-only allowed-in-constructor)
                    [(function js-only op-name ([input-name input-type] ...) result-type-string doc-string (runtime-string ...))
                     (emit-js-function (datum op-name) (datum (input-name ...)) #'(input-type ...) (datum result-type-string) (datum doc-string) cond-str)]
-                   [(function class op-name ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
-                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) cond-str)]
+                   [(function class op-name (allowed-in-constructor constructor-ok?) ([input-name input-type . disclosure] ...) result-type doc-string (vm-instruction ...))
+                    (emit-function (datum op-name) (datum (input-name ...)) #'(input-type ...) #'result-type (datum doc-string) (datum constructor-ok?) cond-str)]
                    [else (syntax-error clause)]))
                (syntax-case clause (when)
                  [(when () clause) (function-clause #'clause #f)]
