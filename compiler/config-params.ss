@@ -28,6 +28,12 @@
 
   (export-parameter skip-zk #t)
 
+  ; parallel zkir processes, or #f for automatic.  compactc reports an invalid
+  ; COMPACT_ZK_JOBS; here it is ignored.
+  (export-parameter zk-jobs
+    (let ([s (getenv "COMPACT_ZK_JOBS")])
+      (and s (let ([n (string->number s)]) (and n (fixnum? n) (fx> n 0) n)))))
+
   ; default source path
   (export-parameter compact-path (split-search-path (or (getenv "COMPACT_PATH") "")))
 
