@@ -425,15 +425,10 @@ circuit reverseBytes32(b: Bytes<32>): Bytes<32> {
 //   P  = u1*G + u2*pk
 //   valid iff P.x == r as 32-byte big-endian integers
 //
-// This is the verification algorithm of FIPS 186-5 section 6.4.2 from step 3 on,
-// with step 2, hashing the message, left to the caller.  Where the algorithm outputs
-// "reject" the circuit returns false, never fails: in step 1 for an `r` or `s` of
-// zero (the types exclude n and above), in step 6 for a P that is the identity, and
-// in step 9 for a P.x that differs from `r`.  A caller can therefore branch on the
-// result, and a call on a branch that is not taken does not make the circuit
-// unprovable.  The public key is not part of the algorithm: an identity key fails an
-// assertion, and the type excludes a point that is not on the curve.
-//
+// This is FIPS 186-5 section 6.4.2 from step 3 on; step 2, hashing, is left to the
+// caller.  A signature the algorithm rejects makes the circuit return false rather
+// than fail, so a call on an untaken branch stays provable.
+// 
 // Both low-s and high-s signatures are accepted.  FIPS 186-5, the Digital Signature
 // Standard, constrains s only to the interval [1, n - 1] in section 6.4.2 (ECDSA
 // Signature Verification Algorithm) and imposes no low-s requirement; that rule
